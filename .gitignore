@@ -1,0 +1,14 @@
+# Ignore config files
+.env
+config/*.yaml
+
+# Ignore binary files
+bin/*
+*.exe
+
+# Ignore system files
+.DS_Store
+
+# Ignore IDE files
+.idea/
+.vscode/
