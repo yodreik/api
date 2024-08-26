@@ -1,7 +1,8 @@
 package config
 
 import (
-	"log"
+	"api/internal/lib/sl"
+	"log/slog"
 	"os"
 	"time"
 
@@ -33,17 +34,20 @@ func MustLoad() *Config {
 	configPath := os.Getenv("CONFIG_PATH")
 
 	if configPath == "" {
-		log.Fatalf("missed CONFIG_PATH parameter")
+		slog.Error("missed CONFIG_PATH parameter")
+		os.Exit(1)
 	}
 
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
-		log.Fatalf("config file does not exist at: %s", configPath)
+		slog.Error("config file does not exist", slog.String("path", configPath))
+		os.Exit(1)
 	}
 
 	var config Config
 
 	if err := cleanenv.ReadConfig(configPath, &config); err != nil {
-		log.Fatalf("cannot read config: %s", err)
+		slog.Error("cannot read config", sl.Err(err))
+		os.Exit(1)
 	}
 
 	return &config
