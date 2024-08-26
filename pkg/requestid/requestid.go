@@ -7,7 +7,7 @@ import (
 
 const headerRequestID = "X-Request-ID"
 
-// New initializes the RequestID middleware.
+// New initializes the RequestID middleware
 func New(c *gin.Context) {
 	rid := c.GetHeader(headerRequestID)
 	if rid == "" {
@@ -19,7 +19,7 @@ func New(c *gin.Context) {
 	c.Next()
 }
 
-// Get returns the request identifier.
+// Get returns the request identifier
 func Get(c *gin.Context) string {
 	return c.Writer.Header().Get(headerRequestID)
 }

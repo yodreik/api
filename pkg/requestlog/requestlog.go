@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// Handled initialize a middleware for logging every request
 func Handled(c *gin.Context) {
 	slog.Info("Request handled",
 		slog.String("request_id", requestid.Get(c)),
