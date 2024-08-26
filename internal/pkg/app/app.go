@@ -4,6 +4,8 @@ import (
 	"api/internal/app/router"
 	"api/internal/config"
 	"api/internal/lib/sl"
+	"api/internal/repository"
+	"api/internal/repository/postgres"
 	"context"
 	"errors"
 	"log/slog"
@@ -35,7 +37,15 @@ func (a *App) Run() {
 
 	slog.Info("Server running")
 
-	r := router.New(a.config)
+	db, err := postgres.New(&a.config.Postgres)
+	if err != nil {
+		slog.Error("Could not connect to database", sl.Err(err))
+		os.Exit(1)
+	}
+
+	repo := repository.New(db)
+
+	r := router.New(a.config, repo)
 
 	server := &http.Server{
 		Addr:         a.config.Server.Address,
@@ -62,7 +72,7 @@ func (a *App) Run() {
 
 	slog.Info("Server shutting down")
 
-	err := server.Shutdown(context.Background())
+	err = server.Shutdown(context.Background())
 	if err != nil {
 		slog.Error("Error occurred on server shutting down", sl.Err(err))
 		os.Exit(1)
