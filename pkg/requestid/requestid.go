@@ -8,15 +8,15 @@ import (
 const headerRequestID = "X-Request-ID"
 
 // New initializes the RequestID middleware.
-func New(ctx *gin.Context) {
-	rid := ctx.GetHeader(headerRequestID)
+func New(c *gin.Context) {
+	rid := c.GetHeader(headerRequestID)
 	if rid == "" {
 		rid = uuid.NewString()
-		ctx.Request.Header.Add(headerRequestID, rid)
+		c.Request.Header.Add(headerRequestID, rid)
 	}
 
-	ctx.Header(headerRequestID, rid)
-	ctx.Next()
+	c.Header(headerRequestID, rid)
+	c.Next()
 }
 
 // Get returns the request identifier.
