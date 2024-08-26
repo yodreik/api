@@ -12,3 +12,6 @@ bin/*
 # Ignore IDE files
 .idea/
 .vscode/
+
+# Ignore storage files
+.database/

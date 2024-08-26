@@ -2,14 +2,17 @@ package handler
 
 import (
 	"api/internal/config"
+	"api/internal/repository"
 )
 
 type Handler struct {
-	config *config.Config
+	config     *config.Config
+	repository *repository.Repository
 }
 
-func New(cfg *config.Config) *Handler {
+func New(c *config.Config, r *repository.Repository) *Handler {
 	return &Handler{
-		config: cfg,
+		config:     c,
+		repository: r,
 	}
 }

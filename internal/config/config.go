@@ -17,14 +17,24 @@ const (
 )
 
 type Config struct {
-	Env    string `yaml:"env" env-required:"true"`
-	Server Server `yaml:"http" env-required:"true"`
+	Env      string   `yaml:"env" env-required:"true"`
+	Server   Server   `yaml:"server" env-required:"true"`
+	Postgres Postgres `yaml:"postgres" env-required:"true"`
 }
 
 type Server struct {
 	Address     string        `yaml:"address" env-required:"true"`
 	Timeout     time.Duration `yaml:"timeout" env-default:"4s"`
 	IdleTimeout time.Duration `yaml:"idle_timeout" env-default:"60s"`
+}
+
+type Postgres struct {
+	Host     string `yaml:"host"`
+	Port     string `yaml:"port"`
+	User     string `yaml:"user"`
+	Name     string `yaml:"name"`
+	Password string `yaml:"password"`
+	ModeSSL  string `yaml:"sslmode"`
 }
 
 // MustLoad loads config to a new Config instance and return it.

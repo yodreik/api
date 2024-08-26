@@ -3,6 +3,7 @@ package router
 import (
 	"api/internal/app/handler"
 	"api/internal/config"
+	"api/internal/repository"
 	"api/pkg/requestid"
 	"fmt"
 	"log/slog"
@@ -15,10 +16,10 @@ type Router struct {
 	handler *handler.Handler
 }
 
-func New(cfg *config.Config) *Router {
-	h := handler.New(cfg)
+func New(c *config.Config, r *repository.Repository) *Router {
+	h := handler.New(c, r)
 	return &Router{
-		config:  cfg,
+		config:  c,
 		handler: h,
 	}
 }
