@@ -3,6 +3,7 @@ package app
 import (
 	"api/internal/app/router"
 	"api/internal/config"
+	"api/internal/lib/sl"
 	"context"
 	"errors"
 	"log/slog"
@@ -25,6 +26,11 @@ func New(c *config.Config) *App {
 }
 
 func (a *App) Run() {
+	if a.config.Env != config.EnvLocal {
+		logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+		slog.SetDefault(logger)
+	}
+
 	gin.SetMode(gin.ReleaseMode) // Turn off gin's logs
 
 	slog.Info("Server running")
@@ -42,7 +48,8 @@ func (a *App) Run() {
 	go func() {
 		if err := server.ListenAndServe(); err != nil {
 			if !errors.Is(err, http.ErrServerClosed) {
-				slog.Error("Failed to start server", slog.String("error", err.Error()))
+				slog.Error("Failed to start server", sl.Err(err))
+				os.Exit(1)
 			}
 		}
 	}()
@@ -57,7 +64,8 @@ func (a *App) Run() {
 
 	err := server.Shutdown(context.Background())
 	if err != nil {
-		slog.Error("Error occurred on server shutting down", slog.String("error", err.Error()))
+		slog.Error("Error occurred on server shutting down", sl.Err(err))
+		os.Exit(1)
 	}
 
 	slog.Info("Server stopped")
