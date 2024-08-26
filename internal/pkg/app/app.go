@@ -35,13 +35,15 @@ func (a *App) Run() {
 
 	gin.SetMode(gin.ReleaseMode) // Turn off gin's logs
 
-	slog.Info("Server running")
+	slog.Info("Starting API server...", slog.String("env", a.config.Env))
 
 	db, err := postgres.New(&a.config.Postgres)
 	if err != nil {
 		slog.Error("Could not connect to database", sl.Err(err))
 		os.Exit(1)
 	}
+
+	slog.Info("Successfully connected to PostgreSQL")
 
 	repo := repository.New(db)
 
@@ -78,5 +80,13 @@ func (a *App) Run() {
 		os.Exit(1)
 	}
 
-	slog.Info("Server stopped")
+	slog.Info("API server stopped")
+
+	err = db.Close()
+	if err != nil {
+		slog.Error("Could not close postgres connection properly", sl.Err(err))
+		os.Exit(1)
+	}
+
+	slog.Info("Postgres connection closed")
 }
