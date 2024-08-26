@@ -37,7 +37,7 @@ type Postgres struct {
 	ModeSSL  string `yaml:"sslmode"`
 }
 
-// MustLoad loads config to a new Config instance and return it.
+// MustLoad loads config to a new Config instance and return it
 func MustLoad() *Config {
 	_ = godotenv.Load()
 
