@@ -5,6 +5,7 @@ import (
 	"api/internal/config"
 	"api/internal/repository"
 	"api/pkg/requestid"
+	"api/pkg/requestlog"
 	"fmt"
 	"log/slog"
 
@@ -28,7 +29,9 @@ func (r *Router) InitRoutes() *gin.Engine {
 	router := gin.New()
 
 	router.Use(gin.Recovery())
+
 	router.Use(requestid.New)
+	router.Use(requestlog.Handled)
 
 	api := router.Group("/api")
 	{
