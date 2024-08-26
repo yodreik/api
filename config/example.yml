@@ -1,4 +1,4 @@
-env: "local"
+env: "local" # local, dev or prod
 
 http:
   address: ":6969"
