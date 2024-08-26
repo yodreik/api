@@ -32,6 +32,8 @@ func (r *Router) InitRoutes() *gin.Engine {
 
 	api := router.Group("/api")
 	{
+		api.GET("/healthcheck", r.handler.Healthcheck)
+
 		api.POST("/auth/register", r.handler.Register)
 		api.POST("/auth/login", r.handler.Login)
 	}
