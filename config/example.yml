@@ -14,4 +14,4 @@ postgres:
   user: "postgres"
   name: "postgres"
   password: "my-unhackable-password"
-  sslmode: "false"
+  sslmode: "disable"
