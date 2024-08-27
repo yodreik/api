@@ -9,3 +9,14 @@ services:
       - POSTGRES_PASSWORD
     ports:
       - "5432:5432"
+
+  api:
+    container_name: "welnex-api"
+    image: "welnex-api:latest"
+    depends_on:
+      - postgres
+    restart: "unless-stopped"
+    environment:
+      - CONFIG_PATH=./config/dev.yaml
+    ports:
+      - "6969:6969"
