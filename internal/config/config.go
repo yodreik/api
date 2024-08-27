@@ -19,6 +19,7 @@ const (
 type Config struct {
 	Env      string   `yaml:"env" env-required:"true"`
 	Server   Server   `yaml:"server" env-required:"true"`
+	Token    Token    `yaml:"token" env-required:"true"`
 	Postgres Postgres `yaml:"postgres" env-required:"true"`
 }
 
@@ -26,6 +27,10 @@ type Server struct {
 	Address     string        `yaml:"address" env-required:"true"`
 	Timeout     time.Duration `yaml:"timeout" env-default:"4s"`
 	IdleTimeout time.Duration `yaml:"idle_timeout" env-default:"60s"`
+}
+
+type Token struct {
+	Secret string `yaml:"secret" env-required:"true"`
 }
 
 type Postgres struct {

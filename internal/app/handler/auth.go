@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/mail"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
@@ -93,11 +94,11 @@ func (h *Handler) Login(ctx *gin.Context) {
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"id": user.ID,
+		"iat": time.Now().Unix(),
+		"id":  user.ID,
 	})
 
-	// TODO: Move secret to config
-	tokenString, err := token.SignedString([]byte("somesecret"))
+	tokenString, err := token.SignedString([]byte(h.config.Token.Secret))
 	if err != nil {
 		log.Error("Can't generate JWT", sl.Err(err))
 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, response.Err("can't login"))
