@@ -53,7 +53,7 @@ func (h *Handler) Register(ctx *gin.Context) {
 
 	log.Info("Created a user", slog.String("id", user.ID), slog.String("email", user.Email), slog.String("name", user.Name))
 
-	// TODO: Maybe additionally return an access token
+	// TOTHINK: Maybe additionally return an access token
 	ctx.JSON(http.StatusCreated, responsebody.User{
 		ID:    user.ID,
 		Email: body.Email,
@@ -98,10 +98,7 @@ func (h *Handler) Login(ctx *gin.Context) {
 		return
 	}
 
-	// TODO: Move struct to other package
-	ctx.JSON(http.StatusOK, struct {
-		Token string `json:"token"`
-	}{
+	ctx.JSON(http.StatusOK, responsebody.Token{
 		Token: tokenString,
 	})
 }

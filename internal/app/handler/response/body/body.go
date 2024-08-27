@@ -9,3 +9,7 @@ type User struct {
 	Email string `json:"email"`
 	Name  string `json:"name"`
 }
+
+type Token struct {
+	Token string `json:"token"`
+}
