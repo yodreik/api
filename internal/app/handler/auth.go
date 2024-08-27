@@ -45,8 +45,12 @@ func (h *Handler) Register(ctx *gin.Context) {
 	passwordHash := sha256.New()
 	passwordHash.Write([]byte(body.Password))
 
-	// TODO: Add handling of duplicate key error (= user already exists)
 	user, err := h.repository.User.Create(ctx, body.Email, body.Name, hex.EncodeToString(passwordHash.Sum(nil)))
+	if errors.Is(err, repoerr.ErrUserAlreadyExists) {
+		log.Debug("User already exists", sl.Err(err))
+		ctx.AbortWithStatusJSON(http.StatusConflict, response.Err("user already exists"))
+		return
+	}
 	if err != nil {
 		log.Error("Can't create user", sl.Err(err))
 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, response.Err("can't register"))
