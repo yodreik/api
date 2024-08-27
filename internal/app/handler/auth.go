@@ -11,6 +11,7 @@ import (
 	"net/mail"
 
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 // TODO: Test this handlers
@@ -21,7 +22,7 @@ func (h *Handler) Register(ctx *gin.Context) {
 		slog.String("request_id", requestid.Get(ctx)),
 	)
 
-	// TODO: Move body struct to other package
+	// TODO: Move struct to other package
 	var body struct {
 		Email    string `json:"email"`
 		Name     string `json:"name"`
@@ -29,7 +30,7 @@ func (h *Handler) Register(ctx *gin.Context) {
 	}
 
 	if err := ctx.BindJSON(&body); err != nil {
-		log.Error("Can't decode request body", sl.Err(err))
+		log.Debug("Can't decode request body", sl.Err(err))
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response.Err("invalid request body"))
 		return
 	}
@@ -48,12 +49,13 @@ func (h *Handler) Register(ctx *gin.Context) {
 	user, err := h.repository.User.Create(ctx, body.Email, body.Name, hex.EncodeToString(passwordHash.Sum(nil)))
 	if err != nil {
 		log.Error("Can't create user", sl.Err(err))
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, response.Err("can't create user"))
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, response.Err("can't register"))
 		return
 	}
 
 	log.Info("Created a user", slog.String("id", user.ID), slog.String("email", user.Email), slog.String("name", user.Name))
 
+	// TODO: Also create and return a access token
 	ctx.JSON(http.StatusCreated, response.User{
 		ID:    user.ID,
 		Email: body.Email,
@@ -61,4 +63,51 @@ func (h *Handler) Register(ctx *gin.Context) {
 	})
 }
 
-func (h *Handler) Login(ctx *gin.Context) {}
+func (h *Handler) Login(ctx *gin.Context) {
+	log := slog.With(
+		slog.String("op", "handler.Login"),
+		slog.String("request_id", requestid.Get(ctx)),
+	)
+
+	// TODO: Move struct to other package
+	var body struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
+
+	if err := ctx.BindJSON(&body); err != nil {
+		log.Debug("Can't decode request body", sl.Err(err))
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, response.Err("invalid request body"))
+		return
+	}
+
+	passwordHash := sha256.New()
+	passwordHash.Write([]byte(body.Password))
+
+	user, err := h.repository.User.GetByCredentials(ctx, body.Email, hex.EncodeToString(passwordHash.Sum(nil)))
+	if err != nil {
+		// TODO: Add custom error for user not found situation
+		log.Debug("User not found", sl.Err(err))
+		ctx.AbortWithStatusJSON(http.StatusNotFound, response.Err("user not found"))
+		return
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"id": user.ID,
+	})
+
+	// TODO: Move secret to config
+	tokenString, err := token.SignedString([]byte("somesecret"))
+	if err != nil {
+		log.Error("Can't generate JWT", sl.Err(err))
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, response.Err("can't login"))
+		return
+	}
+
+	// TODO: Move struct to other package
+	ctx.JSON(http.StatusOK, struct {
+		Token string `json:"token"`
+	}{
+		Token: tokenString,
+	})
+}
