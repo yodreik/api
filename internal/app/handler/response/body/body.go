@@ -1,11 +1,7 @@
-package response
+package body
 
 type Error struct {
 	Message string `json:"message"`
-}
-
-func Err(message string) Error {
-	return Error{Message: message}
 }
 
 type User struct {

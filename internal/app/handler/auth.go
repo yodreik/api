@@ -1,7 +1,9 @@
 package handler
 
 import (
-	"api/internal/app/response"
+	requestbody "api/internal/app/handler/request/body"
+	"api/internal/app/handler/response"
+	responsebody "api/internal/app/handler/response/body"
 	"api/internal/lib/sl"
 	"api/pkg/requestid"
 	"crypto/sha256"
@@ -23,12 +25,7 @@ func (h *Handler) Register(ctx *gin.Context) {
 		slog.String("request_id", requestid.Get(ctx)),
 	)
 
-	// TODO: Move struct to other package
-	var body struct {
-		Email    string `json:"email"`
-		Name     string `json:"name"`
-		Password string `json:"password"`
-	}
+	var body requestbody.Register
 
 	if err := ctx.BindJSON(&body); err != nil {
 		log.Debug("Can't decode request body", sl.Err(err))
@@ -56,8 +53,8 @@ func (h *Handler) Register(ctx *gin.Context) {
 
 	log.Info("Created a user", slog.String("id", user.ID), slog.String("email", user.Email), slog.String("name", user.Name))
 
-	// TODO: Also create and return a access token
-	ctx.JSON(http.StatusCreated, response.User{
+	// TODO: Maybe additionally return an access token
+	ctx.JSON(http.StatusCreated, responsebody.User{
 		ID:    user.ID,
 		Email: body.Email,
 		Name:  body.Name,
@@ -70,11 +67,7 @@ func (h *Handler) Login(ctx *gin.Context) {
 		slog.String("request_id", requestid.Get(ctx)),
 	)
 
-	// TODO: Move struct to other package
-	var body struct {
-		Email    string `json:"email"`
-		Password string `json:"password"`
-	}
+	var body requestbody.Login
 
 	if err := ctx.BindJSON(&body); err != nil {
 		log.Debug("Can't decode request body", sl.Err(err))
