@@ -1,7 +1,10 @@
 package user
 
 import (
+	repoerr "api/internal/repository/errors"
 	"context"
+	"database/sql"
+	"errors"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -44,6 +47,9 @@ func (p *Postgres) GetByID(ctx context.Context, id string) (*User, error) {
 
 	var user User
 	err := p.db.GetContext(ctx, &user, query, id)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, repoerr.ErrUserNotFound
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -56,6 +62,9 @@ func (p *Postgres) GetByCredentials(ctx context.Context, email string, passwordH
 
 	var user User
 	err := p.db.GetContext(ctx, &user, query, email, passwordHash)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, repoerr.ErrUserNotFound
+	}
 	if err != nil {
 		return nil, err
 	}

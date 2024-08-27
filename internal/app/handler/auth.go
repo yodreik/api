@@ -5,9 +5,11 @@ import (
 	"api/internal/app/handler/response"
 	responsebody "api/internal/app/handler/response/body"
 	"api/internal/lib/sl"
+	repoerr "api/internal/repository/errors"
 	"api/pkg/requestid"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"log/slog"
 	"net/http"
 	"net/mail"
@@ -79,10 +81,14 @@ func (h *Handler) Login(ctx *gin.Context) {
 	passwordHash.Write([]byte(body.Password))
 
 	user, err := h.repository.User.GetByCredentials(ctx, body.Email, hex.EncodeToString(passwordHash.Sum(nil)))
-	if err != nil {
-		// TODO: Add custom error for user not found situation
-		log.Debug("User not found", sl.Err(err))
+	if errors.Is(err, repoerr.ErrUserNotFound) {
+		log.Debug("User not found", slog.String("email", body.Email))
 		ctx.AbortWithStatusJSON(http.StatusNotFound, response.Err("user not found"))
+		return
+	}
+	if err != nil {
+		log.Error("Can't find user", sl.Err(err))
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, response.Err("can't login"))
 		return
 	}
 
