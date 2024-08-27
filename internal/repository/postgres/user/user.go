@@ -31,7 +31,6 @@ func (p *Postgres) Create(ctx context.Context, email string, name string, passwo
 	}
 
 	var user User
-	// TODO: try to parse directly into user struct
 	err := row.Scan(&user.ID, &user.Email, &user.Name, &user.PasswordHash, &user.CreatedAt)
 	if err != nil {
 		return nil, err
