@@ -56,12 +56,12 @@ func TestRegister(t *testing.T) {
 		json.Unmarshal(w.Body.Bytes(), &body)
 
 		if status := w.Code; status != http.StatusCreated {
-			t.Errorf("handler returned wrong status code: got %v, want %v", status, http.StatusOK)
+			t.Fatalf("handler returned wrong status code: got %v, want %v", status, http.StatusOK)
 		}
 
 		expected := `{"id":"69","email":"john.doe@example.com","name":"John Doe"}`
 		if w.Body.String() != expected {
-			t.Errorf("handler returned unexpected body: got %v, want %v", w.Body.String(), expected)
+			t.Fatalf("handler returned unexpected body: got %v, want %v", w.Body.String(), expected)
 		}
 	})
 
