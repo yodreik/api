@@ -7,8 +7,7 @@ import (
 	"api/internal/lib/sl"
 	repoerr "api/internal/repository/errors"
 	"api/pkg/requestid"
-	"crypto/sha256"
-	"encoding/hex"
+	"api/pkg/sha256"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -42,10 +41,7 @@ func (h *Handler) Register(ctx *gin.Context) {
 		return
 	}
 
-	passwordHash := sha256.New()
-	passwordHash.Write([]byte(body.Password))
-
-	user, err := h.repository.User.Create(ctx, body.Email, body.Name, hex.EncodeToString(passwordHash.Sum(nil)))
+	user, err := h.repository.User.Create(ctx, body.Email, body.Name, sha256.String(body.Password))
 	if errors.Is(err, repoerr.ErrUserAlreadyExists) {
 		log.Debug("User already exists", sl.Err(err))
 		ctx.AbortWithStatusJSON(http.StatusConflict, response.Err("user already exists"))
@@ -81,10 +77,7 @@ func (h *Handler) Login(ctx *gin.Context) {
 		return
 	}
 
-	passwordHash := sha256.New()
-	passwordHash.Write([]byte(body.Password))
-
-	user, err := h.repository.User.GetByCredentials(ctx, body.Email, hex.EncodeToString(passwordHash.Sum(nil)))
+	user, err := h.repository.User.GetByCredentials(ctx, body.Email, sha256.String(body.Password))
 	if errors.Is(err, repoerr.ErrUserNotFound) {
 		log.Debug("User not found", slog.String("email", body.Email))
 		ctx.AbortWithStatusJSON(http.StatusNotFound, response.Err("user not found"))

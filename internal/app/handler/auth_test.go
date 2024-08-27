@@ -3,8 +3,7 @@ package handler
 import (
 	"api/internal/config"
 	"api/internal/repository"
-	"crypto/sha256"
-	"encoding/hex"
+	"api/pkg/sha256"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -25,37 +24,45 @@ func TestRegister(t *testing.T) {
 		t.Fatalf("err not expected: %v\n", err)
 	}
 
-	passwordHash := sha256.New()
-	passwordHash.Write([]byte("testword"))
-
-	rows := sqlmock.NewRows([]string{"id", "email", "name", "password_hash", "created_at"}).
-		AddRow("69", "john.doe@example.com", "John Doe", "22", time.Now())
-
-	mock.ExpectQuery("INSERT INTO users (email, name, password_hash) values ($1, $2, $3) RETURNING *").
-		WithArgs("john.doe@example.com", "John Doe", hex.EncodeToString(passwordHash.Sum(nil))).WillReturnRows(rows)
-
-	gin.SetMode(gin.TestMode)
-	r := gin.Default()
-
 	c := config.Config{}
 	repo := repository.New(sqlx.NewDb(db, "sqlmock"))
 
-	handler := New(&c, repo)
+	t.Run("OK", func(t *testing.T) {
+		rows := sqlmock.NewRows([]string{"id", "email", "name", "password_hash", "created_at"}).
+			AddRow("69", "john.doe@example.com", "John Doe", sha256.String("testword"), time.Now())
 
-	r.GET("/api/auth/register", handler.Register)
+		mock.ExpectQuery("INSERT INTO users (email, name, password_hash) values ($1, $2, $3) RETURNING *").
+			WithArgs("john.doe@example.com", "John Doe", sha256.String("testword")).WillReturnRows(rows)
 
-	req, err := http.NewRequest(http.MethodGet, "/api/auth/register", strings.NewReader(`{"email":"john.doe@example.com","name":"John Doe","password":"testword"}`))
-	if err != nil {
-		t.Fatal(err)
-	}
+		gin.SetMode(gin.TestMode)
+		r := gin.Default()
 
-	w := httptest.NewRecorder()
+		handler := New(&c, repo)
 
-	r.ServeHTTP(w, req)
+		r.GET("/api/auth/register", handler.Register)
 
-	var body responsebody.User
+		req, err := http.NewRequest(http.MethodGet, "/api/auth/register",
+			strings.NewReader(`{"email":"john.doe@example.com","name":"John Doe","password":"testword"}`))
+		if err != nil {
+			t.Fatal(err)
+		}
 
-	json.Unmarshal(w.Body.Bytes(), &body)
+		w := httptest.NewRecorder()
 
-	t.Logf("Code: %d, body: %s", w.Code, w.Body.String())
+		r.ServeHTTP(w, req)
+
+		var body responsebody.User
+
+		json.Unmarshal(w.Body.Bytes(), &body)
+
+		if status := w.Code; status != http.StatusCreated {
+			t.Errorf("handler returned wrong status code: got %v, want %v", status, http.StatusOK)
+		}
+
+		expected := `{"id":"69","email":"john.doe@example.com","name":"John Doe"}`
+		if w.Body.String() != expected {
+			t.Errorf("handler returned unexpected body: got %v, want %v", w.Body.String(), expected)
+		}
+	})
+
 }
