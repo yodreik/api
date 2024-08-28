@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"api/internal/app/handler/response/responsebody"
 	"api/internal/config"
 	"api/internal/repository"
 	repoerr "api/internal/repository/errors"
@@ -13,8 +14,6 @@ import (
 	"strings"
 	"testing"
 	"time"
-
-	responsebody "api/internal/app/handler/response/body"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/gin-gonic/gin"
