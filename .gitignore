@@ -15,3 +15,6 @@ bin/*
 
 # Ignore storage files
 .database/
+
+# Ignore test results
+coverage.*
