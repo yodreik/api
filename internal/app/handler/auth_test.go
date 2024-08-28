@@ -59,10 +59,42 @@ func TestRegister(t *testing.T) {
 			t.Fatalf("handler returned wrong status code: got %v, want %v", status, http.StatusOK)
 		}
 
-		expected := `{"id":"69","email":"john.doe@example.com","name":"John Doe"}`
-		if w.Body.String() != expected {
-			t.Fatalf("handler returned unexpected body: got %v, want %v", w.Body.String(), expected)
+		expectedBody := `{"id":"69","email":"john.doe@example.com","name":"John Doe"}`
+		if w.Body.String() != expectedBody {
+			t.Fatalf("handler returned unexpected body: got %v, want %v", w.Body.String(), expectedBody)
 		}
 	})
 
+	t.Run("Invalid email", func(t *testing.T) {
+		gin.SetMode(gin.TestMode)
+		r := gin.Default()
+
+		handler := New(&c, repo)
+
+		r.GET("/api/auth/register", handler.Register)
+
+		req, err := http.NewRequest(http.MethodGet, "/api/auth/register",
+			strings.NewReader(`{"email":"incorrect-email","name":"John Doe","password":"testword"}`))
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		w := httptest.NewRecorder()
+
+		r.ServeHTTP(w, req)
+
+		var body responsebody.User
+
+		json.Unmarshal(w.Body.Bytes(), &body)
+
+		expectedStatus := http.StatusBadRequest
+		if status := w.Code; status != expectedStatus {
+			t.Fatalf("handler returned wrong status code: got %v, want %v", status, expectedStatus)
+		}
+
+		expectedBody := `{"message":"invalid email format"}`
+		if w.Body.String() != expectedBody {
+			t.Fatalf("handler returned unexpected body: got %v, want %v", w.Body.String(), expectedBody)
+		}
+	})
 }
