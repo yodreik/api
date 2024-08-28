@@ -11,6 +11,10 @@ import (
 // @description API server for Welnex application
 // @host        localhost:6969
 // @BasePath    /api
+//
+// @securityDefinitions.apikey AccessToken
+// @in                         header
+// @name                       Authorization
 func main() {
 	c := config.MustLoad()
 	a := app.New(c)

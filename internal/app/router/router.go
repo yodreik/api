@@ -43,6 +43,8 @@ func (r *Router) InitRoutes() *gin.Engine {
 
 		api.POST("/auth/register", r.handler.Register)
 		api.POST("/auth/login", r.handler.Login)
+
+		api.GET("/auth/me", r.handler.Me)
 	}
 
 	r.log(router.Routes())
