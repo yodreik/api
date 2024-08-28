@@ -10,6 +10,8 @@ import (
 	"log/slog"
 
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 type Router struct {
@@ -35,6 +37,8 @@ func (r *Router) InitRoutes() *gin.Engine {
 
 	api := router.Group("/api")
 	{
+		api.GET("/docs/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
 		api.GET("/healthcheck", r.handler.Healthcheck)
 
 		api.POST("/auth/register", r.handler.Register)
