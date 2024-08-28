@@ -40,6 +40,18 @@ func (h *Handler) Register(ctx *gin.Context) {
 		return
 	}
 
+	if len(body.Name) > 50 {
+		log.Debug("Name is too long")
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, response.Err("name is too long"))
+		return
+	}
+
+	if len(body.Password) > 50 {
+		log.Debug("Password is too long")
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, response.Err("password is too long"))
+		return
+	}
+
 	user, err := h.repository.User.Create(ctx, body.Email, body.Name, sha256.String(body.Password))
 	if errors.Is(err, repoerr.ErrUserAlreadyExists) {
 		log.Debug("User already exists", sl.Err(err))

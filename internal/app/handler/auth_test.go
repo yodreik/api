@@ -134,6 +134,72 @@ func TestRegister(t *testing.T) {
 		}
 	})
 
+	t.Run("Name is too long", func(t *testing.T) {
+		gin.SetMode(gin.TestMode)
+		r := gin.Default()
+
+		handler := New(&c, repo)
+
+		r.POST("/api/auth/register", handler.Register)
+
+		req, err := http.NewRequest(http.MethodPost, "/api/auth/register",
+			strings.NewReader(`{"email":"john.doe@example.com","name":"very-looooooooooooooooooooooooooooooooooooooooooong-name","password":"testword"}`))
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		w := httptest.NewRecorder()
+
+		r.ServeHTTP(w, req)
+
+		var body responsebody.User
+
+		json.Unmarshal(w.Body.Bytes(), &body)
+
+		expectedStatus := http.StatusBadRequest
+		if status := w.Code; status != expectedStatus {
+			t.Fatalf("handler returned wrong status code: got %v, want %v", status, expectedStatus)
+		}
+
+		expectedBody := `{"message":"name is too long"}`
+		if w.Body.String() != expectedBody {
+			t.Fatalf("handler returned unexpected body: got %v, want %v", w.Body.String(), expectedBody)
+		}
+	})
+
+	t.Run("Password is too long", func(t *testing.T) {
+		gin.SetMode(gin.TestMode)
+		r := gin.Default()
+
+		handler := New(&c, repo)
+
+		r.POST("/api/auth/register", handler.Register)
+
+		req, err := http.NewRequest(http.MethodPost, "/api/auth/register",
+			strings.NewReader(`{"email":"john.doe@example.com","name":"John Doe","password":"very-looooooooooooooooooooooooooooooooooooooong-password"}`))
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		w := httptest.NewRecorder()
+
+		r.ServeHTTP(w, req)
+
+		var body responsebody.User
+
+		json.Unmarshal(w.Body.Bytes(), &body)
+
+		expectedStatus := http.StatusBadRequest
+		if status := w.Code; status != expectedStatus {
+			t.Fatalf("handler returned wrong status code: got %v, want %v", status, expectedStatus)
+		}
+
+		expectedBody := `{"message":"password is too long"}`
+		if w.Body.String() != expectedBody {
+			t.Fatalf("handler returned unexpected body: got %v, want %v", w.Body.String(), expectedBody)
+		}
+	})
+
 	t.Run("User already exists", func(t *testing.T) {
 		mock.ExpectQuery("INSERT INTO users (email, name, password_hash) values ($1, $2, $3) RETURNING *").
 			WithArgs("john.doe@example.com", "John Doe", sha256.String("testword")).WillReturnError(repoerr.ErrUserAlreadyExists)
