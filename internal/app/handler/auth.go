@@ -27,7 +27,6 @@ func (h *Handler) Register(ctx *gin.Context) {
 	)
 
 	var body requestbody.Register
-
 	if err := ctx.BindJSON(&body); err != nil {
 		log.Debug("Can't decode request body", sl.Err(err))
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response.Err("invalid request body"))
@@ -70,7 +69,6 @@ func (h *Handler) Login(ctx *gin.Context) {
 	)
 
 	var body requestbody.Login
-
 	if err := ctx.BindJSON(&body); err != nil {
 		log.Debug("Can't decode request body", sl.Err(err))
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response.Err("invalid request body"))
