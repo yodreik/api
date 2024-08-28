@@ -37,7 +37,7 @@ func (h *Handler) Register(ctx *gin.Context) {
 	_, err := mail.ParseAddress(body.Email)
 	if err != nil {
 		log.Debug("Email is invalid", slog.String("email", body.Email))
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, response.Err("invalid email"))
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, response.Err("invalid email format"))
 		return
 	}
 
