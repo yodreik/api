@@ -18,8 +18,6 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-// TODO: Test this handlers
-
 func (h *Handler) Register(ctx *gin.Context) {
 	log := slog.With(
 		slog.String("op", "handler.Register"),
