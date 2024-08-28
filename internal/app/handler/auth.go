@@ -1,9 +1,9 @@
 package handler
 
 import (
-	requestbody "api/internal/app/handler/request/body"
+	"api/internal/app/handler/request/requestbody"
 	"api/internal/app/handler/response"
-	responsebody "api/internal/app/handler/response/body"
+	"api/internal/app/handler/response/responsebody"
 	"api/internal/lib/sl"
 	repoerr "api/internal/repository/errors"
 	"api/pkg/requestid"
@@ -18,6 +18,16 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
+// @Summary      Register user
+// @Description  create user in database
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        input body      requestbody.Register true "User information"
+// @Success      201 {object}    responsebody.User
+// @Failure      400 {object}    responsebody.Error
+// @Failure      409 {object}    responsebody.Error
+// @Router       /auth/register  [post]
 func (h *Handler) Register(ctx *gin.Context) {
 	log := slog.With(
 		slog.String("op", "handler.Register"),
@@ -72,6 +82,16 @@ func (h *Handler) Register(ctx *gin.Context) {
 	})
 }
 
+// @Summary      Log into user's account
+// @Description  check if user exists, and return an access token
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        input body    requestbody.Login true "User information"
+// @Success      200 {object}  responsebody.Token
+// @Failure      400 {object}  responsebody.Error
+// @Failure      404 {object}  responsebody.Error
+// @Router       /auth/login   [post]
 func (h *Handler) Login(ctx *gin.Context) {
 	log := slog.With(
 		slog.String("op", "handler.Login"),

@@ -20,6 +20,12 @@ func New(c *config.Config, r *repository.Repository) *Handler {
 	}
 }
 
+// @Summary      Ping a server
+// @Description  check if server status is ok
+// @Accept       json
+// @Produce      json
+// @Success      200 {string}    string "ok"
+// @Router       /healthcheck    [get]
 func (h *Handler) Healthcheck(ctx *gin.Context) {
-	ctx.String(http.StatusOK, "OK")
+	ctx.String(http.StatusOK, "ok")
 }

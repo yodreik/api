@@ -1,4 +1,4 @@
-package body
+package requestbody
 
 type Register struct {
 	Email    string `json:"email" binding:"required"`

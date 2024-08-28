@@ -34,7 +34,7 @@ func TestHealthcheck(t *testing.T) {
 		t.Fatalf("handler returned wrong status code: got %v, want %v", status, http.StatusOK)
 	}
 
-	expected := `OK`
+	expected := `ok`
 	if w.Body.String() != expected {
 		t.Fatalf("handler returned unexpected body: got %v, want %v", w.Body.String(), expected)
 	}

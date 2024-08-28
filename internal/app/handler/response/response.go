@@ -1,7 +1,7 @@
 package response
 
 import (
-	responsebody "api/internal/app/handler/response/body"
+	"api/internal/app/handler/response/responsebody"
 )
 
 func Err(message string) responsebody.Error {
