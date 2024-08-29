@@ -23,7 +23,7 @@ func (h *Handler) UserIdentity(ctx *gin.Context) {
 	parts := strings.Split(header, " ")
 	if len(parts) != 2 {
 		log.Info("Incorrect authorization header", slog.String("authorization", header))
-		ctx.AbortWithStatusJSON(http.StatusUnauthorized, response.Err("invalid authorization header"))
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, response.Err("empty authorization header"))
 		return
 	}
 

@@ -42,8 +42,9 @@ type request struct {
 }
 
 type expect struct {
-	status int
-	body   string
+	status     int
+	body       string
+	bodyFields []string
 }
 
 func TestRegister(t *testing.T) {

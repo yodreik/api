@@ -21,13 +21,13 @@ func TestUserIdentity(t *testing.T) {
 
 			request: request{
 				headers: map[string]string{
-					"Authorization": "",
+					"Authorization": "", // it can be totally removed, keep it just for the sake of the
 				},
 			},
 
 			expect: expect{
 				status: http.StatusUnauthorized,
-				body:   `{"message":"invalid authorization header"}`,
+				body:   `{"message":"empty authorization header"}`,
 			},
 		},
 		{
@@ -49,7 +49,7 @@ func TestUserIdentity(t *testing.T) {
 
 			request: request{
 				headers: map[string]string{
-					"Authorization": "Bearer some-incorrect-jwonwebtoken",
+					"Authorization": "Bearer some.incorrect.jwonwebtoken",
 				},
 			},
 
