@@ -23,12 +23,10 @@ import (
 )
 
 type table struct {
-	name           string
-	repo           *repoArgs
-	jwtSecret      string
-	requestBody    string
-	expectedStatus int
-	expectedBody   string
+	name        string
+	repo        *repoArgs
+	requestBody string
+	expect      expect
 }
 
 type repoArgs struct {
@@ -36,6 +34,11 @@ type repoArgs struct {
 	args  []driver.Value
 	err   error
 	rows  *sqlmock.Rows
+}
+
+type expect struct {
+	status int
+	body   string
 }
 
 func TestRegister(t *testing.T) {
@@ -60,32 +63,40 @@ func TestRegister(t *testing.T) {
 
 			requestBody: `{"email":"john.doe@example.com","name":"John Doe","password":"testword"}`,
 
-			expectedStatus: http.StatusCreated,
-			expectedBody:   `{"id":"69","email":"john.doe@example.com","name":"John Doe"}`,
+			expect: expect{
+				status: http.StatusCreated,
+				body:   `{"id":"69","email":"john.doe@example.com","name":"John Doe"}`,
+			},
 		},
 		{
 			name: "invalid request body",
 
 			requestBody: `{"some":"invalid","request":"structure"}`,
 
-			expectedStatus: http.StatusBadRequest,
-			expectedBody:   `{"message":"invalid request body"}`,
+			expect: expect{
+				status: http.StatusBadRequest,
+				body:   `{"message":"invalid request body"}`,
+			},
 		},
 		{
 			name: "invalid email format",
 
 			requestBody: `{"email":"incorrect-email","name":"John Doe","password":"testword"}`,
 
-			expectedStatus: http.StatusBadRequest,
-			expectedBody:   `{"message":"invalid email format"}`,
+			expect: expect{
+				status: http.StatusBadRequest,
+				body:   `{"message":"invalid email format"}`,
+			},
 		},
 		{
 			name: "name is too long",
 
 			requestBody: `{"email":"john.doe@example.com","name":"very-looooooooooooooooooooooooooooooooooooooooooong-name","password":"testword"}`,
 
-			expectedStatus: http.StatusBadRequest,
-			expectedBody:   `{"message":"name is too long"}`,
+			expect: expect{
+				status: http.StatusBadRequest,
+				body:   `{"message":"name is too long"}`,
+			},
 		},
 		{
 			name: "user already exists",
@@ -98,8 +109,10 @@ func TestRegister(t *testing.T) {
 
 			requestBody: `{"email":"john.doe@example.com","name":"John Doe","password":"testword"}`,
 
-			expectedStatus: http.StatusConflict,
-			expectedBody:   `{"message":"user already exists"}`,
+			expect: expect{
+				status: http.StatusConflict,
+				body:   `{"message":"user already exists"}`,
+			},
 		},
 		{
 			name: "repository error",
@@ -112,8 +125,10 @@ func TestRegister(t *testing.T) {
 
 			requestBody: `{"email":"john.doe@example.com","name":"John Doe","password":"testword"}`,
 
-			expectedStatus: http.StatusInternalServerError,
-			expectedBody:   `{"message":"can't register"}`,
+			expect: expect{
+				status: http.StatusInternalServerError,
+				body:   `{"message":"can't register"}`,
+			},
 		},
 	}
 
@@ -143,12 +158,12 @@ func TestRegister(t *testing.T) {
 
 			r.ServeHTTP(w, req)
 
-			if status := w.Code; status != tc.expectedStatus {
-				t.Fatalf("unexpected status code returned: got %v, want %v\n", status, tc.expectedStatus)
+			if status := w.Code; status != tc.expect.status {
+				t.Fatalf("unexpected status code returned: got %v, want %v\n", status, tc.expect.status)
 			}
 
-			if w.Body.String() != tc.expectedBody {
-				t.Fatalf("unexpected body returned: got %v, want %v", w.Body.String(), tc.expectedBody)
+			if w.Body.String() != tc.expect.body {
+				t.Fatalf("unexpected body returned: got %v, want %v", w.Body.String(), tc.expect.body)
 			}
 		})
 	}
