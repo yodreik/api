@@ -43,7 +43,7 @@ func (p *Postgres) Create(ctx context.Context, userID string, date time.Time, du
 	return &workout, err
 }
 
-func (p *Postgres) GetManyByUserID(ctx context.Context, userID string) ([]Workout, error) {
+func (p *Postgres) GetAllByUserID(ctx context.Context, userID string) ([]Workout, error) {
 	query := "SELECT * FROM workouts WHERE user_id = $1"
 
 	var workouts []Workout

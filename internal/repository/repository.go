@@ -17,16 +17,18 @@ type User interface {
 
 type Workout interface {
 	Create(ctx context.Context, userID string, date time.Time, duration int, kind string) (*workout.Workout, error)
-	GetManyByUserID(ctx context.Context, userID string) ([]*workout.Workout, error)
+	GetAllByUserID(ctx context.Context, userID string) ([]workout.Workout, error)
 	GetByID(ctx context.Context, id string) (*workout.Workout, error)
 }
 
 type Repository struct {
-	User User
+	User    User
+	Workout Workout
 }
 
 func New(db *sqlx.DB) *Repository {
 	return &Repository{
-		User: user.New(db),
+		User:    user.New(db),
+		Workout: workout.New(db),
 	}
 }

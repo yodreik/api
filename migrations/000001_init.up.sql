@@ -16,5 +16,5 @@ CREATE TABLE workouts
     date DATE NOT NULL,
     duration INTEGER NOT NULL,
     kind VARCHAR(50) NOT NULL,
-    created_at TIMESTAMP DEFAULT now() NOT NULL,
+    created_at TIMESTAMP DEFAULT now() NOT NULL
 );

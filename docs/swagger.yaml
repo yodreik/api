@@ -79,29 +79,6 @@ paths:
       summary: Log into user's account
       tags:
       - auth
-  /auth/me:
-    get:
-      description: returns an user's information, that currently logged in
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/responsebody.User'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/responsebody.Error'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/responsebody.Error'
-      security:
-      - AccessToken: []
-      summary: Get information about current user
-      tags:
-      - auth
   /auth/register:
     post:
       consumes:
@@ -145,6 +122,29 @@ paths:
           schema:
             type: string
       summary: Ping a server
+  /me:
+    get:
+      description: returns an user's information, that currently logged in
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responsebody.User'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responsebody.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responsebody.Error'
+      security:
+      - AccessToken: []
+      summary: Get information about current user
+      tags:
+      - auth
 securityDefinitions:
   AccessToken:
     in: header
