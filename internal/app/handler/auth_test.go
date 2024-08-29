@@ -6,6 +6,7 @@ import (
 	"api/internal/repository"
 	repoerr "api/internal/repository/errors"
 	"api/pkg/sha256"
+	"database/sql/driver"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -21,6 +22,22 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
+type table struct {
+	name           string
+	repo           *repoArgs
+	jwtSecret      string
+	requestBody    string
+	expectedStatus int
+	expectedBody   string
+}
+
+type repoArgs struct {
+	query string
+	args  []driver.Value
+	err   error
+	rows  *sqlmock.Rows
+}
+
 func TestRegister(t *testing.T) {
 	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
 	if err != nil {
@@ -30,244 +47,111 @@ func TestRegister(t *testing.T) {
 	c := config.Config{}
 	repo := repository.New(sqlx.NewDb(db, "sqlmock"))
 
-	t.Run("OK", func(t *testing.T) {
-		rows := sqlmock.NewRows([]string{"id", "email", "name", "password_hash", "created_at"}).
-			AddRow("69", "john.doe@example.com", "John Doe", sha256.String("testword"), time.Now())
-
-		mock.ExpectQuery("INSERT INTO users (email, name, password_hash) values ($1, $2, $3) RETURNING *").
-			WithArgs("john.doe@example.com", "John Doe", sha256.String("testword")).WillReturnRows(rows)
-
-		gin.SetMode(gin.TestMode)
-		r := gin.Default()
-
-		handler := New(&c, repo)
-
-		r.POST("/api/auth/register", handler.Register)
-
-		req, err := http.NewRequest(http.MethodPost, "/api/auth/register",
-			strings.NewReader(`{"email":"john.doe@example.com","name":"John Doe","password":"testword"}`))
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		w := httptest.NewRecorder()
-
-		r.ServeHTTP(w, req)
-
-		expectedStatus := http.StatusCreated
-		if status := w.Code; status != expectedStatus {
-			t.Fatalf("handler returned wrong status code: got %v, want %v", status, expectedStatus)
-		}
-
-		expectedBody := `{"id":"69","email":"john.doe@example.com","name":"John Doe"}`
-		if w.Body.String() != expectedBody {
-			t.Fatalf("handler returned unexpected body: got %v, want %v", w.Body.String(), expectedBody)
-		}
-	})
-
-	t.Run("Invalid request body", func(t *testing.T) {
-		gin.SetMode(gin.TestMode)
-		r := gin.Default()
-
-		handler := New(&c, repo)
-
-		r.POST("/api/auth/register", handler.Register)
-
-		req, err := http.NewRequest(http.MethodPost, "/api/auth/register",
-			strings.NewReader(`{"some":"incorrect","fields":"for","request":"body"}`))
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		w := httptest.NewRecorder()
-
-		r.ServeHTTP(w, req)
-
-		var body responsebody.User
-
-		json.Unmarshal(w.Body.Bytes(), &body)
-
-		expectedStatus := http.StatusBadRequest
-		if status := w.Code; status != expectedStatus {
-			t.Fatalf("handler returned wrong status code: got %v, want %v", status, expectedStatus)
-		}
-
-		expectedBody := `{"message":"invalid request body"}`
-		if w.Body.String() != expectedBody {
-			t.Fatalf("handler returned unexpected body: got %v, want %v", w.Body.String(), expectedBody)
-		}
-	})
-
-	t.Run("Invalid email", func(t *testing.T) {
-		gin.SetMode(gin.TestMode)
-		r := gin.Default()
-
-		handler := New(&c, repo)
-
-		r.POST("/api/auth/register", handler.Register)
-
-		req, err := http.NewRequest(http.MethodPost, "/api/auth/register",
-			strings.NewReader(`{"email":"incorrect-email","name":"John Doe","password":"testword"}`))
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		w := httptest.NewRecorder()
-
-		r.ServeHTTP(w, req)
-
-		var body responsebody.User
-
-		json.Unmarshal(w.Body.Bytes(), &body)
-
-		expectedStatus := http.StatusBadRequest
-		if status := w.Code; status != expectedStatus {
-			t.Fatalf("handler returned wrong status code: got %v, want %v", status, expectedStatus)
-		}
-
-		expectedBody := `{"message":"invalid email format"}`
-		if w.Body.String() != expectedBody {
-			t.Fatalf("handler returned unexpected body: got %v, want %v", w.Body.String(), expectedBody)
-		}
-	})
-
-	t.Run("Name is too long", func(t *testing.T) {
-		gin.SetMode(gin.TestMode)
-		r := gin.Default()
-
-		handler := New(&c, repo)
-
-		r.POST("/api/auth/register", handler.Register)
-
-		req, err := http.NewRequest(http.MethodPost, "/api/auth/register",
-			strings.NewReader(`{"email":"john.doe@example.com","name":"very-looooooooooooooooooooooooooooooooooooooooooong-name","password":"testword"}`))
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		w := httptest.NewRecorder()
-
-		r.ServeHTTP(w, req)
-
-		var body responsebody.User
-
-		json.Unmarshal(w.Body.Bytes(), &body)
-
-		expectedStatus := http.StatusBadRequest
-		if status := w.Code; status != expectedStatus {
-			t.Fatalf("handler returned wrong status code: got %v, want %v", status, expectedStatus)
-		}
-
-		expectedBody := `{"message":"name is too long"}`
-		if w.Body.String() != expectedBody {
-			t.Fatalf("handler returned unexpected body: got %v, want %v", w.Body.String(), expectedBody)
-		}
-	})
-
-	t.Run("Password is too long", func(t *testing.T) {
-		gin.SetMode(gin.TestMode)
-		r := gin.Default()
-
-		handler := New(&c, repo)
-
-		r.POST("/api/auth/register", handler.Register)
-
-		req, err := http.NewRequest(http.MethodPost, "/api/auth/register",
-			strings.NewReader(`{"email":"john.doe@example.com","name":"John Doe","password":"very-looooooooooooooooooooooooooooooooooooooong-password"}`))
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		w := httptest.NewRecorder()
-
-		r.ServeHTTP(w, req)
-
-		var body responsebody.User
-
-		json.Unmarshal(w.Body.Bytes(), &body)
-
-		expectedStatus := http.StatusBadRequest
-		if status := w.Code; status != expectedStatus {
-			t.Fatalf("handler returned wrong status code: got %v, want %v", status, expectedStatus)
-		}
-
-		expectedBody := `{"message":"password is too long"}`
-		if w.Body.String() != expectedBody {
-			t.Fatalf("handler returned unexpected body: got %v, want %v", w.Body.String(), expectedBody)
-		}
-	})
-
-	t.Run("User already exists", func(t *testing.T) {
-		mock.ExpectQuery("INSERT INTO users (email, name, password_hash) values ($1, $2, $3) RETURNING *").
-			WithArgs("john.doe@example.com", "John Doe", sha256.String("testword")).WillReturnError(repoerr.ErrUserAlreadyExists)
-
-		gin.SetMode(gin.TestMode)
-		r := gin.Default()
-
-		handler := New(&c, repo)
-
-		r.POST("/api/auth/register", handler.Register)
-
-		req, err := http.NewRequest(http.MethodPost, "/api/auth/register",
-			strings.NewReader(`{"email":"john.doe@example.com","name":"John Doe","password":"testword"}`))
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		w := httptest.NewRecorder()
-
-		r.ServeHTTP(w, req)
-
-		var body responsebody.User
-
-		json.Unmarshal(w.Body.Bytes(), &body)
-
-		expectedStatus := http.StatusConflict
-		if status := w.Code; status != expectedStatus {
-			t.Fatalf("handler returned wrong status code: got %v, want %v", status, expectedStatus)
-		}
-
-		expectedBody := `{"message":"user already exists"}`
-		if w.Body.String() != expectedBody {
-			t.Fatalf("handler returned unexpected body: got %v, want %v", w.Body.String(), expectedBody)
-		}
-	})
-
-	t.Run("Repository error", func(t *testing.T) {
-		mock.ExpectQuery("INSERT INTO users (email, name, password_hash) values ($1, $2, $3) RETURNING *").
-			WithArgs("john.doe@example.com", "John Doe", sha256.String("testword")).WillReturnError(errors.New("repo: Some repository error"))
-
-		gin.SetMode(gin.TestMode)
-		r := gin.Default()
-
-		handler := New(&c, repo)
-
-		r.POST("/api/auth/register", handler.Register)
-
-		req, err := http.NewRequest(http.MethodPost, "/api/auth/register",
-			strings.NewReader(`{"email":"john.doe@example.com","name":"John Doe","password":"testword"}`))
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		w := httptest.NewRecorder()
-
-		r.ServeHTTP(w, req)
-
-		var body responsebody.User
-
-		json.Unmarshal(w.Body.Bytes(), &body)
-
-		expectedStatus := http.StatusInternalServerError
-		if status := w.Code; status != expectedStatus {
-			t.Fatalf("handler returned wrong status code: got %v, want %v", status, expectedStatus)
-		}
-
-		expectedBody := `{"message":"can't register"}`
-		if w.Body.String() != expectedBody {
-			t.Fatalf("handler returned unexpected body: got %v, want %v", w.Body.String(), expectedBody)
-		}
-	})
+	tt := []table{
+		{
+			name: "ok",
+
+			repo: &repoArgs{
+				query: "INSERT INTO users (email, name, password_hash) values ($1, $2, $3) RETURNING *",
+				args:  []driver.Value{"john.doe@example.com", "John Doe", sha256.String("testword")},
+				rows: sqlmock.NewRows([]string{"id", "email", "name", "password_hash", "created_at"}).
+					AddRow("69", "john.doe@example.com", "John Doe", sha256.String("testword"), time.Now()),
+			},
+
+			requestBody: `{"email":"john.doe@example.com","name":"John Doe","password":"testword"}`,
+
+			expectedStatus: http.StatusCreated,
+			expectedBody:   `{"id":"69","email":"john.doe@example.com","name":"John Doe"}`,
+		},
+		{
+			name: "invalid request body",
+
+			requestBody: `{"some":"invalid","request":"structure"}`,
+
+			expectedStatus: http.StatusBadRequest,
+			expectedBody:   `{"message":"invalid request body"}`,
+		},
+		{
+			name: "invalid email format",
+
+			requestBody: `{"email":"incorrect-email","name":"John Doe","password":"testword"}`,
+
+			expectedStatus: http.StatusBadRequest,
+			expectedBody:   `{"message":"invalid email format"}`,
+		},
+		{
+			name: "name is too long",
+
+			requestBody: `{"email":"john.doe@example.com","name":"very-looooooooooooooooooooooooooooooooooooooooooong-name","password":"testword"}`,
+
+			expectedStatus: http.StatusBadRequest,
+			expectedBody:   `{"message":"name is too long"}`,
+		},
+		{
+			name: "user already exists",
+
+			repo: &repoArgs{
+				query: "INSERT INTO users (email, name, password_hash) values ($1, $2, $3) RETURNING *",
+				args:  []driver.Value{"john.doe@example.com", "John Doe", sha256.String("testword")},
+				err:   repoerr.ErrUserAlreadyExists,
+			},
+
+			requestBody: `{"email":"john.doe@example.com","name":"John Doe","password":"testword"}`,
+
+			expectedStatus: http.StatusConflict,
+			expectedBody:   `{"message":"user already exists"}`,
+		},
+		{
+			name: "repository error",
+
+			repo: &repoArgs{
+				query: "INSERT INTO users (email, name, password_hash) values ($1, $2, $3) RETURNING *",
+				args:  []driver.Value{"john.doe@example.com", "John Doe", sha256.String("testword")},
+				err:   errors.New("repo: Something goes wrong"),
+			},
+
+			requestBody: `{"email":"john.doe@example.com","name":"John Doe","password":"testword"}`,
+
+			expectedStatus: http.StatusInternalServerError,
+			expectedBody:   `{"message":"can't register"}`,
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			if tc.repo != nil {
+				if tc.repo.err != nil {
+					mock.ExpectQuery(tc.repo.query).WithArgs(tc.repo.args...).WillReturnError(tc.repo.err)
+				} else {
+					mock.ExpectQuery(tc.repo.query).WithArgs(tc.repo.args...).WillReturnRows(tc.repo.rows)
+				}
+			}
+
+			gin.SetMode(gin.TestMode)
+			r := gin.Default()
+
+			handler := New(&c, repo)
+
+			r.POST("/api/auth/register", handler.Register)
+
+			req, err := http.NewRequest(http.MethodPost, "/api/auth/register", strings.NewReader(tc.requestBody))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			w := httptest.NewRecorder()
+
+			r.ServeHTTP(w, req)
+
+			if status := w.Code; status != tc.expectedStatus {
+				t.Fatalf("unexpected status code returned: got %v, want %v\n", status, tc.expectedStatus)
+			}
+
+			if w.Body.String() != tc.expectedBody {
+				t.Fatalf("unexpected body returned: got %v, want %v", w.Body.String(), tc.expectedBody)
+			}
+		})
+	}
 }
 
 func TestLogin(t *testing.T) {
