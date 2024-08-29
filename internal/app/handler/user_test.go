@@ -126,7 +126,7 @@ func TestMe(t *testing.T) {
 
 		expectedBody := `{"message":"invalid authorization token"}`
 		if w.Body.String() != expectedBody {
-			t.Fatalf("handler returned unexpected body: got %v, want %v", w.Body.String(), expectedBody)
+			t.Fatalf("handler returned unexpected body: got %v, want %v\n", w.Body.String(), expectedBody)
 		}
 	})
 
@@ -169,7 +169,7 @@ func TestMe(t *testing.T) {
 
 		expectedBody := `{"message":"can't get me"}`
 		if w.Body.String() != expectedBody {
-			t.Fatalf("handler returned unexpected body: got %v, want %v", w.Body.String(), expectedBody)
+			t.Fatalf("handler returned unexpected body: got %v, want %v\n", w.Body.String(), expectedBody)
 		}
 	})
 }

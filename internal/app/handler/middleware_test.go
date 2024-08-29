@@ -3,9 +3,9 @@ package handler
 import (
 	"api/internal/config"
 	"api/internal/repository"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -15,93 +15,80 @@ func TestUserIdentity(t *testing.T) {
 	c := config.Config{}
 	repo := repository.Repository{}
 
-	t.Run("Empty header", func(t *testing.T) {
-		gin.SetMode(gin.TestMode)
-		r := gin.Default()
+	tt := []table{
+		{
+			name: "empty header",
 
-		handler := New(&c, &repo)
+			request: request{
+				headers: map[string]string{
+					"Authorization": "",
+				},
+			},
 
-		r.GET("/api/me", handler.UserIdentity, handler.Me)
+			expect: expect{
+				status: http.StatusUnauthorized,
+				body:   `{"message":"invalid authorization header"}`,
+			},
+		},
+		{
+			name: "invalid token type",
 
-		req, err := http.NewRequest(http.MethodGet, "/api/me", nil)
-		if err != nil {
-			t.Fatal(err)
-		}
+			request: request{
+				headers: map[string]string{
+					"Authorization": "Bot <token>",
+				},
+			},
 
-		req.Header.Add("Authorization", fmt.Sprintf(""))
+			expect: expect{
+				status: http.StatusUnauthorized,
+				body:   `{"message":"invalid authorization token type"}`,
+			},
+		},
+		{
+			name: "incorrect token format",
 
-		w := httptest.NewRecorder()
+			request: request{
+				headers: map[string]string{
+					"Authorization": "Bearer some-incorrect-jwonwebtoken",
+				},
+			},
 
-		r.ServeHTTP(w, req)
+			expect: expect{
+				status: http.StatusUnauthorized,
+				body:   `{"message":"invalid authorization token"}`,
+			},
+		},
+	}
 
-		expectedStatus := http.StatusUnauthorized
-		if status := w.Code; status != expectedStatus {
-			t.Fatalf("handler returned wrong status code: got %v, want %v\n", status, expectedStatus)
-		}
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			gin.SetMode(gin.TestMode)
+			r := gin.Default()
 
-		expectedBody := `{"message":"invalid authorization header"}`
-		if w.Body.String() != expectedBody {
-			t.Fatalf("handler returned unexpected body: got %v, want %v", w.Body.String(), expectedBody)
-		}
-	})
+			handler := New(&c, &repo)
 
-	t.Run("Invalid token type", func(t *testing.T) {
-		gin.SetMode(gin.TestMode)
-		r := gin.Default()
+			r.GET("/api/me", handler.UserIdentity, handler.Me)
 
-		handler := New(&c, &repo)
+			req, err := http.NewRequest(http.MethodGet, "/api/me", strings.NewReader(tc.request.body))
+			if err != nil {
+				t.Fatal(err)
+			}
 
-		r.GET("/api/me", handler.UserIdentity, handler.Me)
+			for key, value := range tc.request.headers {
+				req.Header.Add(key, value)
+			}
 
-		req, err := http.NewRequest(http.MethodGet, "/api/me", nil)
-		if err != nil {
-			t.Fatal(err)
-		}
+			w := httptest.NewRecorder()
 
-		req.Header.Add("Authorization", fmt.Sprintf("Bot <token>"))
+			r.ServeHTTP(w, req)
 
-		w := httptest.NewRecorder()
+			if status := w.Code; status != tc.expect.status {
+				t.Fatalf("handler returned wrong status code: got %v, want %v\n", status, tc.expect.status)
+			}
 
-		r.ServeHTTP(w, req)
-
-		expectedStatus := http.StatusUnauthorized
-		if status := w.Code; status != expectedStatus {
-			t.Fatalf("handler returned wrong status code: got %v, want %v\n", status, expectedStatus)
-		}
-
-		expectedBody := `{"message":"invalid authorization token type"}`
-		if w.Body.String() != expectedBody {
-			t.Fatalf("handler returned unexpected body: got %v, want %v", w.Body.String(), expectedBody)
-		}
-	})
-
-	t.Run("Incorrect token format", func(t *testing.T) {
-		gin.SetMode(gin.TestMode)
-		r := gin.Default()
-
-		handler := New(&c, &repo)
-
-		r.GET("/api/me", handler.UserIdentity, handler.Me)
-
-		req, err := http.NewRequest(http.MethodGet, "/api/me", nil)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", "some-incorrect-jwonwebtoken"))
-
-		w := httptest.NewRecorder()
-
-		r.ServeHTTP(w, req)
-
-		expectedStatus := http.StatusUnauthorized
-		if status := w.Code; status != expectedStatus {
-			t.Fatalf("handler returned wrong status code: got %v, want %v\n", status, expectedStatus)
-		}
-
-		expectedBody := `{"message":"invalid authorization token"}`
-		if w.Body.String() != expectedBody {
-			t.Fatalf("handler returned unexpected body: got %v, want %v", w.Body.String(), expectedBody)
-		}
-	})
+			if w.Body.String() != tc.expect.body {
+				t.Fatalf("handler returned unexpected body: got %v, want %v\n", w.Body.String(), tc.expect.body)
+			}
+		})
+	}
 }

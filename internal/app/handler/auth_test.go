@@ -23,10 +23,10 @@ import (
 )
 
 type table struct {
-	name        string
-	repo        *repoArgs
-	requestBody string
-	expect      expect
+	name    string
+	repo    *repoArgs
+	request request
+	expect  expect
 }
 
 type repoArgs struct {
@@ -34,6 +34,11 @@ type repoArgs struct {
 	args  []driver.Value
 	err   error
 	rows  *sqlmock.Rows
+}
+
+type request struct {
+	body    string
+	headers map[string]string
 }
 
 type expect struct {
@@ -61,7 +66,9 @@ func TestRegister(t *testing.T) {
 					AddRow("69", "john.doe@example.com", "John Doe", sha256.String("testword"), time.Now()),
 			},
 
-			requestBody: `{"email":"john.doe@example.com","name":"John Doe","password":"testword"}`,
+			request: request{
+				body: `{"email":"john.doe@example.com","name":"John Doe","password":"testword"}`,
+			},
 
 			expect: expect{
 				status: http.StatusCreated,
@@ -71,7 +78,9 @@ func TestRegister(t *testing.T) {
 		{
 			name: "invalid request body",
 
-			requestBody: `{"some":"invalid","request":"structure"}`,
+			request: request{
+				body: `{"some":"invalid","request":"structure"}`,
+			},
 
 			expect: expect{
 				status: http.StatusBadRequest,
@@ -81,7 +90,9 @@ func TestRegister(t *testing.T) {
 		{
 			name: "invalid email format",
 
-			requestBody: `{"email":"incorrect-email","name":"John Doe","password":"testword"}`,
+			request: request{
+				body: `{"email":"incorrect-email","name":"John Doe","password":"testword"}`,
+			},
 
 			expect: expect{
 				status: http.StatusBadRequest,
@@ -91,7 +102,9 @@ func TestRegister(t *testing.T) {
 		{
 			name: "name is too long",
 
-			requestBody: `{"email":"john.doe@example.com","name":"very-looooooooooooooooooooooooooooooooooooooooooong-name","password":"testword"}`,
+			request: request{
+				body: `{"email":"john.doe@example.com","name":"very-looooooooooooooooooooooooooooooooooooooooooong-name","password":"testword"}`,
+			},
 
 			expect: expect{
 				status: http.StatusBadRequest,
@@ -107,7 +120,9 @@ func TestRegister(t *testing.T) {
 				err:   repoerr.ErrUserAlreadyExists,
 			},
 
-			requestBody: `{"email":"john.doe@example.com","name":"John Doe","password":"testword"}`,
+			request: request{
+				body: `{"email":"john.doe@example.com","name":"John Doe","password":"testword"}`,
+			},
 
 			expect: expect{
 				status: http.StatusConflict,
@@ -123,7 +138,9 @@ func TestRegister(t *testing.T) {
 				err:   errors.New("repo: Something goes wrong"),
 			},
 
-			requestBody: `{"email":"john.doe@example.com","name":"John Doe","password":"testword"}`,
+			request: request{
+				body: `{"email":"john.doe@example.com","name":"John Doe","password":"testword"}`,
+			},
 
 			expect: expect{
 				status: http.StatusInternalServerError,
@@ -149,7 +166,7 @@ func TestRegister(t *testing.T) {
 
 			r.POST("/api/auth/register", handler.Register)
 
-			req, err := http.NewRequest(http.MethodPost, "/api/auth/register", strings.NewReader(tc.requestBody))
+			req, err := http.NewRequest(http.MethodPost, "/api/auth/register", strings.NewReader(tc.request.body))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -163,7 +180,7 @@ func TestRegister(t *testing.T) {
 			}
 
 			if w.Body.String() != tc.expect.body {
-				t.Fatalf("unexpected body returned: got %v, want %v", w.Body.String(), tc.expect.body)
+				t.Fatalf("unexpected body returned: got %v, want %v\n", w.Body.String(), tc.expect.body)
 			}
 		})
 	}
@@ -255,7 +272,7 @@ func TestLogin(t *testing.T) {
 
 		expectedBody := `{"message":"invalid request body"}`
 		if w.Body.String() != expectedBody {
-			t.Fatalf("handler returned unexpected body: got %v, want %v", w.Body.String(), expectedBody)
+			t.Fatalf("handler returned unexpected body: got %v, want %v\n", w.Body.String(), expectedBody)
 		}
 	})
 
@@ -287,7 +304,7 @@ func TestLogin(t *testing.T) {
 
 		expectedBody := `{"message":"user not found"}`
 		if w.Body.String() != expectedBody {
-			t.Fatalf("handler returned unexpected body: got %v, want %v", w.Body.String(), expectedBody)
+			t.Fatalf("handler returned unexpected body: got %v, want %v\n", w.Body.String(), expectedBody)
 		}
 	})
 
@@ -319,7 +336,7 @@ func TestLogin(t *testing.T) {
 
 		expectedBody := `{"message":"can't login"}`
 		if w.Body.String() != expectedBody {
-			t.Fatalf("handler returned unexpected body: got %v, want %v", w.Body.String(), expectedBody)
+			t.Fatalf("handler returned unexpected body: got %v, want %v\n", w.Body.String(), expectedBody)
 		}
 	})
 }
