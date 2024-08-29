@@ -155,13 +155,13 @@ func (h *Handler) Me(ctx *gin.Context) {
 	parts := strings.Split(authHeader, " ")
 	if len(parts) != 2 {
 		log.Info("Incorrect authorization header", slog.String("authorization", authHeader))
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, response.Err("invalid authorization header"))
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, response.Err("invalid authorization header"))
 		return
 	}
 
 	if parts[0] != "Bearer" {
 		log.Info("Incorrect type of authorization token", slog.String("type", parts[0]))
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, response.Err("invalid authorization token type"))
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, response.Err("invalid authorization token type"))
 		return
 	}
 
@@ -175,16 +175,15 @@ func (h *Handler) Me(ctx *gin.Context) {
 		return []byte(h.config.Token.Secret), nil
 	})
 	if err != nil {
-		// TODO: inspect error here
 		log.Error("Can't parse JWT token", slog.String("token", accessToken), sl.Err(err))
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, response.Err("invalid authorization token"))
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, response.Err("invalid authorization token"))
 		return
 	}
 
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok || !token.Valid {
 		log.Error("Can't parse JWT token", slog.String("token", accessToken))
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, response.Err("invalid authorization token"))
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, response.Err("invalid authorization token"))
 		return
 	}
 	userID := claims["id"].(string)
@@ -192,7 +191,7 @@ func (h *Handler) Me(ctx *gin.Context) {
 	user, err := h.repository.User.GetByID(ctx, userID)
 	if errors.Is(err, repoerr.ErrUserNotFound) {
 		log.Info("User not found", slog.String("id", userID))
-		ctx.AbortWithStatusJSON(http.StatusNotFound, response.Err("user not found"))
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, response.Err("invalid authorization token"))
 		return
 	}
 	if err != nil {
