@@ -28,7 +28,7 @@ func New(db *sqlx.DB) *Postgres {
 }
 
 func (p *Postgres) Create(ctx context.Context, email string, name string, passwordHash string) (*User, error) {
-	query := "INSERT INTO users (email, name, password_hash) values ($1, $2, $3) RETURNING *"
+	query := "INSERT INTO users (email, name, password_hash) VALUES ($1, $2, $3) RETURNING *"
 	row := p.db.QueryRowContext(ctx, query, email, name, passwordHash)
 	if pqErr, ok := row.Err().(*pq.Error); ok && pqErr.Code == "23505" {
 		return nil, repoerr.ErrUserAlreadyExists

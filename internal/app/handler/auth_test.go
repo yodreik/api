@@ -55,7 +55,7 @@ func TestRegister(t *testing.T) {
 			name: "ok",
 
 			repo: &repoArgs{
-				query: "INSERT INTO users (email, name, password_hash) values ($1, $2, $3) RETURNING *",
+				query: "INSERT INTO users (email, name, password_hash) VALUES ($1, $2, $3) RETURNING *",
 				args:  []driver.Value{"john.doe@example.com", "John Doe", sha256.String("testword")},
 				rows: sqlmock.NewRows([]string{"id", "email", "name", "password_hash", "created_at"}).
 					AddRow("69", "john.doe@example.com", "John Doe", sha256.String("testword"), time.Now()),
@@ -102,7 +102,7 @@ func TestRegister(t *testing.T) {
 			name: "user already exists",
 
 			repo: &repoArgs{
-				query: "INSERT INTO users (email, name, password_hash) values ($1, $2, $3) RETURNING *",
+				query: "INSERT INTO users (email, name, password_hash) VALUES ($1, $2, $3) RETURNING *",
 				args:  []driver.Value{"john.doe@example.com", "John Doe", sha256.String("testword")},
 				err:   repoerr.ErrUserAlreadyExists,
 			},
@@ -118,7 +118,7 @@ func TestRegister(t *testing.T) {
 			name: "repository error",
 
 			repo: &repoArgs{
-				query: "INSERT INTO users (email, name, password_hash) values ($1, $2, $3) RETURNING *",
+				query: "INSERT INTO users (email, name, password_hash) VALUES ($1, $2, $3) RETURNING *",
 				args:  []driver.Value{"john.doe@example.com", "John Doe", sha256.String("testword")},
 				err:   errors.New("repo: Something goes wrong"),
 			},
