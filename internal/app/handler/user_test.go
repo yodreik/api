@@ -42,7 +42,7 @@ func TestMe(t *testing.T) {
 
 		handler := New(&c, repo)
 
-		r.GET("/api/me", handler.Me)
+		r.GET("/api/me", handler.UserIdentity, handler.Me)
 
 		req, err := http.NewRequest(http.MethodGet, "/api/me", nil)
 		if err != nil {
@@ -93,7 +93,7 @@ func TestMe(t *testing.T) {
 
 		handler := New(&c, repo)
 
-		r.GET("/api/me", handler.Me)
+		r.GET("/api/me", handler.UserIdentity, handler.Me)
 
 		req, err := http.NewRequest(http.MethodGet, "/api/me", nil)
 		if err != nil {
@@ -123,7 +123,7 @@ func TestMe(t *testing.T) {
 
 		handler := New(&c, repo)
 
-		r.GET("/api/me", handler.Me)
+		r.GET("/api/me", handler.UserIdentity, handler.Me)
 
 		req, err := http.NewRequest(http.MethodGet, "/api/me", nil)
 		if err != nil {
@@ -153,7 +153,7 @@ func TestMe(t *testing.T) {
 
 		handler := New(&c, repo)
 
-		r.GET("/api/me", handler.Me)
+		r.GET("/api/me", handler.UserIdentity, handler.Me)
 
 		req, err := http.NewRequest(http.MethodGet, "/api/me", nil)
 		if err != nil {
@@ -186,7 +186,7 @@ func TestMe(t *testing.T) {
 
 		handler := New(&c, repo)
 
-		r.GET("/api/me", handler.Me)
+		r.GET("/api/me", handler.UserIdentity, handler.Me)
 
 		req, err := http.NewRequest(http.MethodGet, "/api/me", nil)
 		if err != nil {
