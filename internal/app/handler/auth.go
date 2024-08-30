@@ -12,10 +12,8 @@ import (
 	"log/slog"
 	"net/http"
 	"net/mail"
-	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v5"
 )
 
 // @Summary      Register user
@@ -117,12 +115,7 @@ func (h *Handler) Login(ctx *gin.Context) {
 		return
 	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"iat": time.Now().Unix(),
-		"id":  user.ID,
-	})
-
-	tokenString, err := token.SignedString([]byte(h.config.Token.Secret))
+	token, err := h.token.GenerateToken(user.ID)
 	if err != nil {
 		log.Error("Can't generate JWT", sl.Err(err))
 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, response.Err("can't login"))
@@ -130,6 +123,6 @@ func (h *Handler) Login(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, responsebody.Token{
-		Token: tokenString,
+		Token: token,
 	})
 }

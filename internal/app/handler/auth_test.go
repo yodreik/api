@@ -9,7 +9,6 @@ import (
 	"database/sql/driver"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -18,7 +17,6 @@ import (
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -236,13 +234,7 @@ func TestLogin(t *testing.T) {
 			t.Fatal("token should not be empty")
 		}
 
-		_, err = jwt.Parse(body.Token, func(token *jwt.Token) (interface{}, error) {
-			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
-			}
-
-			return []byte(tokenSecret), nil
-		})
+		_, err = handler.token.ParseToID(body.Token)
 		if err != nil {
 			t.Fatalf("jsonwebtoken is invalid: %v\n", err)
 		}

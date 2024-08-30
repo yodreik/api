@@ -16,7 +16,6 @@ import (
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -49,17 +48,12 @@ func TestMe(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-			"iat": time.Now().Unix(),
-			"id":  "69",
-		})
-
-		tokenString, err := token.SignedString([]byte(c.Token.Secret))
+		token, err := handler.token.GenerateToken("69")
 		if err != nil {
 			t.Fatalf("err not expected while signing jsonwebtoken: %v\n", err)
 		}
 
-		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", tokenString))
+		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token))
 
 		w := httptest.NewRecorder()
 
@@ -103,17 +97,12 @@ func TestMe(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-			"iat": time.Now().Unix(),
-			"id":  "69",
-		})
-
-		tokenString, err := token.SignedString([]byte(c.Token.Secret))
+		token, err := handler.token.GenerateToken("69")
 		if err != nil {
 			t.Fatalf("err not expected while signing jsonwebtoken: %v\n", err)
 		}
 
-		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", tokenString))
+		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token))
 
 		w := httptest.NewRecorder()
 
@@ -146,17 +135,12 @@ func TestMe(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-			"iat": time.Now().Unix(),
-			"id":  "69",
-		})
-
-		tokenString, err := token.SignedString([]byte(c.Token.Secret))
+		token, err := handler.token.GenerateToken("69")
 		if err != nil {
 			t.Fatalf("err not expected while signing jsonwebtoken: %v\n", err)
 		}
 
-		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", tokenString))
+		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token))
 
 		w := httptest.NewRecorder()
 
