@@ -1,16 +1,18 @@
 package handler
 
 import (
-	"api/internal/app/handler/response/responsebody"
 	"api/internal/config"
 	"api/internal/repository"
 	repoerr "api/internal/repository/errors"
+	"api/internal/token"
 	"api/pkg/sha256"
+	"database/sql/driver"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -20,140 +22,140 @@ import (
 )
 
 func TestMe(t *testing.T) {
+	tokenSecret := "some-supa-secret-characters"
+	tokenManager := token.New(tokenSecret)
+
+	tokenWithID69, err := tokenManager.GenerateToken("69")
+	if err != nil {
+		t.Fatal("unexpected error while generating mock token")
+	}
+
 	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
 	if err != nil {
 		t.Fatalf("err not expected: %v\n", err)
 	}
 
-	tokenSecret := "some-supa-secret-characters"
 	c := config.Config{Token: config.Token{Secret: tokenSecret}}
 	repo := repository.New(sqlx.NewDb(db, "sqlmock"))
 
-	t.Run("OK", func(t *testing.T) {
-		rows := sqlmock.NewRows([]string{"id", "email", "name", "password_hash", "created_at"}).
-			AddRow("69", "john.doe@example.com", "John Doe", sha256.String("testword"), time.Now())
+	tt := []table{
+		{
+			name: "ok",
 
-		mock.ExpectQuery("SELECT * FROM users WHERE id = $1").
-			WithArgs("69").WillReturnRows(rows)
+			repo: &repoArgs{
+				query: "SELECT * FROM users WHERE id = $1",
+				args:  []driver.Value{"69"},
+				rows: sqlmock.NewRows([]string{"id", "email", "name", "password_hash", "created_at"}).
+					AddRow("69", "john.doe@example.com", "John Doe", sha256.String("testword"), time.Now()),
+			},
 
-		gin.SetMode(gin.TestMode)
-		r := gin.Default()
+			request: request{
+				headers: map[string]string{
+					"Authorization": fmt.Sprintf("Bearer %s", tokenWithID69),
+				},
+			},
 
-		handler := New(&c, repo)
+			expect: expect{
+				status: http.StatusOK,
+				body:   `{"id":"69","email":"john.doe@example.com","name":"John Doe"}`,
+			},
+		},
+		{
+			name: "user not found",
 
-		r.GET("/api/me", handler.UserIdentity, handler.Me)
+			repo: &repoArgs{
+				query: "SELECT * FROM users WHERE id = $1",
+				args:  []driver.Value{"69"},
+				err:   repoerr.ErrUserNotFound,
+			},
 
-		req, err := http.NewRequest(http.MethodGet, "/api/me", nil)
-		if err != nil {
-			t.Fatal(err)
-		}
+			request: request{
+				headers: map[string]string{
+					"Authorization": fmt.Sprintf("Bearer %s", tokenWithID69),
+				},
+			},
 
-		token, err := handler.token.GenerateToken("69")
-		if err != nil {
-			t.Fatalf("err not expected while signing jsonwebtoken: %v\n", err)
-		}
+			expect: expect{
+				status: http.StatusUnauthorized,
+				body:   `{"message":"invalid authorization token"}`,
+			},
+		},
+		{
+			name: "repository error",
 
-		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token))
+			repo: &repoArgs{
+				query: "SELECT * FROM users WHERE id = $1",
+				args:  []driver.Value{"69"},
+				err:   errors.New("repo: Some repository error"),
+			},
 
-		w := httptest.NewRecorder()
+			request: request{
+				headers: map[string]string{
+					"Authorization": fmt.Sprintf("Bearer %s", tokenWithID69),
+				},
+			},
 
-		r.ServeHTTP(w, req)
+			expect: expect{
+				status: http.StatusInternalServerError,
+				body:   `{"message":"can't get me"}`,
+			},
+		},
+	}
 
-		expectedStatus := http.StatusOK
-		if status := w.Code; status != expectedStatus {
-			t.Fatalf("handler returned wrong status code: got %v, want %v\n", status, expectedStatus)
-		}
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			if tc.repo != nil {
+				if tc.repo.err != nil {
+					mock.ExpectQuery(tc.repo.query).WithArgs(tc.repo.args...).WillReturnError(tc.repo.err)
+				} else {
+					mock.ExpectQuery(tc.repo.query).WithArgs(tc.repo.args...).WillReturnRows(tc.repo.rows)
+				}
+			}
 
-		var body responsebody.User
-		err = json.Unmarshal(w.Body.Bytes(), &body)
-		if err != nil {
-			t.Fatalf("can't unmarshall response body: %v\n", err)
-		}
+			gin.SetMode(gin.TestMode)
+			r := gin.Default()
 
-		if body.ID != "69" {
-			t.Fatalf("unexpected user id: got %v, want %v\n", body.ID, "69")
-		}
-		if body.Email != "john.doe@example.com" {
-			t.Fatalf("unexpected user email: got %v, want %v\n", body.ID, "john.dor@example.com")
-		}
-		if body.Name != "John Doe" {
-			t.Fatalf("unexpected user name: got %v, want %v\n", body.ID, "John Doe")
-		}
-	})
+			handler := New(&c, repo)
 
-	t.Run("User not found", func(t *testing.T) {
-		mock.ExpectQuery("SELECT * FROM users WHERE id = $1").
-			WithArgs("69").WillReturnError(repoerr.ErrUserNotFound)
+			r.GET("/api/me", handler.UserIdentity, handler.Me)
 
-		gin.SetMode(gin.TestMode)
-		r := gin.Default()
+			req, err := http.NewRequest(http.MethodGet, "/api/me", strings.NewReader(tc.request.body))
+			if err != nil {
+				t.Fatal(err)
+			}
 
-		handler := New(&c, repo)
+			for key, value := range tc.request.headers {
+				req.Header.Add(key, value)
+			}
 
-		r.GET("/api/me", handler.UserIdentity, handler.Me)
+			w := httptest.NewRecorder()
 
-		req, err := http.NewRequest(http.MethodGet, "/api/me", nil)
-		if err != nil {
-			t.Fatal(err)
-		}
+			r.ServeHTTP(w, req)
 
-		token, err := handler.token.GenerateToken("69")
-		if err != nil {
-			t.Fatalf("err not expected while signing jsonwebtoken: %v\n", err)
-		}
+			if status := w.Code; status != tc.expect.status {
+				t.Fatalf("unexpected status code returned: got %v, want %v\n", status, tc.expect.status)
+			}
 
-		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token))
+			var body map[string]string
+			err = json.Unmarshal(w.Body.Bytes(), &body)
+			if err != nil {
+				t.Fatalf("can't unmarshall response body: %v\n", err)
+			}
 
-		w := httptest.NewRecorder()
+			for _, field := range tc.expect.bodyFields {
+				value, exists := body[field]
+				if !exists {
+					t.Fatalf("expected body field not found: %v\n", field)
+				}
 
-		r.ServeHTTP(w, req)
+				if value == "" {
+					t.Fatalf("expected body field is empty: %v\n", field)
+				}
+			}
 
-		expectedStatus := http.StatusUnauthorized
-		if status := w.Code; status != expectedStatus {
-			t.Fatalf("handler returned wrong status code: got %v, want %v\n", status, expectedStatus)
-		}
-
-		expectedBody := `{"message":"invalid authorization token"}`
-		if w.Body.String() != expectedBody {
-			t.Fatalf("handler returned unexpected body: got %v, want %v\n", w.Body.String(), expectedBody)
-		}
-	})
-
-	t.Run("Repository error", func(t *testing.T) {
-		mock.ExpectQuery("SELECT * FROM users WHERE id = $1").
-			WithArgs("69").WillReturnError(errors.New("repo: Some repository error"))
-
-		gin.SetMode(gin.TestMode)
-		r := gin.Default()
-
-		handler := New(&c, repo)
-
-		r.GET("/api/me", handler.Me)
-
-		req, err := http.NewRequest(http.MethodGet, "/api/me", nil)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		token, err := handler.token.GenerateToken("69")
-		if err != nil {
-			t.Fatalf("err not expected while signing jsonwebtoken: %v\n", err)
-		}
-
-		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token))
-
-		w := httptest.NewRecorder()
-
-		r.ServeHTTP(w, req)
-
-		expectedStatus := http.StatusInternalServerError
-		if status := w.Code; status != expectedStatus {
-			t.Fatalf("handler returned wrong status code: got %v, want %v\n", status, expectedStatus)
-		}
-
-		expectedBody := `{"message":"can't get me"}`
-		if w.Body.String() != expectedBody {
-			t.Fatalf("handler returned unexpected body: got %v, want %v\n", w.Body.String(), expectedBody)
-		}
-	})
+			if tc.expect.body != `` && w.Body.String() != tc.expect.body {
+				t.Fatalf("unexpected body returned: got %v, want %v\n", w.Body.String(), tc.expect.body)
+			}
+		})
+	}
 }
