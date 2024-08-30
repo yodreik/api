@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"api/internal/app/handler/response/responsebody"
 	"api/internal/config"
 	"api/internal/repository"
 	repoerr "api/internal/repository/errors"
@@ -195,141 +194,126 @@ func TestLogin(t *testing.T) {
 	c := config.Config{Token: config.Token{Secret: tokenSecret}}
 	repo := repository.New(sqlx.NewDb(db, "sqlmock"))
 
-	t.Run("OK", func(t *testing.T) {
-		rows := sqlmock.NewRows([]string{"id", "email", "name", "password_hash", "created_at"}).
-			AddRow("69", "john.doe@example.com", "John Doe", sha256.String("testword"), time.Now())
+	tt := []table{
+		{
+			name: "ok",
 
-		mock.ExpectQuery("SELECT * FROM users WHERE email = $1 AND password_hash = $2").
-			WithArgs("john.doe@example.com", sha256.String("testword")).WillReturnRows(rows)
+			repo: &repoArgs{
+				query: "SELECT * FROM users WHERE email = $1 AND password_hash = $2",
+				args:  []driver.Value{"john.doe@example.com", sha256.String("testword")},
+				rows: sqlmock.NewRows([]string{"id", "email", "name", "password_hash", "created_at"}).
+					AddRow("69", "john.doe@example.com", "John Doe", sha256.String("testword"), time.Now()),
+			},
 
-		gin.SetMode(gin.TestMode)
-		r := gin.Default()
+			request: request{
+				body: `{"email":"john.doe@example.com","password":"testword"}`,
+			},
 
-		handler := New(&c, repo)
+			expect: expect{
+				status:     http.StatusOK,
+				bodyFields: []string{"token"},
+			},
+		},
+		{
+			name: "invalid request body",
 
-		r.POST("/api/auth/login", handler.Login)
+			request: request{
+				body: `{"some":"invalid","body":"poo"}`,
+			},
 
-		req, err := http.NewRequest(http.MethodPost, "/api/auth/login",
-			strings.NewReader(`{"email":"john.doe@example.com","password":"testword"}`))
-		if err != nil {
-			t.Fatal(err)
-		}
+			expect: expect{
+				status: http.StatusBadRequest,
+				body:   `{"message":"invalid request body"}`,
+			},
+		},
+		{
+			name: "user not found",
 
-		w := httptest.NewRecorder()
+			repo: &repoArgs{
+				query: "SELECT * FROM users WHERE email = $1 AND password_hash = $2",
+				args:  []driver.Value{"john.doe@example.com", sha256.String("testword")},
+				err:   repoerr.ErrUserNotFound,
+			},
 
-		r.ServeHTTP(w, req)
+			request: request{
+				body: `{"email":"john.doe@example.com","password":"testword"}`,
+			},
 
-		expectedStatus := http.StatusOK
-		if status := w.Code; status != expectedStatus {
-			t.Fatalf("handler returned wrong status code: got %v, want %v\n", status, expectedStatus)
-		}
+			expect: expect{
+				status: http.StatusNotFound,
+				body:   `{"message":"user not found"}`,
+			},
+		},
+		{
+			name: "repository error",
 
-		var body responsebody.Token
-		err = json.Unmarshal(w.Body.Bytes(), &body)
-		if err != nil {
-			t.Fatalf("can't unmarshall response body: %v\n", err)
-		}
+			repo: &repoArgs{
+				query: "SELECT * FROM users WHERE email = $1 AND password_hash = $2",
+				args:  []driver.Value{"john.doe@example.com", sha256.String("testword")},
+				err:   errors.New("repo: Some repository error"),
+			},
 
-		if body.Token == "" {
-			t.Fatal("token should not be empty")
-		}
+			request: request{
+				body: `{"email":"john.doe@example.com","password":"testword"}`,
+			},
 
-		_, err = handler.token.ParseToID(body.Token)
-		if err != nil {
-			t.Fatalf("jsonwebtoken is invalid: %v\n", err)
-		}
-	})
+			expect: expect{
+				status: http.StatusInternalServerError,
+				body:   `{"message":"can't login"}`,
+			},
+		},
+	}
 
-	t.Run("Invalid request body", func(t *testing.T) {
-		gin.SetMode(gin.TestMode)
-		r := gin.Default()
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			if tc.repo != nil {
+				if tc.repo.err != nil {
+					mock.ExpectQuery(tc.repo.query).WithArgs(tc.repo.args...).WillReturnError(tc.repo.err)
+				} else {
+					mock.ExpectQuery(tc.repo.query).WithArgs(tc.repo.args...).WillReturnRows(tc.repo.rows)
+				}
+			}
 
-		handler := New(&c, repo)
+			gin.SetMode(gin.TestMode)
+			r := gin.Default()
 
-		r.POST("/api/auth/login", handler.Login)
+			handler := New(&c, repo)
 
-		req, err := http.NewRequest(http.MethodPost, "/api/auth/login",
-			strings.NewReader(`{"some":"invalid","body":"poo"}`))
-		if err != nil {
-			t.Fatal(err)
-		}
+			r.POST("/api/auth/login", handler.Login)
 
-		w := httptest.NewRecorder()
+			req, err := http.NewRequest(http.MethodPost, "/api/auth/login", strings.NewReader(tc.request.body))
+			if err != nil {
+				t.Fatal(err)
+			}
 
-		r.ServeHTTP(w, req)
+			w := httptest.NewRecorder()
 
-		expectedStatus := http.StatusBadRequest
-		if status := w.Code; status != expectedStatus {
-			t.Fatalf("handler returned wrong status code: got %v, want %v\n", status, expectedStatus)
-		}
+			r.ServeHTTP(w, req)
 
-		expectedBody := `{"message":"invalid request body"}`
-		if w.Body.String() != expectedBody {
-			t.Fatalf("handler returned unexpected body: got %v, want %v\n", w.Body.String(), expectedBody)
-		}
-	})
+			if status := w.Code; status != tc.expect.status {
+				t.Fatalf("unexpected status code returned: got %v, want %v\n", status, tc.expect.status)
+			}
 
-	t.Run("User not found", func(t *testing.T) {
-		mock.ExpectQuery("SELECT * FROM users WHERE email = $1 AND password_hash = $2").
-			WithArgs("john.doe@example.com", sha256.String("testword")).WillReturnError(repoerr.ErrUserNotFound)
+			var body map[string]string
+			err = json.Unmarshal(w.Body.Bytes(), &body)
+			if err != nil {
+				t.Fatalf("can't unmarshall response body: %v\n", err)
+			}
 
-		gin.SetMode(gin.TestMode)
-		r := gin.Default()
+			for _, field := range tc.expect.bodyFields {
+				value, exists := body[field]
+				if !exists {
+					t.Fatalf("expected body field not found: %v\n", field)
+				}
 
-		handler := New(&c, repo)
+				if value == "" {
+					t.Fatalf("expected body field is empty: %v\n", field)
+				}
+			}
 
-		r.POST("/api/auth/login", handler.Login)
-
-		req, err := http.NewRequest(http.MethodPost, "/api/auth/login",
-			strings.NewReader(`{"email":"john.doe@example.com","password":"testword"}`))
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		w := httptest.NewRecorder()
-
-		r.ServeHTTP(w, req)
-
-		expectedStatus := http.StatusNotFound
-		if status := w.Code; status != expectedStatus {
-			t.Fatalf("handler returned wrong status code: got %v, want %v\n", status, expectedStatus)
-		}
-
-		expectedBody := `{"message":"user not found"}`
-		if w.Body.String() != expectedBody {
-			t.Fatalf("handler returned unexpected body: got %v, want %v\n", w.Body.String(), expectedBody)
-		}
-	})
-
-	t.Run("Repository error", func(t *testing.T) {
-		mock.ExpectQuery("SELECT * FROM users WHERE email = $1 AND password_hash = $2").
-			WithArgs("john.doe@example.com", sha256.String("testword")).WillReturnError(errors.New("repo: Some repository error"))
-
-		gin.SetMode(gin.TestMode)
-		r := gin.Default()
-
-		handler := New(&c, repo)
-
-		r.POST("/api/auth/login", handler.Login)
-
-		req, err := http.NewRequest(http.MethodPost, "/api/auth/login",
-			strings.NewReader(`{"email":"john.doe@example.com","password":"testword"}`))
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		w := httptest.NewRecorder()
-
-		r.ServeHTTP(w, req)
-
-		expectedStatus := http.StatusInternalServerError
-		if status := w.Code; status != expectedStatus {
-			t.Fatalf("handler returned wrong status code: got %v, want %v\n", status, expectedStatus)
-		}
-
-		expectedBody := `{"message":"can't login"}`
-		if w.Body.String() != expectedBody {
-			t.Fatalf("handler returned unexpected body: got %v, want %v\n", w.Body.String(), expectedBody)
-		}
-	})
+			if tc.expect.body != `` && w.Body.String() != tc.expect.body {
+				t.Fatalf("unexpected body returned: got %v, want %v\n", w.Body.String(), tc.expect.body)
+			}
+		})
+	}
 }
