@@ -116,6 +116,9 @@ const docTemplate = `{
                 "produces": [
                     "application/json"
                 ],
+                "tags": [
+                    "status"
+                ],
                 "summary": "Ping a server",
                 "responses": {
                     "200": {
@@ -139,7 +142,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "auth"
+                    "user"
                 ],
                 "summary": "Get information about current user",
                 "responses": {
@@ -163,9 +166,72 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/workout": {
+            "post": {
+                "security": [
+                    {
+                        "AccessToken": []
+                    }
+                ],
+                "description": "creates a new record about workout session",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "workout"
+                ],
+                "summary": "Create a record about past workout",
+                "parameters": [
+                    {
+                        "description": "Information about workout session",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/requestbody.CreateWorkout"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/responsebody.Workout"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/responsebody.Error"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
+        "requestbody.CreateWorkout": {
+            "type": "object",
+            "required": [
+                "duration",
+                "kind"
+            ],
+            "properties": {
+                "date": {
+                    "type": "string"
+                },
+                "duration": {
+                    "type": "integer"
+                },
+                "kind": {
+                    "type": "string"
+                }
+            }
+        },
         "requestbody.Login": {
             "type": "object",
             "required": [
@@ -226,6 +292,23 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "responsebody.Workout": {
+            "type": "object",
+            "properties": {
+                "date": {
+                    "type": "string"
+                },
+                "duration": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "kind": {
                     "type": "string"
                 }
             }

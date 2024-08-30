@@ -16,7 +16,7 @@ import (
 // @Summary      Get information about current user
 // @Description  returns an user's information, that currently logged in
 // @Security     AccessToken
-// @Tags         auth
+// @Tags         user
 // @Produce      json
 // @Success      200 {object}  responsebody.User
 // @Failure      400 {object}  responsebody.Error

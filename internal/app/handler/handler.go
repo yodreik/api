@@ -25,6 +25,7 @@ func New(c *config.Config, r *repository.Repository) *Handler {
 
 // @Summary      Ping a server
 // @Description  check if server status is ok
+// @Tags         status
 // @Accept       json
 // @Produce      json
 // @Success      200 {string}    string "ok"

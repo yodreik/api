@@ -1,5 +1,17 @@
 basePath: /api
 definitions:
+  requestbody.CreateWorkout:
+    properties:
+      date:
+        type: string
+      duration:
+        type: integer
+      kind:
+        type: string
+    required:
+    - duration
+    - kind
+    type: object
   requestbody.Login:
     properties:
       email:
@@ -40,6 +52,17 @@ definitions:
       id:
         type: string
       name:
+        type: string
+    type: object
+  responsebody.Workout:
+    properties:
+      date:
+        type: string
+      duration:
+        type: integer
+      id:
+        type: string
+      kind:
         type: string
     type: object
 host: localhost:6969
@@ -122,6 +145,8 @@ paths:
           schema:
             type: string
       summary: Ping a server
+      tags:
+      - status
   /me:
     get:
       description: returns an user's information, that currently logged in
@@ -144,7 +169,35 @@ paths:
       - AccessToken: []
       summary: Get information about current user
       tags:
-      - auth
+      - user
+  /workout:
+    post:
+      consumes:
+      - application/json
+      description: creates a new record about workout session
+      parameters:
+      - description: Information about workout session
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/requestbody.CreateWorkout'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/responsebody.Workout'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responsebody.Error'
+      security:
+      - AccessToken: []
+      summary: Create a record about past workout
+      tags:
+      - workout
 securityDefinitions:
   AccessToken:
     in: header
