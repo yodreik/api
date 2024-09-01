@@ -5,6 +5,7 @@ import (
 	"api/internal/repository"
 	"api/internal/token"
 	"database/sql/driver"
+	"errors"
 	"fmt"
 	"net/http"
 	"testing"
@@ -58,6 +59,65 @@ func TestCreateWorkout(t *testing.T) {
 			expect: expect{
 				status: http.StatusCreated,
 				body:   `{"id":"96","date":"11.11.2024","duration":71,"kind":"Calisthenics"}`,
+			},
+		},
+		{
+			name: "invalid request body",
+
+			request: request{
+				headers: map[string]string{
+					"Authorization": fmt.Sprintf("Bearer %s", tokenWithID69),
+				},
+				body: `{"invalid":"body"}`,
+			},
+
+			expect: expect{
+				status: http.StatusBadRequest,
+				body:   `{"message":"invalid request body"}`,
+			},
+		},
+		{
+			name: "invalid date format",
+
+			request: request{
+				headers: map[string]string{
+					"Authorization": fmt.Sprintf("Bearer %s", tokenWithID69),
+				},
+				body: `{"date":"69.11.2024","duration":71,"kind":"Calisthenics"}`,
+			},
+
+			expect: expect{
+				status: http.StatusBadRequest,
+				body:   `{"message":"invalid date format"}`,
+			},
+		},
+		{
+			name: "unauthorized",
+
+			expect: expect{
+				status: http.StatusUnauthorized,
+				body:   `{"message":"empty authorization header"}`,
+			},
+		},
+		{
+			name: "repository error",
+
+			repo: &repoArgs{
+				query: "INSERT INTO workouts (user_id, date, duration, kind) VALUES ($1, $2, $3, $4) RETURNING *",
+				args:  []driver.Value{"69", expectedDate, 71, "Calisthenics"},
+				err:   errors.New("repo: Some repository error"),
+			},
+
+			request: request{
+				headers: map[string]string{
+					"Authorization": fmt.Sprintf("Bearer %s", tokenWithID69),
+				},
+				body: `{"date":"11.11.2024","duration":71,"kind":"Calisthenics"}`,
+			},
+
+			expect: expect{
+				status: http.StatusInternalServerError,
+				body:   `{"message":"can't create workout record"}`,
 			},
 		},
 	}

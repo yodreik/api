@@ -48,7 +48,7 @@ func (h *Handler) CreateWorkout(ctx *gin.Context) {
 	workout, err := h.repository.Workout.Create(ctx, userID, date, body.Duration, body.Kind)
 	if err != nil {
 		log.Error("Can't create workout", sl.Err(err))
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, response.Err("can't register"))
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, response.Err("can't create workout record"))
 		return
 	}
 
