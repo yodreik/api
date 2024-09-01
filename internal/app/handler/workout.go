@@ -56,7 +56,7 @@ func (h *Handler) CreateWorkout(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusCreated, responsebody.Workout{
 		ID:       workout.ID,
-		Date:     date,
+		Date:     date.Format("02.01.2006"),
 		Duration: workout.Duration,
 		Kind:     workout.Kind,
 	})

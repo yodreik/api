@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -75,7 +76,7 @@ func TemplateTestHandler(tt table, mock sqlmock.Sqlmock, method string, path str
 			t.Fatalf("unexpected body returned: got %v, want %v\n", w.Body.String(), tt.expect.body)
 		}
 
-		var body map[string]string
+		var body map[string]any
 		err = json.Unmarshal(w.Body.Bytes(), &body)
 		if err != nil {
 			t.Fatalf("can't unmarshall response body: %v\n", err)
@@ -87,7 +88,8 @@ func TemplateTestHandler(tt table, mock sqlmock.Sqlmock, method string, path str
 				t.Fatalf("expected body field not found: %v\n", field)
 			}
 
-			if value == "" {
+			v := reflect.ValueOf(value)
+			if !v.IsValid() || v.IsZero() {
 				t.Fatalf("expected body field is empty: %v\n", field)
 			}
 		}

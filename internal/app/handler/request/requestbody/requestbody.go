@@ -12,7 +12,7 @@ type Login struct {
 }
 
 type CreateWorkout struct {
-	Date     string `json:"date"`
+	Date     string `json:"date" binding:"required"`
 	Duration int    `json:"duration" binding:"required"`
 	Kind     string `json:"kind" binding:"required"`
 }

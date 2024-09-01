@@ -1,7 +1,5 @@
 package responsebody
 
-import "time"
-
 type Error struct {
 	Message string `json:"message"`
 }
@@ -13,10 +11,10 @@ type User struct {
 }
 
 type Workout struct {
-	ID       string    `json:"id"`
-	Date     time.Time `json:"date"`
-	Duration int       `json:"duration"`
-	Kind     string    `json:"kind"`
+	ID       string `json:"id"`
+	Date     string `json:"date"`
+	Duration int    `json:"duration"`
+	Kind     string `json:"kind"`
 }
 
 type Token struct {
