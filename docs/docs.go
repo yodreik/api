@@ -217,6 +217,7 @@ const docTemplate = `{
         "requestbody.CreateWorkout": {
             "type": "object",
             "required": [
+                "date",
                 "duration",
                 "kind"
             ],

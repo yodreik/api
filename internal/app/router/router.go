@@ -35,6 +35,12 @@ func (r *Router) InitRoutes() *gin.Engine {
 	router.Use(requestid.New)
 	router.Use(requestlog.Handled)
 
+	if r.config.Env == config.EnvLocal {
+		router.GET("/coverage", func(c *gin.Context) {
+			c.File("./coverage.html")
+		})
+	}
+
 	api := router.Group("/api")
 	{
 		api.GET("/docs/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))

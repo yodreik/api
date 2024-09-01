@@ -9,6 +9,7 @@ definitions:
       kind:
         type: string
     required:
+    - date
     - duration
     - kind
     type: object
