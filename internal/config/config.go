@@ -19,6 +19,7 @@ const (
 type Config struct {
 	Env      string   `yaml:"env" env-required:"true"`
 	Server   Server   `yaml:"server" env-required:"true"`
+	Mail     Mail     `yaml:"mail" env-required:"true"`
 	Token    Token    `yaml:"token" env-required:"true"`
 	Postgres Postgres `yaml:"postgres" env-required:"true"`
 }
@@ -27,6 +28,17 @@ type Server struct {
 	Address     string        `yaml:"address" env-required:"true"`
 	Timeout     time.Duration `yaml:"timeout" env-default:"4s"`
 	IdleTimeout time.Duration `yaml:"idle_timeout" env-default:"60s"`
+}
+
+type Mail struct {
+	Address  string `yaml:"address" env-required:"true"`
+	Password string `yaml:"password" env-required:"true"`
+	SMTP     SMTP   `yaml:"smtp" env-required:"true"`
+}
+
+type SMTP struct {
+	Address string `yaml:"address" env-required:"true"`
+	Port    string `yaml:"port" env-required:"true"`
 }
 
 type Token struct {
