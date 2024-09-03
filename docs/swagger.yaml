@@ -144,7 +144,7 @@ paths:
       tags:
       - auth
   /auth/password/update:
-    post:
+    patch:
       consumes:
       - application/json
       description: updates password for user

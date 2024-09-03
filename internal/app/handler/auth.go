@@ -190,7 +190,7 @@ func (h *Handler) ResetPassword(c *gin.Context) {
 // @Success      200
 // @Failure      400 {object}           responsebody.Message
 // @Failure      404 {object}           responsebody.Message
-// @Router       /auth/password/update  [post]
+// @Router       /auth/password/update  [patch]
 func (h *Handler) UpdatePassword(c *gin.Context) {
 	log := slog.With(
 		slog.String("op", "handler.UpdatePassword"),

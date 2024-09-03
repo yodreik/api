@@ -105,7 +105,7 @@ const docTemplate = `{
             }
         },
         "/auth/password/update": {
-            "post": {
+            "patch": {
                 "description": "updates password for user",
                 "consumes": [
                     "application/json"
