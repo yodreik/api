@@ -35,7 +35,8 @@ func (r *Router) InitRoutes() *gin.Engine {
 	router.Use(requestid.New)
 	router.Use(requestlog.Handled)
 
-	if r.config.Env == config.EnvLocal {
+	switch r.config.Env {
+	case config.EnvLocal, config.EnvDevelopment:
 		router.GET("/coverage", func(c *gin.Context) {
 			c.File("./coverage.html")
 		})
@@ -65,7 +66,8 @@ func (r *Router) InitRoutes() *gin.Engine {
 
 func (r *Router) log(routes gin.RoutesInfo) {
 	for _, route := range routes {
-		if r.config.Env == config.EnvLocal {
+		switch r.config.Env {
+		case config.EnvLocal, config.EnvDevelopment:
 			record := fmt.Sprintf("Registered handler for %s %s --> %s", route.Method, route.Path, route.Handler)
 			slog.Info(record)
 		}
