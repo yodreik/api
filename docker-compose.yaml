@@ -15,7 +15,6 @@ services:
     image: "welnex-api:latest"
     depends_on:
       - postgres
-      - redis
     restart: "unless-stopped"
     environment:
       - CONFIG_PATH=./config/dev.yaml
