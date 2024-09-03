@@ -13,6 +13,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/mail"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -164,7 +165,7 @@ func (h *Handler) ResetPassword(c *gin.Context) {
 	}
 
 	token := random.String(64)
-	err = h.repository.Cache.SetPasswordResetRequest(c, body.Email, token)
+	err = h.repository.User.CreatePasswordResetRequest(c, token, body.Email)
 	if err != nil {
 		log.Error("Can't save password reset request information", sl.Err(err))
 		c.AbortWithStatusJSON(http.StatusInternalServerError, response.Message("can't request password reset"))
@@ -204,7 +205,7 @@ func (h *Handler) UpdatePassword(c *gin.Context) {
 		return
 	}
 
-	email, err := h.repository.Cache.GetPasswordResetEmailByToken(c, body.Token)
+	passwordResetRequest, err := h.repository.User.GetPasswordResetRequestByToken(c, body.Token)
 	if errors.Is(err, repoerr.ErrPasswordResetRequestNotFound) {
 		log.Info("Password reset request not found", slog.String("token", body.Token))
 		c.AbortWithStatusJSON(http.StatusNotFound, response.Message("password reset request not found"))
@@ -216,7 +217,13 @@ func (h *Handler) UpdatePassword(c *gin.Context) {
 		return
 	}
 
-	err = h.repository.User.UpdatePasswordByEmail(c, email, sha256.String(body.Password))
+	if time.Now().After(passwordResetRequest.ExpiresAt) {
+		log.Info("Password reset token already expired")
+		c.AbortWithStatusJSON(http.StatusForbidden, response.Message("recovery token already expired"))
+		return
+	}
+
+	err = h.repository.User.UpdatePasswordByEmail(c, passwordResetRequest.Email, sha256.String(body.Password))
 	if err != nil {
 		log.Error("Can't update password", sl.Err(err))
 		c.AbortWithStatusJSON(http.StatusBadRequest, response.Message("can't update password"))

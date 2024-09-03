@@ -9,6 +9,15 @@ CREATE TABLE users
     created_at TIMESTAMP DEFAULT now() NOT NULL
 );
 
+CREATE TABLE reset_password_requests 
+(
+    id UUID DEFAULT uuid_generate_v4() NOT NULL UNIQUE,
+    email VARCHAR(254) NOT NULL REFERENCES users(email) ON DELETE CASCADE,
+    token VARCHAR(64) NOT NULL UNIQUE,
+    expires_at TIMESTAMP NOT NULL,
+    created_at TIMESTAMP DEFAULT now() NOT NULL
+);
+
 CREATE TABLE workouts
 (
     id UUID DEFAULT uuid_generate_v4() NOT NULL UNIQUE,

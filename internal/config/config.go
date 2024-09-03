@@ -22,7 +22,6 @@ type Config struct {
 	Mail     Mail     `yaml:"mail" env-required:"true"`
 	Token    Token    `yaml:"token" env-required:"true"`
 	Postgres Postgres `yaml:"postgres" env-required:"true"`
-	Redis    Redis    `yaml:"redis" env-required:"true"`
 }
 
 type Server struct {
@@ -53,11 +52,6 @@ type Postgres struct {
 	Name     string `yaml:"name"`
 	Password string `yaml:"password"`
 	ModeSSL  string `yaml:"sslmode"`
-}
-
-type Redis struct {
-	Addr     string `yaml:"addr" env-required:"true"`
-	Password string `yaml:"password" env-required:"true"`
 }
 
 // MustLoad loads config to a new Config instance and return it

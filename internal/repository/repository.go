@@ -3,12 +3,10 @@ package repository
 import (
 	"api/internal/repository/postgres/user"
 	"api/internal/repository/postgres/workout"
-	"api/internal/repository/redis/cache"
 	"context"
 	"time"
 
 	"github.com/jmoiron/sqlx"
-	"github.com/redis/go-redis/v9"
 )
 
 type User interface {
@@ -17,6 +15,8 @@ type User interface {
 	GetByCredentials(ctx context.Context, email string, passwordHash string) (*user.User, error)
 	GetByEmail(ctx context.Context, email string) (*user.User, error)
 	UpdatePasswordByEmail(ctx context.Context, email string, password string) error
+	CreatePasswordResetRequest(ctx context.Context, token string, email string) error
+	GetPasswordResetRequestByToken(ctx context.Context, token string) (*user.ResetPasswordRequest, error)
 }
 
 type Workout interface {
@@ -25,21 +25,14 @@ type Workout interface {
 	GetByID(ctx context.Context, id string) (*workout.Workout, error)
 }
 
-type Cache interface {
-	SetPasswordResetRequest(ctx context.Context, email string, token string) error
-	GetPasswordResetEmailByToken(ctx context.Context, token string) (string, error)
-}
-
 type Repository struct {
 	User    User
 	Workout Workout
-	Cache   Cache
 }
 
-func New(pdb *sqlx.DB, rdb *redis.Client) *Repository {
+func New(pdb *sqlx.DB) *Repository {
 	return &Repository{
 		User:    user.New(pdb),
 		Workout: workout.New(pdb),
-		Cache:   cache.New(rdb),
 	}
 }

@@ -23,6 +23,14 @@ type User struct {
 	CreatedAt    time.Time `db:"created_at"`
 }
 
+type ResetPasswordRequest struct {
+	ID        string    `db:"id"`
+	Email     string    `db:"email"`
+	Token     string    `db:"token"`
+	ExpiresAt time.Time `db:"expires_at"`
+	CreatedAt time.Time `db:"created_at"`
+}
+
 func New(db *sqlx.DB) *Postgres {
 	return &Postgres{db: db}
 }
@@ -100,4 +108,26 @@ func (p *Postgres) UpdatePasswordByEmail(ctx context.Context, email string, pass
 	}
 
 	return nil
+}
+
+func (p *Postgres) CreatePasswordResetRequest(ctx context.Context, token string, email string) error {
+	query := "INSERT INTO reset_password_requests (email, token, expires_at) VALUES ($1, $2, $3)"
+
+	row := p.db.QueryRowContext(ctx, query, email, token, time.Now().Add(15*time.Minute))
+	return row.Err()
+}
+
+func (p *Postgres) GetPasswordResetRequestByToken(ctx context.Context, token string) (*ResetPasswordRequest, error) {
+	query := "SELECT * FROM reset_password_requests WHERE token = $1"
+
+	var request ResetPasswordRequest
+	err := p.db.GetContext(ctx, &request, query, token)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, repoerr.ErrPasswordResetRequestNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return &request, nil
 }

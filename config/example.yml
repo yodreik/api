@@ -22,7 +22,3 @@ postgres:
   name: "postgres"
   password: "my-unhackable-password"
   sslmode: "disable"
-
-redis:
-  addr: "localhost:6379"
-  password: "my-unhackable-password-2"
