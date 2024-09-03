@@ -22,39 +22,39 @@ import (
 // @Param        input body    requestbody.CreateWorkout true "Information about workout session"
 //
 // @Success      201 {object}  responsebody.Workout
-// @Failure      400 {object}  responsebody.Error
+// @Failure      400 {object}  responsebody.Message
 // @Router       /workout      [post]
-func (h *Handler) CreateWorkout(ctx *gin.Context) {
+func (h *Handler) CreateWorkout(c *gin.Context) {
 	log := slog.With(
 		slog.String("op", "handler.CreateWorkout"),
-		slog.String("request_id", requestid.Get(ctx)),
+		slog.String("request_id", requestid.Get(c)),
 	)
 
 	var body requestbody.CreateWorkout
-	if err := ctx.BindJSON(&body); err != nil {
+	if err := c.BindJSON(&body); err != nil {
 		log.Info("Can't decode request body", sl.Err(err))
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, response.Err("invalid request body"))
+		c.AbortWithStatusJSON(http.StatusBadRequest, response.Message("invalid request body"))
 		return
 	}
 
 	date, err := time.Parse("02.01.2006", body.Date)
 	if err != nil {
 		log.Info("Invalid date format", sl.Err(err))
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, response.Err("invalid date format"))
+		c.AbortWithStatusJSON(http.StatusBadRequest, response.Message("invalid date format"))
 		return
 	}
 
-	userID := ctx.GetString("UserID")
-	workout, err := h.repository.Workout.Create(ctx, userID, date, body.Duration, body.Kind)
+	userID := c.GetString("UserID")
+	workout, err := h.repository.Workout.Create(c, userID, date, body.Duration, body.Kind)
 	if err != nil {
 		log.Error("Can't create workout", sl.Err(err))
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, response.Err("can't create workout record"))
+		c.AbortWithStatusJSON(http.StatusInternalServerError, response.Message("can't create workout record"))
 		return
 	}
 
 	log.Info("Created a workout record", slog.String("id", workout.ID))
 
-	ctx.JSON(http.StatusCreated, responsebody.Workout{
+	c.JSON(http.StatusCreated, responsebody.Workout{
 		ID:       workout.ID,
 		Date:     date.Format("02.01.2006"),
 		Duration: workout.Duration,

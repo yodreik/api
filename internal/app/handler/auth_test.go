@@ -22,10 +22,10 @@ func TestRegister(t *testing.T) {
 	}
 
 	c := config.Config{}
-	repo := repository.New(sqlx.NewDb(db, "sqlmock"))
+	repo := repository.New(sqlx.NewDb(db, "sqlmock"), nil)
 	handler := New(&c, repo)
 
-	tt := []table{
+	tests := []table{
 		{
 			name: "ok",
 
@@ -119,8 +119,8 @@ func TestRegister(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tt {
-		t.Run(tt.name, TemplateTestHandler(tt, mock, http.MethodPost, "/api/auth/register", handler.Register))
+	for _, tc := range tests {
+		t.Run(tc.name, TemplateTestHandler(tc, mock, http.MethodPost, "/api/auth/register", handler.Register))
 	}
 }
 
@@ -132,10 +132,10 @@ func TestLogin(t *testing.T) {
 
 	tokenSecret := "some-supa-secret-characters"
 	c := config.Config{Token: config.Token{Secret: tokenSecret}}
-	repo := repository.New(sqlx.NewDb(db, "sqlmock"))
+	repo := repository.New(sqlx.NewDb(db, "sqlmock"), nil)
 	handler := New(&c, repo)
 
-	tt := []table{
+	tests := []table{
 		{
 			name: "ok",
 
@@ -205,7 +205,7 @@ func TestLogin(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tt {
-		t.Run(tt.name, TemplateTestHandler(tt, mock, http.MethodPost, "/api/auth/login", handler.Login))
+	for _, tc := range tests {
+		t.Run(tc.name, TemplateTestHandler(tc, mock, http.MethodPost, "/api/auth/login", handler.Login))
 	}
 }

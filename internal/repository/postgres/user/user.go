@@ -75,3 +75,29 @@ func (p *Postgres) GetByCredentials(ctx context.Context, email string, passwordH
 
 	return &user, nil
 }
+
+func (p *Postgres) GetByEmail(ctx context.Context, email string) (*User, error) {
+	query := "SELECT * FROM users WHERE email = $1"
+
+	var user User
+	err := p.db.GetContext(ctx, &user, query, email)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, repoerr.ErrUserNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return &user, nil
+}
+
+func (p *Postgres) UpdatePasswordByEmail(ctx context.Context, email string, passwordHash string) error {
+	query := "UPDATE users SET password_hash = $1 WHERE email = $2"
+
+	_, err := p.db.ExecContext(ctx, query, passwordHash, email)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

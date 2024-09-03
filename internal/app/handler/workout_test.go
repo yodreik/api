@@ -30,7 +30,7 @@ func TestCreateWorkout(t *testing.T) {
 	}
 
 	c := config.Config{Token: config.Token{Secret: tokenSecret}}
-	repo := repository.New(sqlx.NewDb(db, "sqlmock"))
+	repo := repository.New(sqlx.NewDb(db, "sqlmock"), nil)
 	handler := New(&c, repo)
 
 	expectedDate, err := time.Parse("02.01.2006", "11.11.2024")
@@ -38,7 +38,7 @@ func TestCreateWorkout(t *testing.T) {
 		t.Fatal("err no expected while parsing mock date")
 	}
 
-	tt := []table{
+	tests := []table{
 		{
 			name: "ok",
 
@@ -122,7 +122,7 @@ func TestCreateWorkout(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tt {
-		t.Run(tt.name, TemplateTestHandler(tt, mock, http.MethodPost, "/api/workout", handler.UserIdentity, handler.CreateWorkout))
+	for _, tc := range tests {
+		t.Run(tc.name, TemplateTestHandler(tc, mock, http.MethodPost, "/api/workout", handler.UserIdentity, handler.CreateWorkout))
 	}
 }

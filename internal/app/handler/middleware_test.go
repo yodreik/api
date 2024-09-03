@@ -12,7 +12,7 @@ func TestUserIdentity(t *testing.T) {
 	repo := repository.Repository{}
 	handler := New(&c, &repo)
 
-	tt := []table{
+	tests := []table{
 		{
 			name: "empty header",
 
@@ -57,7 +57,7 @@ func TestUserIdentity(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tt {
-		t.Run(tt.name, TemplateTestHandler(tt, nil, http.MethodGet, "/api/me", handler.UserIdentity))
+	for _, tc := range tests {
+		t.Run(tc.name, TemplateTestHandler(tc, nil, http.MethodGet, "/api/me", handler.UserIdentity))
 	}
 }

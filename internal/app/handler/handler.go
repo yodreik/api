@@ -31,6 +31,6 @@ func New(c *config.Config, r *repository.Repository) *Handler {
 // @Produce      json
 // @Success      200 {string}    string "ok"
 // @Router       /healthcheck    [get]
-func (h *Handler) Healthcheck(ctx *gin.Context) {
-	ctx.String(http.StatusOK, "ok")
+func (h *Handler) Healthcheck(c *gin.Context) {
+	c.String(http.StatusOK, "ok")
 }

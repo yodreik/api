@@ -36,7 +36,19 @@ definitions:
     - name
     - password
     type: object
-  responsebody.Error:
+  requestbody.ResetPassword:
+    properties:
+      email:
+        type: string
+    type: object
+  requestbody.UpdatePassword:
+    properties:
+      password:
+        type: string
+      token:
+        type: string
+    type: object
+  responsebody.Message:
     properties:
       message:
         type: string
@@ -95,12 +107,68 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/responsebody.Error'
+            $ref: '#/definitions/responsebody.Message'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/responsebody.Error'
+            $ref: '#/definitions/responsebody.Message'
       summary: Log into user's account
+      tags:
+      - auth
+  /auth/password/reset:
+    post:
+      consumes:
+      - application/json
+      description: sends an email with recovery link
+      parameters:
+      - description: User information
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/requestbody.ResetPassword'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responsebody.Message'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responsebody.Message'
+      summary: Request password reset
+      tags:
+      - auth
+  /auth/password/update:
+    post:
+      consumes:
+      - application/json
+      description: updates password for user
+      parameters:
+      - description: User information
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/requestbody.UpdatePassword'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responsebody.Message'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responsebody.Message'
+      summary: Update password
       tags:
       - auth
   /auth/register:
@@ -125,11 +193,11 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/responsebody.Error'
+            $ref: '#/definitions/responsebody.Message'
         "409":
           description: Conflict
           schema:
-            $ref: '#/definitions/responsebody.Error'
+            $ref: '#/definitions/responsebody.Message'
       summary: Register user
       tags:
       - auth
@@ -161,11 +229,11 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/responsebody.Error'
+            $ref: '#/definitions/responsebody.Message'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/responsebody.Error'
+            $ref: '#/definitions/responsebody.Message'
       security:
       - AccessToken: []
       summary: Get information about current user
@@ -193,7 +261,7 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/responsebody.Error'
+            $ref: '#/definitions/responsebody.Message'
       security:
       - AccessToken: []
       summary: Create a record about past workout
