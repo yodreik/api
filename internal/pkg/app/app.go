@@ -6,6 +6,7 @@ import (
 	"api/internal/lib/sl"
 	"api/internal/repository"
 	"api/internal/repository/postgres"
+	"api/internal/repository/redis"
 	"context"
 	"errors"
 	"log/slog"
@@ -39,13 +40,21 @@ func (a *App) Run() {
 
 	db, err := postgres.New(&a.config.Postgres)
 	if err != nil {
-		slog.Error("Could not connect to database", sl.Err(err))
+		slog.Error("Could not connect to PostgreSQL", sl.Err(err))
 		os.Exit(1)
 	}
 
 	slog.Info("Successfully connected to PostgreSQL")
 
-	repo := repository.New(db)
+	rdb, err := redis.New(a.config.Redis)
+	if err != nil {
+		slog.Error("Could not connect to Redis", sl.Err(err))
+		os.Exit(1)
+	}
+
+	slog.Info("Successfully connected to Redis")
+
+	repo := repository.New(db, rdb)
 
 	r := router.New(a.config, repo)
 
@@ -82,11 +91,19 @@ func (a *App) Run() {
 
 	slog.Info("API server stopped")
 
-	err = db.Close()
+	err = rdb.Close()
 	if err != nil {
-		slog.Error("Could not close postgres connection properly", sl.Err(err))
+		slog.Error("Could not close Redis connection properly", sl.Err(err))
 		os.Exit(1)
 	}
 
-	slog.Info("Postgres connection closed")
+	slog.Info("Redis connection closed")
+
+	err = db.Close()
+	if err != nil {
+		slog.Error("Could not close PostgreSQL connection properly", sl.Err(err))
+		os.Exit(1)
+	}
+
+	slog.Info("PostgreSQL connection closed")
 }

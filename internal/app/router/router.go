@@ -50,6 +50,9 @@ func (r *Router) InitRoutes() *gin.Engine {
 		api.POST("/auth/register", r.handler.Register)
 		api.POST("/auth/login", r.handler.Login)
 
+		api.POST("/auth/password/reset", r.handler.ResetPassword)
+		api.POST("/auth/password/update", r.handler.UpdatePassword)
+
 		api.GET("/me", r.handler.UserIdentity, r.handler.Me)
 
 		api.POST("/workout", r.handler.UserIdentity, r.handler.CreateWorkout)

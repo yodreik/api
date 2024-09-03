@@ -32,7 +32,7 @@ func TestMe(t *testing.T) {
 	}
 
 	c := config.Config{Token: config.Token{Secret: tokenSecret}}
-	repo := repository.New(sqlx.NewDb(db, "sqlmock"))
+	repo := repository.New(sqlx.NewDb(db, "sqlmock"), nil)
 	handler := New(&c, repo)
 
 	tt := []table{

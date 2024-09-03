@@ -16,3 +16,12 @@ type CreateWorkout struct {
 	Duration int    `json:"duration" binding:"required"`
 	Kind     string `json:"kind" binding:"required"`
 }
+
+type ResetPassword struct {
+	Email string `json:"email"`
+}
+
+type UpdatePassword struct {
+	Token    string `json:"token"`
+	Password string `json:"password"`
+}

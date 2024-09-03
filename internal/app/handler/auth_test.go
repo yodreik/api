@@ -22,7 +22,7 @@ func TestRegister(t *testing.T) {
 	}
 
 	c := config.Config{}
-	repo := repository.New(sqlx.NewDb(db, "sqlmock"))
+	repo := repository.New(sqlx.NewDb(db, "sqlmock"), nil)
 	handler := New(&c, repo)
 
 	tt := []table{
@@ -132,7 +132,7 @@ func TestLogin(t *testing.T) {
 
 	tokenSecret := "some-supa-secret-characters"
 	c := config.Config{Token: config.Token{Secret: tokenSecret}}
-	repo := repository.New(sqlx.NewDb(db, "sqlmock"))
+	repo := repository.New(sqlx.NewDb(db, "sqlmock"), nil)
 	handler := New(&c, repo)
 
 	tt := []table{
