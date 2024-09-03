@@ -20,7 +20,7 @@ func New(rdb *redis.Client) *Redis {
 }
 
 func (r *Redis) SetPasswordResetRequest(ctx context.Context, email string, token string) error {
-	return r.client.Set(ctx, token, email, 24*time.Hour).Err()
+	return r.client.Set(ctx, token, email, 30*time.Minute).Err()
 }
 
 func (r *Redis) GetPasswordResetEmailByToken(ctx context.Context, token string) (string, error) {
