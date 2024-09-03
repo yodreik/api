@@ -36,6 +36,18 @@ definitions:
     - name
     - password
     type: object
+  requestbody.ResetPassword:
+    properties:
+      email:
+        type: string
+    type: object
+  requestbody.UpdatePassword:
+    properties:
+      password:
+        type: string
+      token:
+        type: string
+    type: object
   responsebody.Error:
     properties:
       message:
@@ -101,6 +113,62 @@ paths:
           schema:
             $ref: '#/definitions/responsebody.Error'
       summary: Log into user's account
+      tags:
+      - auth
+  /auth/password/reset:
+    post:
+      consumes:
+      - application/json
+      description: sends an email with recovery link
+      parameters:
+      - description: User information
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/requestbody.ResetPassword'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responsebody.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responsebody.Error'
+      summary: Request password reset
+      tags:
+      - auth
+  /auth/password/update:
+    post:
+      consumes:
+      - application/json
+      description: updates password for user
+      parameters:
+      - description: User information
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/requestbody.UpdatePassword'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responsebody.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responsebody.Error'
+      summary: Update password
       tags:
       - auth
   /auth/register:

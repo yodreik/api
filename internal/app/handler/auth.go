@@ -128,6 +128,16 @@ func (h *Handler) Login(ctx *gin.Context) {
 	})
 }
 
+// @Summary      Request password reset
+// @Description  sends an email with recovery link
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        input body            requestbody.ResetPassword true "User information"
+// @Success      200
+// @Failure      400 {object}          responsebody.Error
+// @Failure      404 {object}          responsebody.Error
+// @Router       /auth/password/reset  [post]
 func (h *Handler) ResetPassword(ctx *gin.Context) {
 	log := slog.With(
 		slog.String("op", "handler.ResetPassword"),
@@ -171,6 +181,16 @@ func (h *Handler) ResetPassword(ctx *gin.Context) {
 	ctx.Status(http.StatusOK)
 }
 
+// @Summary      Update password
+// @Description  updates password for user
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        input body            requestbody.UpdatePassword true "User information"
+// @Success      200
+// @Failure      400 {object}           responsebody.Error
+// @Failure      404 {object}           responsebody.Error
+// @Router       /auth/password/update  [post]
 func (h *Handler) UpdatePassword(ctx *gin.Context) {
 	log := slog.With(
 		slog.String("op", "handler.UpdatePassword"),
@@ -185,6 +205,11 @@ func (h *Handler) UpdatePassword(ctx *gin.Context) {
 	}
 
 	email, err := h.repository.Cache.GetPasswordResetEmailByToken(ctx, body.Token)
+	if errors.Is(err, repoerr.ErrPasswordResetRequestNotFound) {
+		log.Info("Password reset request not found", slog.String("token", body.Token))
+		ctx.AbortWithStatusJSON(http.StatusNotFound, response.Err("password reset request not found"))
+		return
+	}
 	if err != nil {
 		log.Error("Can't get password reset request by token", sl.Err(err), slog.String("token", body.Token))
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response.Err("invalid request body"))
