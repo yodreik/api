@@ -13,8 +13,8 @@ const (
 	Numbers
 )
 
-// String generates a random string of a given length, contains latin
-// lowercase, uppercase characters and numbers
+// String generates a random string of a given length, contains
+// latin lowercase, uppercase characters and numbers
 func String(length int) string {
 	return StringWith(length, LatinLower|LatinUpper|Numbers)
 }
