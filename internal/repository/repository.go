@@ -17,6 +17,7 @@ type User interface {
 	UpdatePasswordByEmail(ctx context.Context, email string, password string) error
 	CreatePasswordResetRequest(ctx context.Context, token string, email string) error
 	GetPasswordResetRequestByToken(ctx context.Context, token string) (*user.ResetPasswordRequest, error)
+	MarkResetPasswordTokenAsUsed(ctx context.Context, token string) error
 }
 
 type Workout interface {

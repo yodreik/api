@@ -27,6 +27,7 @@ type ResetPasswordRequest struct {
 	ID        string    `db:"id"`
 	Email     string    `db:"email"`
 	Token     string    `db:"token"`
+	IsUsed    bool      `db:"is_used"`
 	ExpiresAt time.Time `db:"expires_at"`
 	CreatedAt time.Time `db:"created_at"`
 }
@@ -130,4 +131,11 @@ func (p *Postgres) GetPasswordResetRequestByToken(ctx context.Context, token str
 	}
 
 	return &request, nil
+}
+
+func (p *Postgres) MarkResetPasswordTokenAsUsed(ctx context.Context, token string) error {
+	query := "UPDATE reset_password_requests SET is_used = true WHERE token = $1"
+
+	_, err := p.db.ExecContext(ctx, query, token)
+	return err
 }

@@ -219,7 +219,13 @@ func (h *Handler) UpdatePassword(c *gin.Context) {
 
 	if time.Now().After(passwordResetRequest.ExpiresAt) {
 		log.Info("Password reset token already expired")
-		c.AbortWithStatusJSON(http.StatusForbidden, response.Message("recovery token already expired"))
+		c.AbortWithStatusJSON(http.StatusForbidden, response.Message("recovery token expired"))
+		return
+	}
+
+	if passwordResetRequest.IsUsed {
+		log.Info("Password reset token already used")
+		c.AbortWithStatusJSON(http.StatusForbidden, response.Message("this recovery token has been used"))
 		return
 	}
 
@@ -228,6 +234,11 @@ func (h *Handler) UpdatePassword(c *gin.Context) {
 		log.Error("Can't update password", sl.Err(err))
 		c.AbortWithStatusJSON(http.StatusBadRequest, response.Message("can't update password"))
 		return
+	}
+
+	err = h.repository.User.MarkResetPasswordTokenAsUsed(c, passwordResetRequest.Token)
+	if err != nil {
+		log.Error("Can't mark token as used", sl.Err(err))
 	}
 
 	c.Status(http.StatusOK)
