@@ -19,25 +19,25 @@ import (
 // @Tags         user
 // @Produce      json
 // @Success      200 {object}  responsebody.User
-// @Failure      400 {object}  responsebody.Error
-// @Failure      404 {object}  responsebody.Error
+// @Failure      400 {object}  responsebody.Message
+// @Failure      404 {object}  responsebody.Message
 // @Router       /me           [get]
-func (h *Handler) Me(ctx *gin.Context) {
+func (h *Handler) Me(c *gin.Context) {
 	log := slog.With(
 		slog.String("op", "handler.Me"),
-		slog.String("request_id", requestid.Get(ctx)),
+		slog.String("request_id", requestid.Get(c)),
 	)
 
-	userID := ctx.GetString("UserID")
-	user, err := h.repository.User.GetByID(ctx, userID)
+	userID := c.GetString("UserID")
+	user, err := h.repository.User.GetByID(c, userID)
 	if errors.Is(err, repoerr.ErrUserNotFound) {
 		log.Info("User not found", slog.String("id", userID))
-		ctx.AbortWithStatusJSON(http.StatusUnauthorized, response.Err("invalid authorization token"))
+		c.AbortWithStatusJSON(http.StatusUnauthorized, response.Message("invalid authorization token"))
 		return
 	}
 	if err != nil {
 		log.Error("Can't find user", sl.Err(err))
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, response.Err("can't get me"))
+		c.AbortWithStatusJSON(http.StatusInternalServerError, response.Message("can't get me"))
 		return
 	}
 
@@ -47,5 +47,5 @@ func (h *Handler) Me(ctx *gin.Context) {
 		Name:  user.Name,
 	}
 
-	ctx.JSON(http.StatusOK, resUser)
+	c.JSON(http.StatusOK, resUser)
 }

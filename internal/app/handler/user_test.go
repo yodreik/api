@@ -35,7 +35,7 @@ func TestMe(t *testing.T) {
 	repo := repository.New(sqlx.NewDb(db, "sqlmock"), nil)
 	handler := New(&c, repo)
 
-	tt := []table{
+	tests := []table{
 		{
 			name: "ok",
 
@@ -99,7 +99,7 @@ func TestMe(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tt {
-		t.Run(tt.name, TemplateTestHandler(tt, mock, http.MethodGet, "/api/me", handler.UserIdentity, handler.Me))
+	for _, tc := range tests {
+		t.Run(tc.name, TemplateTestHandler(tc, mock, http.MethodGet, "/api/me", handler.UserIdentity, handler.Me))
 	}
 }

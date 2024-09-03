@@ -40,13 +40,13 @@ type expect struct {
 	bodyFields []string
 }
 
-func TemplateTestHandler(tt table, mock sqlmock.Sqlmock, method string, path string, handlers ...gin.HandlerFunc) func(t *testing.T) {
+func TemplateTestHandler(tc table, mock sqlmock.Sqlmock, method string, path string, handlers ...gin.HandlerFunc) func(t *testing.T) {
 	return func(t *testing.T) {
-		if tt.repo != nil {
-			if tt.repo.err != nil {
-				mock.ExpectQuery(tt.repo.query).WithArgs(tt.repo.args...).WillReturnError(tt.repo.err)
+		if tc.repo != nil {
+			if tc.repo.err != nil {
+				mock.ExpectQuery(tc.repo.query).WithArgs(tc.repo.args...).WillReturnError(tc.repo.err)
 			} else {
-				mock.ExpectQuery(tt.repo.query).WithArgs(tt.repo.args...).WillReturnRows(tt.repo.rows)
+				mock.ExpectQuery(tc.repo.query).WithArgs(tc.repo.args...).WillReturnRows(tc.repo.rows)
 			}
 		}
 
@@ -55,12 +55,12 @@ func TemplateTestHandler(tt table, mock sqlmock.Sqlmock, method string, path str
 
 		r.Handle(method, path, handlers...)
 
-		req, err := http.NewRequest(method, path, strings.NewReader(tt.request.body))
+		req, err := http.NewRequest(method, path, strings.NewReader(tc.request.body))
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		for key, value := range tt.request.headers {
+		for key, value := range tc.request.headers {
 			req.Header.Add(key, value)
 		}
 
@@ -68,12 +68,12 @@ func TemplateTestHandler(tt table, mock sqlmock.Sqlmock, method string, path str
 
 		r.ServeHTTP(w, req)
 
-		if status := w.Code; status != tt.expect.status {
-			t.Fatalf("unexpected status code returned: got %v, want %v\n", status, tt.expect.status)
+		if status := w.Code; status != tc.expect.status {
+			t.Fatalf("unexpected status code returned: got %v, want %v\n", status, tc.expect.status)
 		}
 
-		if tt.expect.body != "" && w.Body.String() != tt.expect.body {
-			t.Fatalf("unexpected body returned: got %v, want %v\n", w.Body.String(), tt.expect.body)
+		if tc.expect.body != "" && w.Body.String() != tc.expect.body {
+			t.Fatalf("unexpected body returned: got %v, want %v\n", w.Body.String(), tc.expect.body)
 		}
 
 		var body map[string]any
@@ -82,7 +82,7 @@ func TemplateTestHandler(tt table, mock sqlmock.Sqlmock, method string, path str
 			t.Fatalf("can't unmarshall response body: %v\n", err)
 		}
 
-		for _, field := range tt.expect.bodyFields {
+		for _, field := range tc.expect.bodyFields {
 			value, exists := body[field]
 			if !exists {
 				t.Fatalf("expected body field not found: %v\n", field)

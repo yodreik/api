@@ -1,6 +1,6 @@
 package responsebody
 
-type Error struct {
+type Message struct {
 	Message string `json:"message"`
 }
 

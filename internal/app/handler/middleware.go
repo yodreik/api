@@ -11,23 +11,23 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func (h *Handler) UserIdentity(ctx *gin.Context) {
+func (h *Handler) UserIdentity(c *gin.Context) {
 	log := slog.With(
 		slog.String("op", "handler.UserIdentity"),
-		slog.String("request_ud", requestid.Get(ctx)),
+		slog.String("request_ud", requestid.Get(c)),
 	)
 
-	header := ctx.GetHeader("Authorization")
+	header := c.GetHeader("Authorization")
 	parts := strings.Split(header, " ")
 	if len(parts) != 2 {
 		log.Info("Incorrect authorization header", slog.String("authorization", header))
-		ctx.AbortWithStatusJSON(http.StatusUnauthorized, response.Err("empty authorization header"))
+		c.AbortWithStatusJSON(http.StatusUnauthorized, response.Message("empty authorization header"))
 		return
 	}
 
 	if parts[0] != "Bearer" {
 		log.Info("Incorrect type of authorization token", slog.String("type", parts[0]))
-		ctx.AbortWithStatusJSON(http.StatusUnauthorized, response.Err("invalid authorization token type"))
+		c.AbortWithStatusJSON(http.StatusUnauthorized, response.Message("invalid authorization token type"))
 		return
 	}
 
@@ -36,10 +36,10 @@ func (h *Handler) UserIdentity(ctx *gin.Context) {
 	userID, err := h.token.ParseToID(token)
 	if err != nil {
 		log.Error("Can't parse access token", slog.String("token", token), sl.Err(err))
-		ctx.AbortWithStatusJSON(http.StatusUnauthorized, response.Err("invalid authorization token"))
+		c.AbortWithStatusJSON(http.StatusUnauthorized, response.Message("invalid authorization token"))
 		return
 	}
 
-	ctx.Set("UserID", userID)
-	ctx.Next()
+	c.Set("UserID", userID)
+	c.Next()
 }

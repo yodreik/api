@@ -49,13 +49,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/responsebody.Error"
+                            "$ref": "#/definitions/responsebody.Message"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/responsebody.Error"
+                            "$ref": "#/definitions/responsebody.Message"
                         }
                     }
                 }
@@ -92,13 +92,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/responsebody.Error"
+                            "$ref": "#/definitions/responsebody.Message"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/responsebody.Error"
+                            "$ref": "#/definitions/responsebody.Message"
                         }
                     }
                 }
@@ -135,13 +135,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/responsebody.Error"
+                            "$ref": "#/definitions/responsebody.Message"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/responsebody.Error"
+                            "$ref": "#/definitions/responsebody.Message"
                         }
                     }
                 }
@@ -181,13 +181,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/responsebody.Error"
+                            "$ref": "#/definitions/responsebody.Message"
                         }
                     },
                     "409": {
                         "description": "Conflict",
                         "schema": {
-                            "$ref": "#/definitions/responsebody.Error"
+                            "$ref": "#/definitions/responsebody.Message"
                         }
                     }
                 }
@@ -241,13 +241,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/responsebody.Error"
+                            "$ref": "#/definitions/responsebody.Message"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/responsebody.Error"
+                            "$ref": "#/definitions/responsebody.Message"
                         }
                     }
                 }
@@ -292,7 +292,7 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/responsebody.Error"
+                            "$ref": "#/definitions/responsebody.Message"
                         }
                     }
                 }
@@ -372,7 +372,7 @@ const docTemplate = `{
                 }
             }
         },
-        "responsebody.Error": {
+        "responsebody.Message": {
             "type": "object",
             "properties": {
                 "message": {

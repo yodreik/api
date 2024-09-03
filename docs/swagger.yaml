@@ -48,7 +48,7 @@ definitions:
       token:
         type: string
     type: object
-  responsebody.Error:
+  responsebody.Message:
     properties:
       message:
         type: string
@@ -107,11 +107,11 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/responsebody.Error'
+            $ref: '#/definitions/responsebody.Message'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/responsebody.Error'
+            $ref: '#/definitions/responsebody.Message'
       summary: Log into user's account
       tags:
       - auth
@@ -135,11 +135,11 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/responsebody.Error'
+            $ref: '#/definitions/responsebody.Message'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/responsebody.Error'
+            $ref: '#/definitions/responsebody.Message'
       summary: Request password reset
       tags:
       - auth
@@ -163,11 +163,11 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/responsebody.Error'
+            $ref: '#/definitions/responsebody.Message'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/responsebody.Error'
+            $ref: '#/definitions/responsebody.Message'
       summary: Update password
       tags:
       - auth
@@ -193,11 +193,11 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/responsebody.Error'
+            $ref: '#/definitions/responsebody.Message'
         "409":
           description: Conflict
           schema:
-            $ref: '#/definitions/responsebody.Error'
+            $ref: '#/definitions/responsebody.Message'
       summary: Register user
       tags:
       - auth
@@ -229,11 +229,11 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/responsebody.Error'
+            $ref: '#/definitions/responsebody.Message'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/responsebody.Error'
+            $ref: '#/definitions/responsebody.Message'
       security:
       - AccessToken: []
       summary: Get information about current user
@@ -261,7 +261,7 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/responsebody.Error'
+            $ref: '#/definitions/responsebody.Message'
       security:
       - AccessToken: []
       summary: Create a record about past workout

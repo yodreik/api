@@ -4,6 +4,6 @@ import (
 	"api/internal/app/handler/response/responsebody"
 )
 
-func Err(message string) responsebody.Error {
-	return responsebody.Error{Message: message}
+func Message(message string) responsebody.Message {
+	return responsebody.Message{Message: message}
 }

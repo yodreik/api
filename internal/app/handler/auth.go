@@ -24,57 +24,57 @@ import (
 // @Produce      json
 // @Param        input body      requestbody.Register true "User information"
 // @Success      201 {object}    responsebody.User
-// @Failure      400 {object}    responsebody.Error
-// @Failure      409 {object}    responsebody.Error
+// @Failure      400 {object}    responsebody.Message
+// @Failure      409 {object}    responsebody.Message
 // @Router       /auth/register  [post]
-func (h *Handler) Register(ctx *gin.Context) {
+func (h *Handler) Register(c *gin.Context) {
 	log := slog.With(
 		slog.String("op", "handler.Register"),
-		slog.String("request_id", requestid.Get(ctx)),
+		slog.String("request_id", requestid.Get(c)),
 	)
 
 	var body requestbody.Register
-	if err := ctx.BindJSON(&body); err != nil {
+	if err := c.BindJSON(&body); err != nil {
 		log.Info("Can't decode request body", sl.Err(err))
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, response.Err("invalid request body"))
+		c.AbortWithStatusJSON(http.StatusBadRequest, response.Message("invalid request body"))
 		return
 	}
 
 	_, err := mail.ParseAddress(body.Email)
 	if err != nil {
 		log.Info("Email is invalid", slog.String("email", body.Email))
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, response.Err("invalid email format"))
+		c.AbortWithStatusJSON(http.StatusBadRequest, response.Message("invalid email format"))
 		return
 	}
 
 	if len(body.Name) > 50 {
 		log.Info("Name is too long")
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, response.Err("name is too long"))
+		c.AbortWithStatusJSON(http.StatusBadRequest, response.Message("name is too long"))
 		return
 	}
 
 	if len(body.Password) > 50 {
 		log.Info("Password is too long")
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, response.Err("password is too long"))
+		c.AbortWithStatusJSON(http.StatusBadRequest, response.Message("password is too long"))
 		return
 	}
 
-	user, err := h.repository.User.Create(ctx, body.Email, body.Name, sha256.String(body.Password))
+	user, err := h.repository.User.Create(c, body.Email, body.Name, sha256.String(body.Password))
 	if errors.Is(err, repoerr.ErrUserAlreadyExists) {
 		log.Info("User already exists", sl.Err(err))
-		ctx.AbortWithStatusJSON(http.StatusConflict, response.Err("user already exists"))
+		c.AbortWithStatusJSON(http.StatusConflict, response.Message("user already exists"))
 		return
 	}
 	if err != nil {
 		log.Error("Can't create user", sl.Err(err))
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, response.Err("can't register"))
+		c.AbortWithStatusJSON(http.StatusInternalServerError, response.Message("can't register"))
 		return
 	}
 
 	log.Info("Created a user", slog.String("id", user.ID), slog.String("email", user.Email), slog.String("name", user.Name))
 
 	// TOTHINK: Maybe additionally return an access token
-	ctx.JSON(http.StatusCreated, responsebody.User{
+	c.JSON(http.StatusCreated, responsebody.User{
 		ID:    user.ID,
 		Email: body.Email,
 		Name:  body.Name,
@@ -88,42 +88,42 @@ func (h *Handler) Register(ctx *gin.Context) {
 // @Produce      json
 // @Param        input body    requestbody.Login true "User information"
 // @Success      200 {object}  responsebody.Token
-// @Failure      400 {object}  responsebody.Error
-// @Failure      404 {object}  responsebody.Error
+// @Failure      400 {object}  responsebody.Message
+// @Failure      404 {object}  responsebody.Message
 // @Router       /auth/login   [post]
-func (h *Handler) Login(ctx *gin.Context) {
+func (h *Handler) Login(c *gin.Context) {
 	log := slog.With(
 		slog.String("op", "handler.Login"),
-		slog.String("request_id", requestid.Get(ctx)),
+		slog.String("request_id", requestid.Get(c)),
 	)
 
 	var body requestbody.Login
-	if err := ctx.BindJSON(&body); err != nil {
+	if err := c.BindJSON(&body); err != nil {
 		log.Info("Can't decode request body", sl.Err(err))
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, response.Err("invalid request body"))
+		c.AbortWithStatusJSON(http.StatusBadRequest, response.Message("invalid request body"))
 		return
 	}
 
-	user, err := h.repository.User.GetByCredentials(ctx, body.Email, sha256.String(body.Password))
+	user, err := h.repository.User.GetByCredentials(c, body.Email, sha256.String(body.Password))
 	if errors.Is(err, repoerr.ErrUserNotFound) {
 		log.Info("User not found", slog.String("email", body.Email))
-		ctx.AbortWithStatusJSON(http.StatusNotFound, response.Err("user not found"))
+		c.AbortWithStatusJSON(http.StatusNotFound, response.Message("user not found"))
 		return
 	}
 	if err != nil {
 		log.Error("Can't find user", sl.Err(err))
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, response.Err("can't login"))
+		c.AbortWithStatusJSON(http.StatusInternalServerError, response.Message("can't login"))
 		return
 	}
 
 	token, err := h.token.GenerateToken(user.ID)
 	if err != nil {
 		log.Error("Can't generate JWT", sl.Err(err))
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, response.Err("can't login"))
+		c.AbortWithStatusJSON(http.StatusInternalServerError, response.Message("can't login"))
 		return
 	}
 
-	ctx.JSON(http.StatusOK, responsebody.Token{
+	c.JSON(http.StatusOK, responsebody.Token{
 		Token: token,
 	})
 }
@@ -135,50 +135,50 @@ func (h *Handler) Login(ctx *gin.Context) {
 // @Produce      json
 // @Param        input body            requestbody.ResetPassword true "User information"
 // @Success      200
-// @Failure      400 {object}          responsebody.Error
-// @Failure      404 {object}          responsebody.Error
+// @Failure      400 {object}          responsebody.Message
+// @Failure      404 {object}          responsebody.Message
 // @Router       /auth/password/reset  [post]
-func (h *Handler) ResetPassword(ctx *gin.Context) {
+func (h *Handler) ResetPassword(c *gin.Context) {
 	log := slog.With(
 		slog.String("op", "handler.ResetPassword"),
-		slog.String("request_id", requestid.Get(ctx)),
+		slog.String("request_id", requestid.Get(c)),
 	)
 
 	var body requestbody.ResetPassword
-	if err := ctx.BindJSON(&body); err != nil {
+	if err := c.BindJSON(&body); err != nil {
 		log.Info("Can't decode request body", sl.Err(err))
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, response.Err("invalid request body"))
+		c.AbortWithStatusJSON(http.StatusBadRequest, response.Message("invalid request body"))
 		return
 	}
 
-	_, err := h.repository.User.GetByEmail(ctx, body.Email)
+	_, err := h.repository.User.GetByEmail(c, body.Email)
 	if errors.Is(err, repoerr.ErrUserNotFound) {
 		log.Info("User not found", slog.String("email", body.Email))
-		ctx.AbortWithStatusJSON(http.StatusNotFound, response.Err("user not found"))
+		c.AbortWithStatusJSON(http.StatusNotFound, response.Message("user not found"))
 		return
 	}
 	if err != nil {
 		log.Error("Can't find user", sl.Err(err))
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, response.Err("can't request password reset"))
+		c.AbortWithStatusJSON(http.StatusInternalServerError, response.Message("can't request password reset"))
 		return
 	}
 
 	token := random.String(64)
-	err = h.repository.Cache.SetPasswordResetRequest(ctx, body.Email, token)
+	err = h.repository.Cache.SetPasswordResetRequest(c, body.Email, token)
 	if err != nil {
 		log.Error("Can't save password reset request information", sl.Err(err))
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, response.Err("can't request password reset"))
+		c.AbortWithStatusJSON(http.StatusInternalServerError, response.Message("can't request password reset"))
 		return
 	}
 
 	err = h.mailer.SendRecoveryEmail(body.Email, token)
 	if err != nil {
 		log.Error("Can't send password reset link", sl.Err(err))
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, response.Err("can't request password reset"))
+		c.AbortWithStatusJSON(http.StatusInternalServerError, response.Message("can't request password reset"))
 		return
 	}
 
-	ctx.Status(http.StatusOK)
+	c.Status(http.StatusOK)
 }
 
 // @Summary      Update password
@@ -188,40 +188,40 @@ func (h *Handler) ResetPassword(ctx *gin.Context) {
 // @Produce      json
 // @Param        input body            requestbody.UpdatePassword true "User information"
 // @Success      200
-// @Failure      400 {object}           responsebody.Error
-// @Failure      404 {object}           responsebody.Error
+// @Failure      400 {object}           responsebody.Message
+// @Failure      404 {object}           responsebody.Message
 // @Router       /auth/password/update  [post]
-func (h *Handler) UpdatePassword(ctx *gin.Context) {
+func (h *Handler) UpdatePassword(c *gin.Context) {
 	log := slog.With(
 		slog.String("op", "handler.UpdatePassword"),
-		slog.String("request_id", requestid.Get(ctx)),
+		slog.String("request_id", requestid.Get(c)),
 	)
 
 	var body requestbody.UpdatePassword
-	if err := ctx.BindJSON(&body); err != nil {
+	if err := c.BindJSON(&body); err != nil {
 		log.Info("Can't decode request body", sl.Err(err))
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, response.Err("invalid request body"))
+		c.AbortWithStatusJSON(http.StatusBadRequest, response.Message("invalid request body"))
 		return
 	}
 
-	email, err := h.repository.Cache.GetPasswordResetEmailByToken(ctx, body.Token)
+	email, err := h.repository.Cache.GetPasswordResetEmailByToken(c, body.Token)
 	if errors.Is(err, repoerr.ErrPasswordResetRequestNotFound) {
 		log.Info("Password reset request not found", slog.String("token", body.Token))
-		ctx.AbortWithStatusJSON(http.StatusNotFound, response.Err("password reset request not found"))
+		c.AbortWithStatusJSON(http.StatusNotFound, response.Message("password reset request not found"))
 		return
 	}
 	if err != nil {
 		log.Error("Can't get password reset request by token", sl.Err(err), slog.String("token", body.Token))
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, response.Err("invalid request body"))
+		c.AbortWithStatusJSON(http.StatusBadRequest, response.Message("invalid request body"))
 		return
 	}
 
-	err = h.repository.User.UpdatePasswordByEmail(ctx, email, sha256.String(body.Password))
+	err = h.repository.User.UpdatePasswordByEmail(c, email, sha256.String(body.Password))
 	if err != nil {
 		log.Error("Can't update password", sl.Err(err))
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, response.Err("can't update password"))
+		c.AbortWithStatusJSON(http.StatusBadRequest, response.Message("can't update password"))
 		return
 	}
 
-	ctx.Status(http.StatusOK)
+	c.Status(http.StatusOK)
 }
