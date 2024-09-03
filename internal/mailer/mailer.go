@@ -17,7 +17,7 @@ func New(c config.Mail) *Mailer {
 }
 
 func (m *Mailer) SendRecoveryEmail(recepient string, token string) error {
-	basepath := "http://localhost:6969"
+	basepath := "http://localhost:3000"
 	return m.Send(recepient, "welnex: Password reset", fmt.Sprintf("This is your recovery link: %s/auth/password/reset?token=%s. Ignore this email, if you didn't request password reset", basepath, token))
 }
 
