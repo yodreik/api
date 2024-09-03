@@ -171,7 +171,7 @@ func (h *Handler) ResetPassword(ctx *gin.Context) {
 		return
 	}
 
-	err = h.mailer.Send(body.Email, "welnex: Reset password", "This is youe token to reset password: "+token)
+	err = h.mailer.SendRecoveryEmail(body.Email, token)
 	if err != nil {
 		log.Error("Can't send password reset link", sl.Err(err))
 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, response.Err("can't request password reset"))
