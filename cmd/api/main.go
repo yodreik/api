@@ -2,8 +2,8 @@ package main
 
 import (
 	_ "api/docs"
-	"api/pkg/random"
-	"fmt"
+	"api/internal/config"
+	"api/internal/pkg/app"
 )
 
 // @title       Welnex API
@@ -16,12 +16,8 @@ import (
 // @in                         header
 // @name                       Authorization
 func main() {
-	// c := config.MustLoad()
-	// a := app.New(c)
+	c := config.MustLoad()
+	a := app.New(c)
 
-	// a.Run()
-
-	for i := 0; i < 5; i++ {
-		fmt.Println(random.String(20))
-	}
+	a.Run()
 }
