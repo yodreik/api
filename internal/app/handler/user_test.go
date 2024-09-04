@@ -94,7 +94,7 @@ func TestMe(t *testing.T) {
 
 			expect: expect{
 				status: http.StatusInternalServerError,
-				body:   `{"message":"can't get me"}`,
+				body:   `{"message":"internal server error"}`,
 			},
 		},
 	}

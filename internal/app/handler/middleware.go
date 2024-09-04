@@ -21,13 +21,13 @@ func (h *Handler) UserIdentity(c *gin.Context) {
 	parts := strings.Split(header, " ")
 	if len(parts) != 2 {
 		log.Info("Incorrect authorization header", slog.String("authorization", header))
-		c.AbortWithStatusJSON(http.StatusUnauthorized, response.Message("empty authorization header"))
+		response.WithMessage(c, http.StatusUnauthorized, "empty authorization header")
 		return
 	}
 
 	if parts[0] != "Bearer" {
 		log.Info("Incorrect type of authorization token", slog.String("type", parts[0]))
-		c.AbortWithStatusJSON(http.StatusUnauthorized, response.Message("invalid authorization token type"))
+		response.WithMessage(c, http.StatusUnauthorized, "invalid authorization token type")
 		return
 	}
 
@@ -36,7 +36,7 @@ func (h *Handler) UserIdentity(c *gin.Context) {
 	userID, err := h.token.ParseToID(token)
 	if err != nil {
 		log.Error("Can't parse access token", slog.String("token", token), sl.Err(err))
-		c.AbortWithStatusJSON(http.StatusUnauthorized, response.Message("invalid authorization token"))
+		response.WithMessage(c, http.StatusUnauthorized, "invalid authorization token")
 		return
 	}
 

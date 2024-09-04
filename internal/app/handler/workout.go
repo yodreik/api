@@ -33,14 +33,14 @@ func (h *Handler) CreateWorkout(c *gin.Context) {
 	var body requestbody.CreateWorkout
 	if err := c.BindJSON(&body); err != nil {
 		log.Info("Can't decode request body", sl.Err(err))
-		c.AbortWithStatusJSON(http.StatusBadRequest, response.Message("invalid request body"))
+		response.InvalidRequestBody(c)
 		return
 	}
 
 	date, err := time.Parse("02.01.2006", body.Date)
 	if err != nil {
 		log.Info("Invalid date format", sl.Err(err))
-		c.AbortWithStatusJSON(http.StatusBadRequest, response.Message("invalid date format"))
+		response.WithMessage(c, http.StatusBadRequest, "invalid date format")
 		return
 	}
 
@@ -48,7 +48,7 @@ func (h *Handler) CreateWorkout(c *gin.Context) {
 	workout, err := h.repository.Workout.Create(c, userID, date, body.Duration, body.Kind)
 	if err != nil {
 		log.Error("Can't create workout", sl.Err(err))
-		c.AbortWithStatusJSON(http.StatusInternalServerError, response.Message("can't create workout record"))
+		response.InternalServerError(c)
 		return
 	}
 

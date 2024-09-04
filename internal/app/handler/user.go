@@ -32,12 +32,12 @@ func (h *Handler) Me(c *gin.Context) {
 	user, err := h.repository.User.GetByID(c, userID)
 	if errors.Is(err, repoerr.ErrUserNotFound) {
 		log.Info("User not found", slog.String("id", userID))
-		c.AbortWithStatusJSON(http.StatusUnauthorized, response.Message("invalid authorization token"))
+		response.WithMessage(c, http.StatusUnauthorized, "invalid authorization token")
 		return
 	}
 	if err != nil {
 		log.Error("Can't find user", sl.Err(err))
-		c.AbortWithStatusJSON(http.StatusInternalServerError, response.Message("can't get me"))
+		response.InternalServerError(c)
 		return
 	}
 

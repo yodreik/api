@@ -117,7 +117,7 @@ func TestCreateWorkout(t *testing.T) {
 
 			expect: expect{
 				status: http.StatusInternalServerError,
-				body:   `{"message":"can't create workout record"}`,
+				body:   `{"message":"internal server error"}`,
 			},
 		},
 	}

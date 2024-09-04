@@ -114,7 +114,7 @@ func TestRegister(t *testing.T) {
 
 			expect: expect{
 				status: http.StatusInternalServerError,
-				body:   `{"message":"can't register"}`,
+				body:   `{"message":"internal server error"}`,
 			},
 		},
 	}
@@ -142,8 +142,8 @@ func TestLogin(t *testing.T) {
 			repo: &repoArgs{
 				query: "SELECT * FROM users WHERE email = $1 AND password_hash = $2",
 				args:  []driver.Value{"john.doe@example.com", sha256.String("testword")},
-				rows: sqlmock.NewRows([]string{"id", "email", "name", "password_hash", "created_at"}).
-					AddRow("69", "john.doe@example.com", "John Doe", sha256.String("testword"), time.Now()),
+				rows: sqlmock.NewRows([]string{"id", "email", "name", "password_hash", "is_email_confirmed", "created_at"}).
+					AddRow("69", "john.doe@example.com", "John Doe", sha256.String("testword"), true, time.Now()),
 			},
 
 			request: request{
@@ -200,7 +200,7 @@ func TestLogin(t *testing.T) {
 
 			expect: expect{
 				status: http.StatusInternalServerError,
-				body:   `{"message":"can't login"}`,
+				body:   `{"message":"internal server error"}`,
 			},
 		},
 	}
