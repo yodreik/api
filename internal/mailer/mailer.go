@@ -6,6 +6,8 @@ import (
 	"net/smtp"
 )
 
+const basepath = "http://localhost:3000"
+
 type Mailer struct {
 	config config.Mail
 }
@@ -17,7 +19,6 @@ func New(c config.Mail) *Mailer {
 }
 
 func (m *Mailer) SendRecoveryEmail(recepient string, token string) error {
-	basepath := "http://localhost:3000"
 	body := fmt.Sprintf(`
 		<html>
 		<body>
@@ -28,6 +29,19 @@ func (m *Mailer) SendRecoveryEmail(recepient string, token string) error {
 	`, basepath, token)
 
 	return m.Send(recepient, "welnex: Password reset", body)
+}
+
+func (m *Mailer) SendConfirmationEmail(recepient string, token string) error {
+	body := fmt.Sprintf(`
+		<html>
+		<body>
+			<p>Click <a href="%s/auth/confirm?token=%s">here</a> to verify your account!</p>
+			<p>This link will be available only for 48h!</p>
+		</body>
+		</html>
+	`, basepath, token)
+
+	return m.Send(recepient, "welnex: Account confirmation", body)
 }
 
 func (m *Mailer) Send(recepient string, subject string, body string) error {

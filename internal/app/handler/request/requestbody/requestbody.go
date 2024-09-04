@@ -25,3 +25,7 @@ type UpdatePassword struct {
 	Token    string `json:"token"`
 	Password string `json:"password"`
 }
+
+type ConfirmEmail struct {
+	Token string `json:"token"`
+}
