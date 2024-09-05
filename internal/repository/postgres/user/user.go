@@ -15,7 +15,7 @@ type RequestKind string
 
 const (
 	RequestKindResetPassword     RequestKind = "reset_password"
-	RequestKindEmailConfirmation             = "email_confirmation"
+	RequestKindEmailConfirmation RequestKind = "email_confirmation"
 )
 
 type Postgres struct {
@@ -93,7 +93,7 @@ func (p *Postgres) CreateWithEmailConfirmationRequest(ctx context.Context, email
 	}
 
 	query = "INSERT INTO requests (kind, email, token, expires_at) VALUES ($1, $2, $3, $4)"
-	_, err = tx.ExecContext(ctx, query, RequestKindEmailConfirmation, email, token, "infinity")
+	_, err = tx.ExecContext(ctx, query, RequestKindEmailConfirmation, email, token, time.Now().Add(48*time.Hour))
 	if err != nil {
 		return nil, err
 	}
@@ -174,7 +174,22 @@ func (p *Postgres) GetRequestByToken(ctx context.Context, token string) (*Reques
 	var request Request
 	err := p.db.GetContext(ctx, &request, query, token)
 	if errors.Is(err, sql.ErrNoRows) {
-		return nil, repoerr.ErrPasswordResetRequestNotFound
+		return nil, repoerr.ErrRequestNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return &request, nil
+}
+
+func (p *Postgres) GetRequestByEmail(ctx context.Context, email string) (*Request, error) {
+	query := "SELECT * FROM requests WHERE email = $1"
+
+	var request Request
+	err := p.db.GetContext(ctx, &request, query, email)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, repoerr.ErrRequestNotFound
 	}
 	if err != nil {
 		return nil, err
