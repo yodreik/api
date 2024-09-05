@@ -165,7 +165,7 @@ func (p *Postgres) CreatePasswordResetRequest(ctx context.Context, token string,
 	return p.CreateRequest(ctx, RequestKindResetPassword, email, token, time.Now().Add(15*time.Minute))
 }
 
-func (p *Postgres) CreateEmailConfirmationRequest(ctx context.Context, email string, token string) (*Request, error) {
+func (p *Postgres) CreateEmailConfirmationRequest(ctx context.Context, token string, email string) (*Request, error) {
 	return p.CreateRequest(ctx, RequestKindEmailConfirmation, email, token, time.Now().Add(48*time.Hour))
 }
 
