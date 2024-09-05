@@ -162,7 +162,7 @@ func (p *Postgres) UpdatePasswordByEmail(ctx context.Context, email string, pass
 }
 
 func (p *Postgres) CreatePasswordResetRequest(ctx context.Context, token string, email string) error {
-	query := "INSERT INTO requests (kind, email, token, expires_at) VALUES ($1, $2, $3)"
+	query := "INSERT INTO requests (kind, email, token, expires_at) VALUES ($1, $2, $3, $4)"
 
 	row := p.db.QueryRowContext(ctx, query, RequestKindResetPassword, email, token, time.Now().Add(15*time.Minute))
 	return row.Err()
