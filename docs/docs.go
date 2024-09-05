@@ -15,6 +15,49 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/auth/confirm": {
+            "post": {
+                "description": "confirms user's email",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Confirm email",
+                "parameters": [
+                    {
+                        "description": "Token",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/requestbody.ConfirmEmail"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/responsebody.Message"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/responsebody.Message"
+                        }
+                    }
+                }
+            }
+        },
         "/auth/login": {
             "post": {
                 "description": "check if user exists, and return an access token",
@@ -184,6 +227,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/responsebody.Message"
                         }
                     },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/responsebody.Message"
+                        }
+                    },
                     "409": {
                         "description": "Conflict",
                         "schema": {
@@ -300,6 +349,14 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "requestbody.ConfirmEmail": {
+            "type": "object",
+            "properties": {
+                "token": {
+                    "type": "string"
+                }
+            }
+        },
         "requestbody.CreateWorkout": {
             "type": "object",
             "required": [

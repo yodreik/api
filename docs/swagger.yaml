@@ -1,5 +1,10 @@
 basePath: /api
 definitions:
+  requestbody.ConfirmEmail:
+    properties:
+      token:
+        type: string
+    type: object
   requestbody.CreateWorkout:
     properties:
       date:
@@ -85,6 +90,34 @@ info:
   title: Welnex API
   version: "0.1"
 paths:
+  /auth/confirm:
+    post:
+      consumes:
+      - application/json
+      description: confirms user's email
+      parameters:
+      - description: Token
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/requestbody.ConfirmEmail'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responsebody.Message'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responsebody.Message'
+      summary: Confirm email
+      tags:
+      - auth
   /auth/login:
     post:
       consumes:
@@ -192,6 +225,10 @@ paths:
             $ref: '#/definitions/responsebody.User'
         "400":
           description: Bad Request
+          schema:
+            $ref: '#/definitions/responsebody.Message'
+        "403":
+          description: Forbidden
           schema:
             $ref: '#/definitions/responsebody.Message'
         "409":
