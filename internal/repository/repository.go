@@ -19,6 +19,7 @@ type User interface {
 	UpdatePasswordByEmail(ctx context.Context, email string, password string) error
 	CreatePasswordResetRequest(ctx context.Context, token string, email string) error
 	GetRequestByToken(ctx context.Context, token string) (*user.Request, error)
+	GetRequestByEmail(ctx context.Context, email string) (*user.Request, error)
 	MarkRequestAsUsed(ctx context.Context, token string) error
 }
 

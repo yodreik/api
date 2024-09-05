@@ -126,22 +126,38 @@ func (h *Handler) Login(c *gin.Context) {
 		return
 	}
 
-	if !user.IsEmailConfirmed {
-		log.Info("User's email not confirmed")
+	if user.IsEmailConfirmed {
+		token, err := h.token.GenerateToken(user.ID)
+		if err != nil {
+			log.Error("Can't generate JWT", sl.Err(err))
+			response.InternalServerError(c)
+			return
+		}
+
+		c.JSON(http.StatusOK, responsebody.Token{
+			Token: token,
+		})
+		return
+	}
+
+	log.Info("User's email not confirmed")
+	_, err = h.repository.User.GetRequestByToken(c, body.Email)
+	if errors.Is(err, repoerr.ErrRequestNotFound) {
+		log.Info("Confirmation request not found")
+		err := h.mailer.SendConfirmationEmail(body.Email, random.String(64))
+		if err != nil {
+			log.Error("Can't send confirmation email", sl.Err(err))
+			response.InternalServerError(c)
+			return
+		}
 		response.WithMessage(c, http.StatusForbidden, "email confirmation needed")
 		return
 	}
-
-	token, err := h.token.GenerateToken(user.ID)
 	if err != nil {
-		log.Error("Can't generate JWT", sl.Err(err))
+		log.Error("Can't get confirmation request", sl.Err(err))
 		response.InternalServerError(c)
 		return
 	}
-
-	c.JSON(http.StatusOK, responsebody.Token{
-		Token: token,
-	})
 }
 
 // @Summary      Request password reset
@@ -221,7 +237,7 @@ func (h *Handler) UpdatePassword(c *gin.Context) {
 	}
 
 	passwordResetRequest, err := h.repository.User.GetRequestByToken(c, body.Token)
-	if errors.Is(err, repoerr.ErrPasswordResetRequestNotFound) {
+	if errors.Is(err, repoerr.ErrRequestNotFound) {
 		log.Info("Password reset request not found", slog.String("token", body.Token))
 		response.WithMessage(c, http.StatusNotFound, "password reset request not found")
 		return
@@ -276,6 +292,18 @@ func (h *Handler) ConfirmEmail(c *gin.Context) {
 	if err != nil {
 		log.Error("Can't confirm email", sl.Err(err))
 		response.InternalServerError(c)
+		return
+	}
+
+	if time.Now().After(request.ExpiresAt) {
+		log.Info("Confirmation token expired")
+		err := h.mailer.SendConfirmationEmail(request.Email, request.Token)
+		if err != nil {
+			log.Error("Can't send confirmation email", sl.Err(err))
+			response.InternalServerError(c)
+			return
+		}
+		response.WithMessage(c, http.StatusForbidden, "confirmation link expired. we will send you new confirmation email")
 		return
 	}
 
