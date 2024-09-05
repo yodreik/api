@@ -62,7 +62,6 @@ func (h *Handler) Register(c *gin.Context) {
 	}
 
 	token := random.String(64)
-
 	user, err := h.repository.User.CreateWithEmailConfirmationRequest(c, body.Email, body.Name, sha256.String(body.Password), token)
 	if errors.Is(err, repoerr.ErrUserAlreadyExists) {
 		log.Info("User already exists", sl.Err(err))
@@ -142,8 +141,8 @@ func (h *Handler) Login(c *gin.Context) {
 	}
 
 	log.Info("User's email not confirmed")
-	_, err = h.repository.User.GetRequestByToken(c, body.Email)
-	if errors.Is(err, repoerr.ErrRequestNotFound) {
+	request, err := h.repository.User.GetRequestByEmail(c, body.Email)
+	if errors.Is(err, repoerr.ErrRequestNotFound) || time.Now().After(request.ExpiresAt) {
 		log.Info("Confirmation request not found")
 		err := h.mailer.SendConfirmationEmail(body.Email, random.String(64))
 		if err != nil {
@@ -151,6 +150,7 @@ func (h *Handler) Login(c *gin.Context) {
 			response.InternalServerError(c)
 			return
 		}
+		log.Info("New confirmation email sent")
 		response.WithMessage(c, http.StatusForbidden, "email confirmation needed")
 		return
 	}
@@ -159,6 +159,8 @@ func (h *Handler) Login(c *gin.Context) {
 		response.InternalServerError(c)
 		return
 	}
+
+	response.WithMessage(c, http.StatusForbidden, "email confirmation needed")
 }
 
 // @Summary      Request password reset
