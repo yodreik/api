@@ -161,11 +161,28 @@ func (p *Postgres) UpdatePasswordByEmail(ctx context.Context, email string, pass
 	return nil
 }
 
-func (p *Postgres) CreatePasswordResetRequest(ctx context.Context, token string, email string) error {
-	query := "INSERT INTO requests (kind, email, token, expires_at) VALUES ($1, $2, $3, $4)"
+func (p *Postgres) CreatePasswordResetRequest(ctx context.Context, token string, email string) (*Request, error) {
+	return p.CreateRequest(ctx, RequestKindResetPassword, email, token, time.Now().Add(15*time.Minute))
+}
 
-	row := p.db.QueryRowContext(ctx, query, RequestKindResetPassword, email, token, time.Now().Add(15*time.Minute))
-	return row.Err()
+func (p *Postgres) CreateEmailConfirmationRequest(ctx context.Context, email string, token string) (*Request, error) {
+	return p.CreateRequest(ctx, RequestKindEmailConfirmation, email, token, time.Now().Add(48*time.Hour))
+}
+
+func (p *Postgres) CreateRequest(ctx context.Context, kind RequestKind, email string, token string, expiresAt time.Time) (*Request, error) {
+	query := "INSERT INTO requests (kind, email, token, expires_at) VALUES ($1, $2, $3, $4) RETURNING *"
+	row := p.db.QueryRowContext(ctx, query, kind, email, token, expiresAt)
+	if row.Err() != nil {
+		return nil, row.Err()
+	}
+
+	var request Request
+	err := row.Scan(&request.ID, &request.Kind, &request.Email, &request.Token, &request.IsUsed, &request.ExpiresAt, &request.CreatedAt)
+	if err != nil {
+		return nil, err
+	}
+
+	return &request, nil
 }
 
 func (p *Postgres) GetRequestByToken(ctx context.Context, token string) (*Request, error) {

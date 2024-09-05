@@ -144,7 +144,15 @@ func (h *Handler) Login(c *gin.Context) {
 	request, err := h.repository.User.GetRequestByEmail(c, body.Email)
 	if errors.Is(err, repoerr.ErrRequestNotFound) || time.Now().After(request.ExpiresAt) {
 		log.Info("Confirmation request not found")
-		err := h.mailer.SendConfirmationEmail(body.Email, random.String(64))
+		token := random.String(64)
+		request, err := h.repository.User.CreatePasswordResetRequest(c, token, body.Email)
+		if err != nil {
+			log.Error("Can't save new email confirmation request", sl.Err(err))
+			response.InternalServerError(c)
+			return
+		}
+
+		err = h.mailer.SendConfirmationEmail(body.Email, request.Token)
 		if err != nil {
 			log.Error("Can't send confirmation email", sl.Err(err))
 			response.InternalServerError(c)
@@ -199,14 +207,14 @@ func (h *Handler) ResetPassword(c *gin.Context) {
 	}
 
 	token := random.String(64)
-	err = h.repository.User.CreatePasswordResetRequest(c, token, body.Email)
+	request, err := h.repository.User.CreatePasswordResetRequest(c, token, body.Email)
 	if err != nil {
 		log.Error("Can't save password reset request information", sl.Err(err))
 		response.InternalServerError(c)
 		return
 	}
 
-	err = h.mailer.SendRecoveryEmail(body.Email, token)
+	err = h.mailer.SendRecoveryEmail(body.Email, request.Token)
 	if err != nil {
 		log.Error("Can't send password reset link", sl.Err(err))
 		response.InternalServerError(c)
