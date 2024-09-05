@@ -2,6 +2,7 @@ package handler
 
 import (
 	"api/internal/config"
+	mockmailer "api/internal/mailer/mock"
 	"api/internal/repository"
 	"api/internal/token"
 	"database/sql/driver"
@@ -31,7 +32,7 @@ func TestCreateWorkout(t *testing.T) {
 
 	c := config.Config{Token: config.Token{Secret: tokenSecret}}
 	repo := repository.New(sqlx.NewDb(db, "sqlmock"))
-	handler := New(&c, repo)
+	handler := New(&c, repo, mockmailer.New())
 
 	expectedDate, err := time.Parse("02.01.2006", "11.11.2024")
 	if err != nil {
@@ -43,10 +44,15 @@ func TestCreateWorkout(t *testing.T) {
 			name: "ok",
 
 			repo: &repoArgs{
-				query: "INSERT INTO workouts (user_id, date, duration, kind) VALUES ($1, $2, $3, $4) RETURNING *",
-				args:  []driver.Value{"69", expectedDate, 71, "Calisthenics"},
-				rows: sqlmock.NewRows([]string{"id", "user_id", "date", "duration", "kind", "created_at"}).
-					AddRow("96", "69", expectedDate, 71, "Calisthenics", time.Now()),
+				queries: []queryArgs{
+					{
+						query: "INSERT INTO workouts (user_id, date, duration, kind) VALUES ($1, $2, $3, $4) RETURNING *",
+						args:  []driver.Value{"69", expectedDate, 71, "Calisthenics"},
+						rows: sqlmock.NewRows([]string{"id", "user_id", "date", "duration", "kind", "created_at"}).
+							AddRow("96", "69", expectedDate, 71, "Calisthenics", time.Now()),
+					},
+				},
+				asTx: false,
 			},
 
 			request: request{
@@ -103,9 +109,14 @@ func TestCreateWorkout(t *testing.T) {
 			name: "repository error",
 
 			repo: &repoArgs{
-				query: "INSERT INTO workouts (user_id, date, duration, kind) VALUES ($1, $2, $3, $4) RETURNING *",
-				args:  []driver.Value{"69", expectedDate, 71, "Calisthenics"},
-				err:   errors.New("repo: Some repository error"),
+				queries: []queryArgs{
+					{
+						query: "INSERT INTO workouts (user_id, date, duration, kind) VALUES ($1, $2, $3, $4) RETURNING *",
+						args:  []driver.Value{"69", expectedDate, 71, "Calisthenics"},
+						err:   errors.New("repo: Some repository error"),
+					},
+				},
+				asTx: false,
 			},
 
 			request: request{

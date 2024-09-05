@@ -3,6 +3,7 @@ package router
 import (
 	"api/internal/app/handler"
 	"api/internal/config"
+	"api/internal/mailer"
 	"api/internal/repository"
 	"api/pkg/requestid"
 	"api/pkg/requestlog"
@@ -19,8 +20,8 @@ type Router struct {
 	handler *handler.Handler
 }
 
-func New(c *config.Config, r *repository.Repository) *Router {
-	h := handler.New(c, r)
+func New(c *config.Config, r *repository.Repository, m mailer.Mailer) *Router {
+	h := handler.New(c, r, m)
 	return &Router{
 		config:  c,
 		handler: h,

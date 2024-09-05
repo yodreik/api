@@ -4,6 +4,7 @@ import (
 	"api/internal/app/router"
 	"api/internal/config"
 	"api/internal/lib/sl"
+	"api/internal/mailer"
 	"api/internal/repository"
 	"api/internal/repository/postgres"
 	"context"
@@ -47,7 +48,9 @@ func (a *App) Run() {
 
 	repo := repository.New(db)
 
-	r := router.New(a.config, repo)
+	m := mailer.New(a.config.Mail)
+
+	r := router.New(a.config, repo, m)
 
 	server := &http.Server{
 		Addr:         a.config.Server.Address,

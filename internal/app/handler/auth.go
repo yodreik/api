@@ -145,7 +145,7 @@ func (h *Handler) Login(c *gin.Context) {
 	if errors.Is(err, repoerr.ErrRequestNotFound) || time.Now().After(request.ExpiresAt) {
 		log.Info("Confirmation request not found")
 		token := random.String(64)
-		request, err := h.repository.User.CreatePasswordResetRequest(c, token, body.Email)
+		request, err := h.repository.User.CreateEmailConfirmationRequest(c, token, body.Email)
 		if err != nil {
 			log.Error("Can't save new email confirmation request", sl.Err(err))
 			response.InternalServerError(c)

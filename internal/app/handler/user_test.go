@@ -2,6 +2,7 @@ package handler
 
 import (
 	"api/internal/config"
+	mockmailer "api/internal/mailer/mock"
 	"api/internal/repository"
 	repoerr "api/internal/repository/errors"
 	"api/internal/token"
@@ -26,6 +27,8 @@ func TestMe(t *testing.T) {
 		t.Fatal("unexpected error while generating mock token")
 	}
 
+	_ = tokenWithID69
+
 	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
 	if err != nil {
 		t.Fatalf("err not expected: %v\n", err)
@@ -33,17 +36,21 @@ func TestMe(t *testing.T) {
 
 	c := config.Config{Token: config.Token{Secret: tokenSecret}}
 	repo := repository.New(sqlx.NewDb(db, "sqlmock"))
-	handler := New(&c, repo)
+	handler := New(&c, repo, mockmailer.New())
 
 	tests := []table{
 		{
 			name: "ok",
 
 			repo: &repoArgs{
-				query: "SELECT * FROM users WHERE id = $1",
-				args:  []driver.Value{"69"},
-				rows: sqlmock.NewRows([]string{"id", "email", "name", "password_hash", "created_at"}).
-					AddRow("69", "john.doe@example.com", "John Doe", sha256.String("testword"), time.Now()),
+				queries: []queryArgs{
+					{
+						query: "SELECT * FROM users WHERE id = $1",
+						args:  []driver.Value{"69"},
+						rows: sqlmock.NewRows([]string{"id", "email", "name", "password_hash", "created_at"}).
+							AddRow("69", "john.doe@example.com", "John Doe", sha256.String("testword"), time.Now()),
+					},
+				},
 			},
 
 			request: request{
@@ -61,9 +68,13 @@ func TestMe(t *testing.T) {
 			name: "user not found",
 
 			repo: &repoArgs{
-				query: "SELECT * FROM users WHERE id = $1",
-				args:  []driver.Value{"69"},
-				err:   repoerr.ErrUserNotFound,
+				queries: []queryArgs{
+					{
+						query: "SELECT * FROM users WHERE id = $1",
+						args:  []driver.Value{"69"},
+						err:   repoerr.ErrUserNotFound,
+					},
+				},
 			},
 
 			request: request{
@@ -81,9 +92,13 @@ func TestMe(t *testing.T) {
 			name: "repository error",
 
 			repo: &repoArgs{
-				query: "SELECT * FROM users WHERE id = $1",
-				args:  []driver.Value{"69"},
-				err:   errors.New("repo: Some repository error"),
+				queries: []queryArgs{
+					{
+						query: "SELECT * FROM users WHERE id = $1",
+						args:  []driver.Value{"69"},
+						err:   errors.New("repo: Some repository error"),
+					},
+				},
 			},
 
 			request: request{

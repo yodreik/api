@@ -2,6 +2,7 @@ package handler
 
 import (
 	"api/internal/config"
+	mockmailer "api/internal/mailer/mock"
 	"api/internal/repository"
 	"database/sql/driver"
 	"encoding/json"
@@ -23,6 +24,11 @@ type table struct {
 }
 
 type repoArgs struct {
+	queries []queryArgs
+	asTx    bool
+}
+
+type queryArgs struct {
 	query string
 	args  []driver.Value
 	err   error
@@ -43,10 +49,20 @@ type expect struct {
 func TemplateTestHandler(tc table, mock sqlmock.Sqlmock, method string, path string, handlers ...gin.HandlerFunc) func(t *testing.T) {
 	return func(t *testing.T) {
 		if tc.repo != nil {
-			if tc.repo.err != nil {
-				mock.ExpectQuery(tc.repo.query).WithArgs(tc.repo.args...).WillReturnError(tc.repo.err)
-			} else {
-				mock.ExpectQuery(tc.repo.query).WithArgs(tc.repo.args...).WillReturnRows(tc.repo.rows)
+			if tc.repo.asTx {
+				mock.ExpectBegin()
+			}
+
+			for _, q := range tc.repo.queries {
+				if q.err != nil {
+					mock.ExpectQuery(q.query).WithArgs(q.args...).WillReturnError(q.err)
+				} else {
+					mock.ExpectQuery(q.query).WithArgs(q.args...).WillReturnRows(q.rows)
+				}
+			}
+
+			if tc.repo.asTx {
+				mock.ExpectCommit()
 			}
 		}
 
@@ -103,7 +119,7 @@ func TestHealthcheck(t *testing.T) {
 	c := config.Config{}
 	repo := repository.Repository{}
 
-	h := New(&c, &repo)
+	h := New(&c, &repo, mockmailer.New())
 
 	r.GET("/healthcheck", h.Healthcheck)
 

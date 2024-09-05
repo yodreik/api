@@ -12,14 +12,14 @@ import (
 
 type Handler struct {
 	repository *repository.Repository
-	mailer     *mailer.Mailer
+	mailer     mailer.Mailer
 	token      *token.Manager
 }
 
-func New(c *config.Config, r *repository.Repository) *Handler {
+func New(c *config.Config, r *repository.Repository, m mailer.Mailer) *Handler {
 	return &Handler{
 		repository: r,
-		mailer:     mailer.New(c.Mail),
+		mailer:     m,
 		token:      token.New(c.Token.Secret),
 	}
 }
