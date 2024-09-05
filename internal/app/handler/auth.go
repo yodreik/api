@@ -26,6 +26,7 @@ import (
 // @Param        input body      requestbody.Register true "User information"
 // @Success      201 {object}    responsebody.User
 // @Failure      400 {object}    responsebody.Message
+// @Failure      403 {object}    responsebody.Message
 // @Failure      409 {object}    responsebody.Message
 // @Router       /auth/register  [post]
 func (h *Handler) Register(c *gin.Context) {
@@ -218,7 +219,7 @@ func (h *Handler) ResetPassword(c *gin.Context) {
 // @Tags         auth
 // @Accept       json
 // @Produce      json
-// @Param        input body            requestbody.UpdatePassword true "User information"
+// @Param        input body             requestbody.UpdatePassword true "User information"
 // @Success      200
 // @Failure      400 {object}           responsebody.Message
 // @Failure      404 {object}           responsebody.Message
@@ -275,6 +276,16 @@ func (h *Handler) UpdatePassword(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
+// @Summary      Confirm email
+// @Description  confirms user's email
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        input body             requestbody.ConfirmEmail true "Token"
+// @Success      200
+// @Failure      400 {object}           responsebody.Message
+// @Failure      404 {object}           responsebody.Message
+// @Router       /auth/confirm          [post]
 func (h *Handler) ConfirmEmail(c *gin.Context) {
 	log := slog.With(
 		slog.String("op", "handler.ConfirmEmail"),
@@ -289,6 +300,11 @@ func (h *Handler) ConfirmEmail(c *gin.Context) {
 	}
 
 	request, err := h.repository.User.GetRequestByToken(c, body.Token)
+	if errors.Is(err, repoerr.ErrRequestNotFound) {
+		log.Error("Request not found")
+		response.WithMessage(c, http.StatusNotFound, "confirmation request not found")
+		return
+	}
 	if err != nil {
 		log.Error("Can't confirm email", sl.Err(err))
 		response.InternalServerError(c)
