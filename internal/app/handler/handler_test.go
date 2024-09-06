@@ -29,10 +29,12 @@ type repoArgs struct {
 }
 
 type queryArgs struct {
-	query string
-	args  []driver.Value
-	err   error
-	rows  *sqlmock.Rows
+	query  string
+	exec   string
+	args   []driver.Value
+	err    error
+	rows   *sqlmock.Rows
+	result driver.Result
 }
 
 type request struct {
@@ -54,10 +56,18 @@ func TemplateTestHandler(tc table, mock sqlmock.Sqlmock, method string, path str
 			}
 
 			for _, q := range tc.repo.queries {
-				if q.err != nil {
-					mock.ExpectQuery(q.query).WithArgs(q.args...).WillReturnError(q.err)
-				} else {
-					mock.ExpectQuery(q.query).WithArgs(q.args...).WillReturnRows(q.rows)
+				if q.exec != "" {
+					if q.err != nil {
+						mock.ExpectExec(q.exec).WithArgs(q.args...).WillReturnError(q.err)
+					} else if q.result != nil {
+						mock.ExpectExec(q.exec).WithArgs(q.args...).WillReturnResult(q.result)
+					}
+				} else if q.query != "" {
+					if q.err != nil {
+						mock.ExpectQuery(q.query).WithArgs(q.args...).WillReturnError(q.err)
+					} else {
+						mock.ExpectQuery(q.query).WithArgs(q.args...).WillReturnRows(q.rows)
+					}
 				}
 			}
 
@@ -92,21 +102,26 @@ func TemplateTestHandler(tc table, mock sqlmock.Sqlmock, method string, path str
 			t.Fatalf("unexpected body returned: got %v, want %v\n", w.Body.String(), tc.expect.body)
 		}
 
-		var body map[string]any
-		err = json.Unmarshal(w.Body.Bytes(), &body)
-		if err != nil {
-			t.Fatalf("can't unmarshall response body: %v\n", err)
-		}
+		if w.Body.String() == "" && len(tc.expect.bodyFields) > 0 {
+			t.Fatal("expected some body fields, got empty body")
+		} else if len(w.Body.String()) != 0 {
 
-		for _, field := range tc.expect.bodyFields {
-			value, exists := body[field]
-			if !exists {
-				t.Fatalf("expected body field not found: %v\n", field)
+			var body map[string]any
+			err = json.Unmarshal(w.Body.Bytes(), &body)
+			if err != nil {
+				t.Fatalf("can't unmarshall response body: %v\n", err)
 			}
 
-			v := reflect.ValueOf(value)
-			if !v.IsValid() || v.IsZero() {
-				t.Fatalf("expected body field is empty: %v\n", field)
+			for _, field := range tc.expect.bodyFields {
+				value, exists := body[field]
+				if !exists {
+					t.Fatalf("expected body field not found: %v\n", field)
+				}
+
+				v := reflect.ValueOf(value)
+				if !v.IsValid() || v.IsZero() {
+					t.Fatalf("expected body field is empty: %v\n", field)
+				}
 			}
 		}
 	}

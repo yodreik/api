@@ -345,6 +345,9 @@
     "definitions": {
         "requestbody.ConfirmEmail": {
             "type": "object",
+            "required": [
+                "token"
+            ],
             "properties": {
                 "token": {
                     "type": "string"
@@ -406,6 +409,9 @@
         },
         "requestbody.ResetPassword": {
             "type": "object",
+            "required": [
+                "email"
+            ],
             "properties": {
                 "email": {
                     "type": "string"
@@ -414,6 +420,10 @@
         },
         "requestbody.UpdatePassword": {
             "type": "object",
+            "required": [
+                "password",
+                "token"
+            ],
             "properties": {
                 "password": {
                     "type": "string"

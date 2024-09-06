@@ -255,7 +255,7 @@ func (h *Handler) UpdatePassword(c *gin.Context) {
 	}
 	if err != nil {
 		log.Error("Can't get password reset request by token", sl.Err(err), slog.String("token", body.Token))
-		response.InvalidRequestBody(c)
+		response.InternalServerError(c)
 		return
 	}
 

@@ -4,6 +4,8 @@ definitions:
     properties:
       token:
         type: string
+    required:
+    - token
     type: object
   requestbody.CreateWorkout:
     properties:
@@ -45,6 +47,8 @@ definitions:
     properties:
       email:
         type: string
+    required:
+    - email
     type: object
   requestbody.UpdatePassword:
     properties:
@@ -52,6 +56,9 @@ definitions:
         type: string
       token:
         type: string
+    required:
+    - password
+    - token
     type: object
   responsebody.Message:
     properties:

@@ -10,6 +10,7 @@ import (
 	"api/pkg/sha256"
 	"database/sql/driver"
 	"errors"
+	"fmt"
 	"net/http"
 	"testing"
 	"time"
@@ -321,5 +322,220 @@ func TestLogin(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, TemplateTestHandler(tc, mock, http.MethodPost, "/api/auth/login", handler.Login))
+	}
+}
+
+func TestUpdatePassword(t *testing.T) {
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	if err != nil {
+		t.Fatalf("err not expected: %v\n", err)
+	}
+
+	tokenSecret := "some-supa-secret-characters"
+	c := config.Config{Token: config.Token{Secret: tokenSecret}}
+	repo := repository.New(sqlx.NewDb(db, "sqlmock"))
+	handler := New(&c, repo, mockmailer.New())
+
+	tok := random.String(64)
+
+	tests := []table{
+		{
+			name: "ok",
+
+			repo: &repoArgs{
+				queries: []queryArgs{
+					{
+						query: "SELECT * FROM requests WHERE token = $1",
+						args:  []driver.Value{tok},
+						rows: sqlmock.NewRows([]string{"id", "kind", "email", "token", "is_used", "expires_at", "created_at"}).
+							AddRow("69", "password_reset", "john.doe@example.com", tok, false, time.Now().Add(15*time.Minute), time.Now()),
+					},
+					{
+						exec:   "UPDATE users SET password_hash = $1 WHERE email = $2",
+						args:   []driver.Value{sha256.String("testword"), "john.doe@example.com"},
+						result: sqlmock.NewResult(1, 1),
+					},
+					{
+						exec:   "UPDATE requests SET is_used = true WHERE token = $1",
+						args:   []driver.Value{tok},
+						result: sqlmock.NewResult(1, 1),
+					},
+				},
+			},
+
+			request: request{
+				body: fmt.Sprintf(`{"token":"%s","password":"testword"}`, tok),
+			},
+
+			expect: expect{
+				status: http.StatusOK,
+			},
+		},
+		{
+			name: "invalid request body",
+
+			request: request{
+				body: `{"some":"invalid","request":"body"}`,
+			},
+
+			expect: expect{
+				status: http.StatusBadRequest,
+				body:   `{"message":"invalid request body"}`,
+			},
+		},
+		{
+			name: "token doesn't exists",
+
+			repo: &repoArgs{
+				queries: []queryArgs{
+					{
+						query: "SELECT * FROM requests WHERE token = $1",
+						args:  []driver.Value{tok},
+						err:   repoerr.ErrRequestNotFound,
+					},
+				},
+			},
+
+			request: request{
+				body: fmt.Sprintf(`{"token":"%s","password":"testword"}`, tok),
+			},
+
+			expect: expect{
+				status: http.StatusNotFound,
+				body:   `{"message":"password reset request not found"}`,
+			},
+		},
+		{
+			name: "repository error on getting token",
+
+			repo: &repoArgs{
+				queries: []queryArgs{
+					{
+						query: "SELECT * FROM requests WHERE token = $1",
+						args:  []driver.Value{tok},
+						err:   errors.New("repo: Some repository error"),
+					},
+				},
+			},
+
+			request: request{
+				body: fmt.Sprintf(`{"token":"%s","password":"testword"}`, tok),
+			},
+
+			expect: expect{
+				status: http.StatusInternalServerError,
+				body:   `{"message":"internal server error"}`,
+			},
+		},
+		{
+			name: "reset password request expired",
+
+			repo: &repoArgs{
+				queries: []queryArgs{
+					{
+						query: "SELECT * FROM requests WHERE token = $1",
+						args:  []driver.Value{tok},
+						rows: sqlmock.NewRows([]string{"id", "kind", "email", "token", "is_used", "expires_at", "created_at"}).
+							AddRow("69", "password_reset", "john.doe@example.com", tok, false, time.Now().Add(-15*time.Minute), time.Now()),
+					},
+				},
+			},
+
+			request: request{
+				body: fmt.Sprintf(`{"token":"%s","password":"testword"}`, tok),
+			},
+
+			expect: expect{
+				status: http.StatusForbidden,
+				body:   `{"message":"recovery token expired"}`,
+			},
+		},
+		{
+			name: "reset password request already used",
+
+			repo: &repoArgs{
+				queries: []queryArgs{
+					{
+						query: "SELECT * FROM requests WHERE token = $1",
+						args:  []driver.Value{tok},
+						rows: sqlmock.NewRows([]string{"id", "kind", "email", "token", "is_used", "expires_at", "created_at"}).
+							AddRow("69", "password_reset", "john.doe@example.com", tok, true, time.Now().Add(15*time.Minute), time.Now()),
+					},
+				},
+			},
+
+			request: request{
+				body: fmt.Sprintf(`{"token":"%s","password":"testword"}`, tok),
+			},
+
+			expect: expect{
+				status: http.StatusForbidden,
+				body:   `{"message":"this recovery token has been used"}`,
+			},
+		},
+		{
+			name: "repository error on updating password",
+
+			repo: &repoArgs{
+				queries: []queryArgs{
+					{
+						query: "SELECT * FROM requests WHERE token = $1",
+						args:  []driver.Value{tok},
+						rows: sqlmock.NewRows([]string{"id", "kind", "email", "token", "is_used", "expires_at", "created_at"}).
+							AddRow("69", "password_reset", "john.doe@example.com", tok, false, time.Now().Add(15*time.Minute), time.Now()),
+					},
+					{
+						exec: "UPDATE users SET password_hash = $1 WHERE email = $2",
+						args: []driver.Value{sha256.String("testword"), "john.doe@example.com"},
+						err:  errors.New("repo: Some repository error"),
+					},
+				},
+			},
+
+			request: request{
+				body: fmt.Sprintf(`{"token":"%s","password":"testword"}`, tok),
+			},
+
+			expect: expect{
+				status: http.StatusInternalServerError,
+				body:   `{"message":"internal server error"}`,
+			},
+		},
+		{
+			name: "can't mark request as used",
+
+			repo: &repoArgs{
+				queries: []queryArgs{
+					{
+						query: "SELECT * FROM requests WHERE token = $1",
+						args:  []driver.Value{tok},
+						rows: sqlmock.NewRows([]string{"id", "kind", "email", "token", "is_used", "expires_at", "created_at"}).
+							AddRow("69", "password_reset", "john.doe@example.com", tok, false, time.Now().Add(15*time.Minute), time.Now()),
+					},
+					{
+						exec:   "UPDATE users SET password_hash = $1 WHERE email = $2",
+						args:   []driver.Value{sha256.String("testword"), "john.doe@example.com"},
+						result: sqlmock.NewResult(1, 1),
+					},
+					{
+						exec: "UPDATE requests SET is_used = true WHERE token = $1",
+						args: []driver.Value{tok},
+						err:  errors.New("repo: Some repository error"),
+					},
+				},
+			},
+
+			request: request{
+				body: fmt.Sprintf(`{"token":"%s","password":"testword"}`, tok),
+			},
+
+			expect: expect{
+				status: http.StatusOK,
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, TemplateTestHandler(tc, mock, http.MethodPatch, "/api/auth/password/update", handler.UpdatePassword))
 	}
 }

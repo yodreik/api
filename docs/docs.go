@@ -351,6 +351,9 @@ const docTemplate = `{
     "definitions": {
         "requestbody.ConfirmEmail": {
             "type": "object",
+            "required": [
+                "token"
+            ],
             "properties": {
                 "token": {
                     "type": "string"
@@ -412,6 +415,9 @@ const docTemplate = `{
         },
         "requestbody.ResetPassword": {
             "type": "object",
+            "required": [
+                "email"
+            ],
             "properties": {
                 "email": {
                     "type": "string"
@@ -420,6 +426,10 @@ const docTemplate = `{
         },
         "requestbody.UpdatePassword": {
             "type": "object",
+            "required": [
+                "password",
+                "token"
+            ],
             "properties": {
                 "password": {
                     "type": "string"

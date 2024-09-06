@@ -18,14 +18,14 @@ type CreateWorkout struct {
 }
 
 type ResetPassword struct {
-	Email string `json:"email"`
+	Email string `json:"email" binding:"required"`
 }
 
 type UpdatePassword struct {
-	Token    string `json:"token"`
-	Password string `json:"password"`
+	Token    string `json:"token" binding:"required"`
+	Password string `json:"password" binding:"required"`
 }
 
 type ConfirmEmail struct {
-	Token string `json:"token"`
+	Token string `json:"token" binding:"required"`
 }

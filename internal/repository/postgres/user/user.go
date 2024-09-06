@@ -154,11 +154,7 @@ func (p *Postgres) UpdatePasswordByEmail(ctx context.Context, email string, pass
 	query := "UPDATE users SET password_hash = $1 WHERE email = $2"
 
 	_, err := p.db.ExecContext(ctx, query, passwordHash, email)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func (p *Postgres) CreatePasswordResetRequest(ctx context.Context, token string, email string) (*Request, error) {
