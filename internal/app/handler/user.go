@@ -3,7 +3,7 @@ package handler
 import (
 	"api/internal/app/handler/response"
 	"api/internal/app/handler/response/responsebody"
-	"api/internal/lib/sl"
+	"api/internal/lib/logger/sl"
 	repoerr "api/internal/repository/errors"
 	"api/pkg/requestid"
 	"errors"

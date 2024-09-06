@@ -4,7 +4,7 @@ import (
 	"api/internal/app/handler/request/requestbody"
 	"api/internal/app/handler/response"
 	"api/internal/app/handler/response/responsebody"
-	"api/internal/lib/sl"
+	"api/internal/lib/logger/sl"
 	"api/pkg/requestid"
 	"log/slog"
 	"net/http"

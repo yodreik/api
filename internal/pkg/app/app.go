@@ -3,7 +3,8 @@ package app
 import (
 	"api/internal/app/router"
 	"api/internal/config"
-	"api/internal/lib/sl"
+	"api/internal/lib/logger/prettyslog"
+	"api/internal/lib/logger/sl"
 	"api/internal/mailer"
 	"api/internal/repository"
 	"api/internal/repository/postgres"
@@ -29,7 +30,11 @@ func New(c *config.Config) *App {
 }
 
 func (a *App) Run() {
-	if a.config.Env != config.EnvLocal {
+	switch a.config.Env {
+	case config.EnvLocal:
+		logger := prettyslog.Init()
+		slog.SetDefault(logger)
+	case config.EnvDevelopment, config.EnvProduction:
 		logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 		slog.SetDefault(logger)
 	}
