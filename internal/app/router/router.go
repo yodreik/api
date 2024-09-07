@@ -7,8 +7,6 @@ import (
 	"api/internal/repository"
 	"api/pkg/requestid"
 	"api/pkg/requestlog"
-	"fmt"
-	"log/slog"
 
 	"github.com/gin-gonic/gin"
 	files "github.com/swaggo/files"
@@ -61,33 +59,23 @@ func (r *Router) InitRoutes() *gin.Engine {
 
 	api := router.Group("/api")
 	{
-
 		api.GET("/healthcheck", r.handler.Healthcheck)
 
-		api.POST("/auth/register", r.handler.Register)
-		api.POST("/auth/login", r.handler.Login)
+		auth := api.Group("/auth")
+		{
+			auth.POST("/register", r.handler.Register)
+			auth.POST("/login", r.handler.Login)
 
-		api.POST("/auth/password/reset", r.handler.ResetPassword)
-		api.PATCH("/auth/password/update", r.handler.UpdatePassword)
+			auth.POST("/password/reset", r.handler.ResetPassword)
+			auth.PATCH("/password/update", r.handler.UpdatePassword)
 
-		api.POST("/auth/confirm", r.handler.ConfirmEmail)
+			auth.POST("/confirm", r.handler.ConfirmEmail)
+		}
 
 		api.GET("/me", r.handler.UserIdentity, r.handler.Me)
 
 		api.POST("/workout", r.handler.UserIdentity, r.handler.CreateWorkout)
 	}
 
-	r.log(router.Routes())
-
 	return router
-}
-
-func (r *Router) log(routes gin.RoutesInfo) {
-	for _, route := range routes {
-		switch r.config.Env {
-		case config.EnvLocal, config.EnvDevelopment:
-			record := fmt.Sprintf("Registered handler for %s %s --> %s", route.Method, route.Path, route.Handler)
-			slog.Info(record)
-		}
-	}
 }
