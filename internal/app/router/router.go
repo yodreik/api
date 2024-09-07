@@ -11,8 +11,8 @@ import (
 	"log/slog"
 
 	"github.com/gin-gonic/gin"
-	swaggerFiles "github.com/swaggo/files"
-	ginSwagger "github.com/swaggo/gin-swagger"
+	files "github.com/swaggo/files"
+	swaggin "github.com/swaggo/gin-swagger"
 )
 
 type Router struct {
@@ -34,7 +34,7 @@ func (r *Router) InitRoutes() *gin.Engine {
 	router.Use(gin.Recovery())
 
 	router.Use(requestid.New)
-	router.Use(requestlog.Handled)
+	router.Use(requestlog.Completed)
 
 	switch r.config.Env {
 	case config.EnvLocal, config.EnvDevelopment:
@@ -56,7 +56,7 @@ func (r *Router) InitRoutes() *gin.Engine {
 			c.File("./coverage.html")
 		})
 
-		router.GET("/docs/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+		router.GET("/docs/*any", swaggin.WrapHandler(files.Handler))
 	}
 
 	api := router.Group("/api")
