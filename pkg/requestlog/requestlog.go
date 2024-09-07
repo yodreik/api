@@ -4,6 +4,8 @@ import (
 	"api/pkg/requestid"
 	"fmt"
 	"log/slog"
+	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -14,6 +16,11 @@ func Completed(c *gin.Context) {
 	start := time.Now()
 
 	c.Next()
+
+	// Ignore `/docs` and `/coverage` paths and CORS requests (For now, I don't need any OPTIONS requests to be logged)
+	if strings.HasPrefix(c.Request.URL.Path, "/docs") || strings.HasPrefix(c.Request.URL.Path, "/coverage") || c.Request.Method == http.MethodOptions {
+		return
+	}
 
 	slog.Info("Request completed",
 		slog.String("id", requestid.Get(c)),
