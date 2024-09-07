@@ -35,13 +35,13 @@ func (h *PrettyHandler) Handle(_ context.Context, r slog.Record) error {
 
 	switch r.Level {
 	case slog.LevelDebug:
-		level = color.HiWhiteString(level)
+		level = color.MagentaString(level)
 	case slog.LevelInfo:
-		level = color.HiBlueString(level)
+		level = color.BlueString(level)
 	case slog.LevelWarn:
-		level = color.HiYellowString(level)
+		level = color.YellowString(level)
 	case slog.LevelError:
-		level = color.HiRedString(level)
+		level = color.RedString(level)
 	}
 
 	fields := make(map[string]interface{}, r.NumAttrs())
@@ -67,8 +67,8 @@ func (h *PrettyHandler) Handle(_ context.Context, r slog.Record) error {
 	}
 
 	timeStr := r.Time.Format("[15:05:05]")
-	timeStr = color.HiWhiteString(timeStr)
-	msg := color.HiCyanString(r.Message)
+	timeStr = color.WhiteString(timeStr)
+	msg := color.WhiteString(r.Message)
 
 	h.logger.Println(
 		timeStr,

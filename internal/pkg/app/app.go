@@ -30,14 +30,21 @@ func New(c *config.Config) *App {
 }
 
 func (a *App) Run() {
+	var logger *slog.Logger
 	switch a.config.Env {
 	case config.EnvLocal:
-		logger := prettyslog.Init()
-		slog.SetDefault(logger)
-	case config.EnvDevelopment, config.EnvProduction:
-		logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
-		slog.SetDefault(logger)
+		logger = prettyslog.Init()
+	case config.EnvDevelopment:
+		logger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+			Level: slog.LevelDebug,
+		}))
+	case config.EnvProduction:
+		logger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+			Level: slog.LevelInfo,
+		}))
 	}
+
+	slog.SetDefault(logger)
 
 	gin.SetMode(gin.ReleaseMode) // Turn off gin's logs
 
