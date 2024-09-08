@@ -6,7 +6,6 @@ import (
 	"api/internal/repository"
 	"api/internal/token"
 	mocktoken "api/internal/token/mock"
-	"database/sql/driver"
 	"errors"
 	"fmt"
 	"net/http"
@@ -43,15 +42,12 @@ func TestCreateWorkout(t *testing.T) {
 		{
 			name: "ok",
 
-			repo: &repoArgs{
-				queries: []queryArgs{
-					{
-						query: "INSERT INTO workouts (user_id, date, duration, kind) VALUES ($1, $2, $3, $4) RETURNING *",
-						args:  []driver.Value{"69", expectedDate, 71, "Calisthenics"},
-						rows: sqlmock.NewRows([]string{"id", "user_id", "date", "duration", "kind", "created_at"}).
-							AddRow("96", "69", expectedDate, 71, "Calisthenics", time.Now()),
-					},
-				},
+			repo: func(mock sqlmock.Sqlmock) {
+				rows := sqlmock.NewRows([]string{"id", "user_id", "date", "duration", "kind", "created_at"}).
+					AddRow("96", "69", expectedDate, 71, "Calisthenics", time.Now())
+
+				mock.ExpectQuery("INSERT INTO workouts (user_id, date, duration, kind) VALUES ($1, $2, $3, $4) RETURNING *").
+					WithArgs("69", expectedDate, 71, "Calisthenics").WillReturnRows(rows)
 			},
 
 			request: request{
@@ -107,14 +103,9 @@ func TestCreateWorkout(t *testing.T) {
 		{
 			name: "repository error",
 
-			repo: &repoArgs{
-				queries: []queryArgs{
-					{
-						query: "INSERT INTO workouts (user_id, date, duration, kind) VALUES ($1, $2, $3, $4) RETURNING *",
-						args:  []driver.Value{"69", expectedDate, 71, "Calisthenics"},
-						err:   errors.New("repo: Some repository error"),
-					},
-				},
+			repo: func(mock sqlmock.Sqlmock) {
+				mock.ExpectQuery("INSERT INTO workouts (user_id, date, duration, kind) VALUES ($1, $2, $3, $4) RETURNING *").
+					WithArgs("69", expectedDate, 71, "Calisthenics").WillReturnError(errors.New("repo: Some repository error"))
 			},
 
 			request: request{

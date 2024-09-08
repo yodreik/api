@@ -5,7 +5,6 @@ import (
 	mockmailer "api/internal/mailer/mock"
 	"api/internal/repository"
 	mocktoken "api/internal/token/mock"
-	"database/sql/driver"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -19,25 +18,9 @@ import (
 
 type table struct {
 	name    string
-	repo    *repoArgs
+	repo    func(mock sqlmock.Sqlmock)
 	request request
 	expect  expect
-}
-
-type repoArgs struct {
-	queries          []queryArgs
-	expectTxBegin    bool
-	expectTxRollback bool
-	expectTxCommit   bool
-}
-
-type queryArgs struct {
-	query  string
-	exec   string
-	args   []driver.Value
-	err    error
-	rows   *sqlmock.Rows
-	result driver.Result
 }
 
 type request struct {
@@ -54,32 +37,36 @@ type expect struct {
 func TemplateTestHandler(tc table, mock sqlmock.Sqlmock, method string, path string, handlers ...gin.HandlerFunc) func(t *testing.T) {
 	return func(t *testing.T) {
 		if tc.repo != nil {
-			if tc.repo.expectTxBegin {
-				mock.ExpectBegin()
-			}
-
-			for _, q := range tc.repo.queries {
-				if q.exec != "" {
-					if q.err != nil {
-						mock.ExpectExec(q.exec).WithArgs(q.args...).WillReturnError(q.err)
-					} else if q.result != nil {
-						mock.ExpectExec(q.exec).WithArgs(q.args...).WillReturnResult(q.result)
-					}
-				} else if q.query != "" {
-					if q.err != nil {
-						mock.ExpectQuery(q.query).WithArgs(q.args...).WillReturnError(q.err)
-					} else {
-						mock.ExpectQuery(q.query).WithArgs(q.args...).WillReturnRows(q.rows)
-					}
-				}
-			}
-
-			if tc.repo.expectTxCommit {
-				mock.ExpectCommit()
-			} else if tc.repo.expectTxRollback {
-				mock.ExpectRollback()
-			}
+			tc.repo(mock)
 		}
+
+		// if tc.repo != nil {
+		// 	if tc.repo.expectTxBegin {
+		// 		mock.ExpectBegin()
+		// 	}
+
+		// 	for _, q := range tc.repo.queries {
+		// 		if q.exec != "" {
+		// 			if q.err != nil {
+		// 				mock.ExpectExec(q.exec).WithArgs(q.args...).WillReturnError(q.err)
+		// 			} else if q.result != nil {
+		// 				mock.ExpectExec(q.exec).WithArgs(q.args...).WillReturnResult(q.result)
+		// 			}
+		// 		} else if q.query != "" {
+		// 			if q.err != nil {
+		// 				mock.ExpectQuery(q.query).WithArgs(q.args...).WillReturnError(q.err)
+		// 			} else {
+		// 				mock.ExpectQuery(q.query).WithArgs(q.args...).WillReturnRows(q.rows)
+		// 			}
+		// 		}
+		// 	}
+
+		// 	if tc.repo.expectTxCommit {
+		// 		mock.ExpectCommit()
+		// 	} else if tc.repo.expectTxRollback {
+		// 		mock.ExpectRollback()
+		// 	}
+		// }
 
 		gin.SetMode(gin.TestMode)
 		r := gin.Default()

@@ -8,7 +8,6 @@ import (
 	"api/internal/token"
 	mocktoken "api/internal/token/mock"
 	"api/pkg/sha256"
-	"database/sql/driver"
 	"errors"
 	"fmt"
 	"net/http"
@@ -40,15 +39,11 @@ func TestMe(t *testing.T) {
 		{
 			name: "ok",
 
-			repo: &repoArgs{
-				queries: []queryArgs{
-					{
-						query: "SELECT * FROM users WHERE id = $1",
-						args:  []driver.Value{"69"},
-						rows: sqlmock.NewRows([]string{"id", "email", "name", "password_hash", "created_at"}).
-							AddRow("69", "john.doe@example.com", "John Doe", sha256.String("testword"), time.Now()),
-					},
-				},
+			repo: func(mock sqlmock.Sqlmock) {
+				rows := sqlmock.NewRows([]string{"id", "email", "name", "password_hash", "created_at"}).
+					AddRow("69", "john.doe@example.com", "John Doe", sha256.String("testword"), time.Now())
+
+				mock.ExpectQuery("SELECT * FROM users WHERE id = $1").WithArgs("69").WillReturnRows(rows)
 			},
 
 			request: request{
@@ -65,14 +60,8 @@ func TestMe(t *testing.T) {
 		{
 			name: "user not found",
 
-			repo: &repoArgs{
-				queries: []queryArgs{
-					{
-						query: "SELECT * FROM users WHERE id = $1",
-						args:  []driver.Value{"69"},
-						err:   repoerr.ErrUserNotFound,
-					},
-				},
+			repo: func(mock sqlmock.Sqlmock) {
+				mock.ExpectQuery("SELECT * FROM users WHERE id = $1").WithArgs("69").WillReturnError(repoerr.ErrUserNotFound)
 			},
 
 			request: request{
@@ -89,14 +78,8 @@ func TestMe(t *testing.T) {
 		{
 			name: "repository error",
 
-			repo: &repoArgs{
-				queries: []queryArgs{
-					{
-						query: "SELECT * FROM users WHERE id = $1",
-						args:  []driver.Value{"69"},
-						err:   errors.New("repo: Some repository error"),
-					},
-				},
+			repo: func(mock sqlmock.Sqlmock) {
+				mock.ExpectQuery("SELECT * FROM users WHERE id = $1").WithArgs("69").WillReturnError(errors.New("repo: Some repository error"))
 			},
 
 			request: request{
