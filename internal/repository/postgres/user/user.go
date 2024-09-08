@@ -14,7 +14,7 @@ import (
 type RequestKind string
 
 const (
-	RequestKindResetPassword     RequestKind = "reset_password"
+	RequestKindPasswordReset     RequestKind = "password_reset"
 	RequestKindEmailConfirmation RequestKind = "email_confirmation"
 )
 
@@ -158,7 +158,7 @@ func (p *Postgres) UpdatePasswordByEmail(ctx context.Context, email string, pass
 }
 
 func (p *Postgres) CreatePasswordResetRequest(ctx context.Context, token string, email string) (*Request, error) {
-	return p.CreateRequest(ctx, RequestKindResetPassword, email, token, time.Now().Add(15*time.Minute).Truncate(time.Hour))
+	return p.CreateRequest(ctx, RequestKindPasswordReset, email, token, time.Now().Add(15*time.Minute).Truncate(time.Minute))
 }
 
 func (p *Postgres) CreateEmailConfirmationRequest(ctx context.Context, token string, email string) (*Request, error) {

@@ -356,6 +356,133 @@ func TestLogin(t *testing.T) {
 	}
 }
 
+func TestResetPassword(t *testing.T) {
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	if err != nil {
+		t.Fatalf("err not expected: %v\n", err)
+	}
+
+	tokenSecret := "some-supa-secret-characters"
+	c := config.Config{Token: config.Token{Secret: tokenSecret}}
+	repo := repository.New(sqlx.NewDb(db, "sqlmock"))
+	handler := New(&c, repo, mockmailer.New(), mocktoken.New(c.Token))
+
+	tests := []table{
+		{
+			name: "ok",
+
+			repo: &repoArgs{
+				queries: []queryArgs{
+					{
+						query: "SELECT * FROM users WHERE email = $1",
+						args:  []driver.Value{"john.doe@example.com"},
+						rows: sqlmock.NewRows([]string{"id", "email", "name", "password_hash", "is_email_confirmed", "created_at"}).
+							AddRow("69", "john.doe@example.com", "John Doe", sha256.String("testword"), true, time.Now()),
+					},
+					{
+						query: "INSERT INTO requests (kind, email, token, expires_at) VALUES ($1, $2, $3, $4) RETURNING *",
+						args:  []driver.Value{"password_reset", "john.doe@example.com", "LONGTOKEN", time.Now().Add(15 * time.Minute).Truncate(time.Minute)},
+						rows: sqlmock.NewRows([]string{"id", "kind", "email", "token", "is_used", "expires_at", "created_at"}).
+							AddRow("69", "password_reset", "john.doe@example.com", "LONGTOKEN", false, time.Now().Add(15*time.Minute).Truncate(time.Minute), time.Now()),
+					},
+				},
+			},
+
+			request: request{
+				body: `{"email":"john.doe@example.com"}`,
+			},
+
+			expect: expect{
+				status: http.StatusOK,
+			},
+		},
+		{
+			name: "invalid request body",
+
+			expect: expect{
+				status: http.StatusBadRequest,
+				body:   `{"message":"invalid request body"}`,
+			},
+		},
+		{
+			name: "user not found",
+
+			repo: &repoArgs{
+				queries: []queryArgs{
+					{
+						query: "SELECT * FROM users WHERE email = $1",
+						args:  []driver.Value{"john.doe@example.com"},
+						err:   repoerr.ErrUserNotFound,
+					},
+				},
+			},
+
+			request: request{
+				body: `{"email":"john.doe@example.com"}`,
+			},
+
+			expect: expect{
+				status: http.StatusNotFound,
+				body:   `{"message":"user not found"}`,
+			},
+		},
+		{
+			name: "repository error",
+
+			repo: &repoArgs{
+				queries: []queryArgs{
+					{
+						query: "SELECT * FROM users WHERE email = $1",
+						args:  []driver.Value{"john.doe@example.com"},
+						err:   errors.New("repo: Some repository error"),
+					},
+				},
+			},
+
+			request: request{
+				body: `{"email":"john.doe@example.com"}`,
+			},
+
+			expect: expect{
+				status: http.StatusInternalServerError,
+				body:   `{"message":"internal server error"}`,
+			},
+		},
+		{
+			name: "ok",
+
+			repo: &repoArgs{
+				queries: []queryArgs{
+					{
+						query: "SELECT * FROM users WHERE email = $1",
+						args:  []driver.Value{"john.doe@example.com"},
+						rows: sqlmock.NewRows([]string{"id", "email", "name", "password_hash", "is_email_confirmed", "created_at"}).
+							AddRow("69", "john.doe@example.com", "John Doe", sha256.String("testword"), true, time.Now()),
+					},
+					{
+						query: "INSERT INTO requests (kind, email, token, expires_at) VALUES ($1, $2, $3, $4) RETURNING *",
+						args:  []driver.Value{"password_reset", "john.doe@example.com", "LONGTOKEN", time.Now().Add(15 * time.Minute).Truncate(time.Minute)},
+						err:   errors.New("repo: Some repository error"),
+					},
+				},
+			},
+
+			request: request{
+				body: `{"email":"john.doe@example.com"}`,
+			},
+
+			expect: expect{
+				status: http.StatusInternalServerError,
+				body:   `{"message":"internal server error"}`,
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, TemplateTestHandler(tc, mock, http.MethodPost, "/api/auth/password/reset", handler.ResetPassword))
+	}
+}
+
 func TestUpdatePassword(t *testing.T) {
 	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
 	if err != nil {

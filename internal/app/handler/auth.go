@@ -206,7 +206,7 @@ func (h *Handler) ResetPassword(c *gin.Context) {
 		return
 	}
 
-	token := random.String(64)
+	token := h.token.Long()
 	request, err := h.repository.User.CreatePasswordResetRequest(c, token, body.Email)
 	if err != nil {
 		log.Error("Can't save password reset request information", sl.Err(err))
