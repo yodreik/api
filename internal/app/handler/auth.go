@@ -76,12 +76,12 @@ func (h *Handler) Register(c *gin.Context) {
 
 	log.Info("Created a user", slog.String("id", user.ID), slog.String("email", user.Email), slog.String("name", user.Name))
 
-	err = h.mailer.SendConfirmationEmail(body.Email, token)
-	if err != nil {
-		log.Error("Can't send an email", sl.Err(err))
-		response.InternalServerError(c)
-		return
-	}
+	go func() {
+		err = h.mailer.SendConfirmationEmail(body.Email, token)
+		if err != nil {
+			log.Error("Can't send an email", sl.Err(err))
+		}
+	}()
 
 	// TOTHINK: Maybe additionally return an access token
 	c.JSON(http.StatusCreated, responsebody.User{
@@ -152,12 +152,13 @@ func (h *Handler) Login(c *gin.Context) {
 			return
 		}
 
-		err = h.mailer.SendConfirmationEmail(body.Email, request.Token)
-		if err != nil {
-			log.Error("Can't send confirmation email", sl.Err(err))
-			response.InternalServerError(c)
-			return
-		}
+		go func() {
+			err = h.mailer.SendConfirmationEmail(body.Email, request.Token)
+			if err != nil {
+				log.Error("Can't send confirmation email", sl.Err(err))
+			}
+		}()
+
 		log.Info("New confirmation email sent")
 		response.WithMessage(c, http.StatusForbidden, "email confirmation needed")
 		return
@@ -214,12 +215,12 @@ func (h *Handler) ResetPassword(c *gin.Context) {
 		return
 	}
 
-	err = h.mailer.SendRecoveryEmail(body.Email, request.Token)
-	if err != nil {
-		log.Error("Can't send password reset link", sl.Err(err))
-		response.InternalServerError(c)
-		return
-	}
+	go func() {
+		err = h.mailer.SendRecoveryEmail(body.Email, request.Token)
+		if err != nil {
+			log.Error("Can't send password reset link", sl.Err(err))
+		}
+	}()
 
 	c.Status(http.StatusOK)
 }
@@ -323,12 +324,14 @@ func (h *Handler) ConfirmEmail(c *gin.Context) {
 
 	if time.Now().After(request.ExpiresAt) {
 		log.Info("Confirmation token expired")
-		err := h.mailer.SendConfirmationEmail(request.Email, request.Token)
-		if err != nil {
-			log.Error("Can't send confirmation email", sl.Err(err))
-			response.InternalServerError(c)
-			return
-		}
+
+		go func() {
+			err := h.mailer.SendConfirmationEmail(request.Email, request.Token)
+			if err != nil {
+				log.Error("Can't send confirmation email", sl.Err(err))
+			}
+		}()
+
 		response.WithMessage(c, http.StatusForbidden, "confirmation link expired. we will send you new confirmation email")
 		return
 	}
