@@ -4,6 +4,7 @@ import (
 	"api/internal/config"
 	mockmailer "api/internal/mailer/mock"
 	"api/internal/repository"
+	mocktoken "api/internal/token/mock"
 	"database/sql/driver"
 	"encoding/json"
 	"net/http"
@@ -24,8 +25,10 @@ type table struct {
 }
 
 type repoArgs struct {
-	queries []queryArgs
-	asTx    bool
+	queries          []queryArgs
+	expectTxBegin    bool
+	expectTxRollback bool
+	expectTxCommit   bool
 }
 
 type queryArgs struct {
@@ -51,7 +54,7 @@ type expect struct {
 func TemplateTestHandler(tc table, mock sqlmock.Sqlmock, method string, path string, handlers ...gin.HandlerFunc) func(t *testing.T) {
 	return func(t *testing.T) {
 		if tc.repo != nil {
-			if tc.repo.asTx {
+			if tc.repo.expectTxBegin {
 				mock.ExpectBegin()
 			}
 
@@ -71,8 +74,10 @@ func TemplateTestHandler(tc table, mock sqlmock.Sqlmock, method string, path str
 				}
 			}
 
-			if tc.repo.asTx {
+			if tc.repo.expectTxCommit {
 				mock.ExpectCommit()
+			} else if tc.repo.expectTxRollback {
+				mock.ExpectRollback()
 			}
 		}
 
@@ -134,7 +139,7 @@ func TestHealthcheck(t *testing.T) {
 	c := config.Config{}
 	repo := repository.Repository{}
 
-	h := New(&c, &repo, mockmailer.New())
+	h := New(&c, &repo, mockmailer.New(), mocktoken.New(c.Token))
 
 	r.GET("/healthcheck", h.Healthcheck)
 

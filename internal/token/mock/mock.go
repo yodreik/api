@@ -1,19 +1,12 @@
-package token
+package mock
 
 import (
 	"api/internal/config"
-	"api/pkg/random"
 	"fmt"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 )
-
-type Manager interface {
-	GenerateJWT(id string) (token string, err error)
-	ParseJWT(token string) (id string, err error)
-	Long() string
-}
 
 type Config struct {
 	secret []byte
@@ -63,5 +56,5 @@ func (c *Config) ParseJWT(token string) (id string, err error) {
 }
 
 func (c *Config) Long() string {
-	return random.String(64)
+	return "LONGTOKEN"
 }

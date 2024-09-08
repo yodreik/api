@@ -61,7 +61,7 @@ func (h *Handler) Register(c *gin.Context) {
 		return
 	}
 
-	token := random.String(64)
+	token := h.token.Long()
 	user, err := h.repository.User.CreateWithEmailConfirmationRequest(c, body.Email, body.Name, sha256.String(body.Password), token)
 	if errors.Is(err, repoerr.ErrUserAlreadyExists) {
 		log.Info("User already exists", sl.Err(err))
@@ -127,7 +127,7 @@ func (h *Handler) Login(c *gin.Context) {
 	}
 
 	if user.IsEmailConfirmed {
-		token, err := h.token.GenerateToken(user.ID)
+		token, err := h.token.GenerateJWT(user.ID)
 		if err != nil {
 			log.Error("Can't generate JWT", sl.Err(err))
 			response.InternalServerError(c)

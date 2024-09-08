@@ -6,6 +6,7 @@ import (
 	"api/internal/repository"
 	repoerr "api/internal/repository/errors"
 	"api/internal/repository/postgres/user"
+	mocktoken "api/internal/token/mock"
 	"api/pkg/random"
 	"api/pkg/sha256"
 	"database/sql/driver"
@@ -25,106 +26,136 @@ func TestRegister(t *testing.T) {
 		t.Fatalf("err not expected: %v\n", err)
 	}
 
-	c := config.Config{}
+	tokenSecret := "some-supa-secret-characters"
+	c := config.Config{Token: config.Token{Secret: tokenSecret}}
 	repo := repository.New(sqlx.NewDb(db, "sqlmock"))
-	handler := New(&c, repo, mockmailer.New())
+	handler := New(&c, repo, mockmailer.New(), mocktoken.New(c.Token))
 
 	tests := []table{
-		// {
-		// 	name: "ok",
+		{
+			name: "ok",
 
-		// 	repo: &repoArgs{
-		// 		queries: []queryArgs{
-		// 			{
-		// 				query: "INSERT INTO users (email, name, password_hash) VALUES ($1, $2, $3) RETURNING *",
-		// 				args:  []driver.Value{"john.doe@example.com", "John Doe", sha256.String("testword")},
-		// 				rows: sqlmock.NewRows([]string{"id", "email", "name", "password_hash", "created_at"}).
-		// 					AddRow("69", "john.doe@example.com", "John Doe", sha256.String("testword"), time.Now()),
-		// 			},
-		// 		},
-		// 	},
+			repo: &repoArgs{
+				queries: []queryArgs{
+					{
+						query: "INSERT INTO users (email, name, password_hash) VALUES ($1, $2, $3) RETURNING *",
+						args:  []driver.Value{"john.doe@example.com", "John Doe", sha256.String("testword")},
+						rows: sqlmock.NewRows([]string{"id", "email", "name", "password_hash", "is_email_confirmed", "created_at"}).
+							AddRow("69", "john.doe@example.com", "John Doe", sha256.String("testword"), false, time.Now()),
+					},
+					{
+						exec:   "INSERT INTO requests (kind, email, token, expires_at) VALUES ($1, $2, $3, $4)",
+						args:   []driver.Value{"email_confirmation", "john.doe@example.com", "LONGTOKEN", time.Now().Add(48 * time.Hour).Truncate(time.Hour)},
+						result: driver.RowsAffected(1),
+					},
+				},
+				expectTxBegin:  true,
+				expectTxCommit: true,
+			},
 
-		// 	request: request{
-		// 		body: `{"email":"john.doe@example.com","name":"John Doe","password":"testword"}`,
-		// 	},
+			request: request{
+				body: `{"email":"john.doe@example.com","name":"John Doe","password":"testword"}`,
+			},
 
-		// 	expect: expect{
-		// 		status: http.StatusCreated,
-		// 		body:   `{"id":"69","email":"john.doe@example.com","name":"John Doe"}`,
-		// 	},
-		// },
-		// {
-		// 	name: "invalid request body",
+			expect: expect{
+				status: http.StatusCreated,
+				body:   `{"id":"69","email":"john.doe@example.com","name":"John Doe"}`,
+			},
+		},
+		{
+			name: "invalid request body",
 
-		// 	request: request{
-		// 		body: `{"some":"invalid","request":"structure"}`,
-		// 	},
+			request: request{
+				body: `{"some":"invalid","request":"structure"}`,
+			},
 
-		// 	expect: expect{
-		// 		status: http.StatusBadRequest,
-		// 		body:   `{"message":"invalid request body"}`,
-		// 	},
-		// },
-		// {
-		// 	name: "invalid email format",
+			expect: expect{
+				status: http.StatusBadRequest,
+				body:   `{"message":"invalid request body"}`,
+			},
+		},
+		{
+			name: "invalid email format",
 
-		// 	request: request{
-		// 		body: `{"email":"incorrect-email","name":"John Doe","password":"testword"}`,
-		// 	},
+			request: request{
+				body: `{"email":"incorrect-email","name":"John Doe","password":"testword"}`,
+			},
 
-		// 	expect: expect{
-		// 		status: http.StatusBadRequest,
-		// 		body:   `{"message":"invalid email format"}`,
-		// 	},
-		// },
-		// {
-		// 	name: "name is too long",
+			expect: expect{
+				status: http.StatusBadRequest,
+				body:   `{"message":"invalid email format"}`,
+			},
+		},
+		{
+			name: "name is too long",
 
-		// 	request: request{
-		// 		body: `{"email":"john.doe@example.com","name":"very-looooooooooooooooooooooooooooooooooooooooooong-name","password":"testword"}`,
-		// 	},
+			request: request{
+				body: `{"email":"john.doe@example.com","name":"very-looooooooooooooooooooooooooooooooooooooooooong-name","password":"testword"}`,
+			},
 
-		// 	expect: expect{
-		// 		status: http.StatusBadRequest,
-		// 		body:   `{"message":"name is too long"}`,
-		// 	},
-		// },
-		// {
-		// 	name: "user already exists",
+			expect: expect{
+				status: http.StatusBadRequest,
+				body:   `{"message":"name is too long"}`,
+			},
+		},
+		{
+			name: "password is too long",
 
-		// 	repo: &repoArgs{
-		// 		query: "INSERT INTO users (email, name, password_hash) VALUES ($1, $2, $3) RETURNING *",
-		// 		args:  []driver.Value{"john.doe@example.com", "John Doe", sha256.String("testword")},
-		// 		err:   repoerr.ErrUserAlreadyExists,
-		// 	},
+			request: request{
+				body: `{"email":"john.doe@example.com","name":"John Doe","password":"very-looooooooooooooooooooooooooooooooooooooooooong-password"}`,
+			},
 
-		// 	request: request{
-		// 		body: `{"email":"john.doe@example.com","name":"John Doe","password":"testword"}`,
-		// 	},
+			expect: expect{
+				status: http.StatusBadRequest,
+				body:   `{"message":"password is too long"}`,
+			},
+		},
+		{
+			name: "user already exists",
 
-		// 	expect: expect{
-		// 		status: http.StatusConflict,
-		// 		body:   `{"message":"user already exists"}`,
-		// 	},
-		// },
-		// {
-		// 	name: "repository error",
+			repo: &repoArgs{
+				queries: []queryArgs{
+					{
+						query: "INSERT INTO users (email, name, password_hash) VALUES ($1, $2, $3) RETURNING *",
+						args:  []driver.Value{"john.doe@example.com", "John Doe", sha256.String("testword")},
+						err:   repoerr.ErrUserAlreadyExists,
+					},
+				},
+				expectTxBegin:    true,
+				expectTxRollback: true,
+			},
 
-		// 	repo: &repoArgs{
-		// 		query: "INSERT INTO users (email, name, password_hash) VALUES ($1, $2, $3) RETURNING *",
-		// 		args:  []driver.Value{"john.doe@example.com", "John Doe", sha256.String("testword")},
-		// 		err:   errors.New("repo: Something goes wrong"),
-		// 	},
+			request: request{
+				body: `{"email":"john.doe@example.com","name":"John Doe","password":"testword"}`,
+			},
 
-		// 	request: request{
-		// 		body: `{"email":"john.doe@example.com","name":"John Doe","password":"testword"}`,
-		// 	},
+			expect: expect{
+				status: http.StatusConflict,
+				body:   `{"message":"user already exists"}`,
+			},
+		},
+		{
+			name: "repository error",
 
-		// 	expect: expect{
-		// 		status: http.StatusInternalServerError,
-		// 		body:   `{"message":"internal server error"}`,
-		// 	},
-		// },
+			repo: &repoArgs{
+				queries: []queryArgs{
+					{
+						query: "INSERT INTO users (email, name, password_hash) VALUES ($1, $2, $3) RETURNING *",
+						args:  []driver.Value{"john.doe@example.com", "John Doe", sha256.String("testword")},
+						err:   errors.New("repo: Something goes wrong"),
+					},
+				},
+			},
+
+			request: request{
+				body: `{"email":"john.doe@example.com","name":"John Doe","password":"testword"}`,
+			},
+
+			expect: expect{
+				status: http.StatusInternalServerError,
+				body:   `{"message":"internal server error"}`,
+			},
+		},
 	}
 
 	for _, tc := range tests {
@@ -141,7 +172,7 @@ func TestLogin(t *testing.T) {
 	tokenSecret := "some-supa-secret-characters"
 	c := config.Config{Token: config.Token{Secret: tokenSecret}}
 	repo := repository.New(sqlx.NewDb(db, "sqlmock"))
-	handler := New(&c, repo, mockmailer.New())
+	handler := New(&c, repo, mockmailer.New(), mocktoken.New(c.Token))
 
 	tests := []table{
 		{
@@ -334,7 +365,7 @@ func TestUpdatePassword(t *testing.T) {
 	tokenSecret := "some-supa-secret-characters"
 	c := config.Config{Token: config.Token{Secret: tokenSecret}}
 	repo := repository.New(sqlx.NewDb(db, "sqlmock"))
-	handler := New(&c, repo, mockmailer.New())
+	handler := New(&c, repo, mockmailer.New(), mocktoken.New(c.Token))
 
 	tok := random.String(64)
 

@@ -34,7 +34,7 @@ func (h *Handler) UserIdentity(c *gin.Context) {
 
 	token := parts[1]
 
-	userID, err := h.token.ParseToID(token)
+	userID, err := h.token.ParseJWT(token)
 	if err != nil {
 		log.Error("Can't parse access token", slog.String("token", token), sl.Err(err))
 		response.WithMessage(c, http.StatusUnauthorized, "invalid authorization token")

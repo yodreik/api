@@ -5,6 +5,7 @@ import (
 	mockmailer "api/internal/mailer/mock"
 	"api/internal/repository"
 	"api/internal/token"
+	mocktoken "api/internal/token/mock"
 	"database/sql/driver"
 	"errors"
 	"fmt"
@@ -17,22 +18,21 @@ import (
 )
 
 func TestCreateWorkout(t *testing.T) {
-	tokenSecret := "some-supa-secret-characters"
-	tokenManager := token.New(tokenSecret)
-
-	tokenWithID69, err := tokenManager.GenerateToken("69")
-	if err != nil {
-		t.Fatal("unexpected error while generating mock token")
-	}
-
 	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
 	if err != nil {
 		t.Fatalf("err not expected: %v\n", err)
 	}
 
+	tokenSecret := "some-supa-secret-characters"
 	c := config.Config{Token: config.Token{Secret: tokenSecret}}
 	repo := repository.New(sqlx.NewDb(db, "sqlmock"))
-	handler := New(&c, repo, mockmailer.New())
+	tokenManager := token.New(c.Token)
+	handler := New(&c, repo, mockmailer.New(), mocktoken.New(c.Token))
+
+	tokenWithID69, err := tokenManager.GenerateJWT("69")
+	if err != nil {
+		t.Fatal("unexpected error while generating mock token")
+	}
 
 	expectedDate, err := time.Parse("02.01.2006", "11.11.2024")
 	if err != nil {
@@ -52,7 +52,6 @@ func TestCreateWorkout(t *testing.T) {
 							AddRow("96", "69", expectedDate, 71, "Calisthenics", time.Now()),
 					},
 				},
-				asTx: false,
 			},
 
 			request: request{
@@ -116,7 +115,6 @@ func TestCreateWorkout(t *testing.T) {
 						err:   errors.New("repo: Some repository error"),
 					},
 				},
-				asTx: false,
 			},
 
 			request: request{

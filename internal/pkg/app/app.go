@@ -8,6 +8,7 @@ import (
 	"api/internal/mailer"
 	"api/internal/repository"
 	"api/internal/repository/postgres"
+	"api/internal/token"
 	"context"
 	"errors"
 	"log/slog"
@@ -59,10 +60,10 @@ func (a *App) Run() {
 	slog.Info("Successfully connected to PostgreSQL")
 
 	repo := repository.New(db)
-
 	m := mailer.New(a.config.Mail)
+	tokenManager := token.New(a.config.Token)
 
-	r := router.New(a.config, repo, m)
+	r := router.New(a.config, repo, m, tokenManager)
 
 	server := &http.Server{
 		Addr:         a.config.Server.Address,

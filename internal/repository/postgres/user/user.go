@@ -93,7 +93,7 @@ func (p *Postgres) CreateWithEmailConfirmationRequest(ctx context.Context, email
 	}
 
 	query = "INSERT INTO requests (kind, email, token, expires_at) VALUES ($1, $2, $3, $4)"
-	_, err = tx.ExecContext(ctx, query, RequestKindEmailConfirmation, email, token, time.Now().Add(48*time.Hour))
+	_, err = tx.ExecContext(ctx, query, RequestKindEmailConfirmation, email, token, time.Now().Add(48*time.Hour).Truncate(time.Hour))
 	if err != nil {
 		return nil, err
 	}
@@ -158,11 +158,11 @@ func (p *Postgres) UpdatePasswordByEmail(ctx context.Context, email string, pass
 }
 
 func (p *Postgres) CreatePasswordResetRequest(ctx context.Context, token string, email string) (*Request, error) {
-	return p.CreateRequest(ctx, RequestKindResetPassword, email, token, time.Now().Add(15*time.Minute))
+	return p.CreateRequest(ctx, RequestKindResetPassword, email, token, time.Now().Add(15*time.Minute).Truncate(time.Hour))
 }
 
 func (p *Postgres) CreateEmailConfirmationRequest(ctx context.Context, token string, email string) (*Request, error) {
-	return p.CreateRequest(ctx, RequestKindEmailConfirmation, email, token, time.Now().Add(48*time.Hour))
+	return p.CreateRequest(ctx, RequestKindEmailConfirmation, email, token, time.Now().Add(48*time.Hour).Truncate(time.Hour))
 }
 
 func (p *Postgres) CreateRequest(ctx context.Context, kind RequestKind, email string, token string, expiresAt time.Time) (*Request, error) {

@@ -6,6 +6,7 @@ import (
 	"api/internal/repository"
 	repoerr "api/internal/repository/errors"
 	"api/internal/token"
+	mocktoken "api/internal/token/mock"
 	"api/pkg/sha256"
 	"database/sql/driver"
 	"errors"
@@ -19,24 +20,21 @@ import (
 )
 
 func TestMe(t *testing.T) {
-	tokenSecret := "some-supa-secret-characters"
-	tokenManager := token.New(tokenSecret)
-
-	tokenWithID69, err := tokenManager.GenerateToken("69")
-	if err != nil {
-		t.Fatal("unexpected error while generating mock token")
-	}
-
-	_ = tokenWithID69
-
 	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
 	if err != nil {
 		t.Fatalf("err not expected: %v\n", err)
 	}
 
+	tokenSecret := "some-supa-secret-characters"
 	c := config.Config{Token: config.Token{Secret: tokenSecret}}
 	repo := repository.New(sqlx.NewDb(db, "sqlmock"))
-	handler := New(&c, repo, mockmailer.New())
+	tokenManager := token.New(c.Token)
+	handler := New(&c, repo, mockmailer.New(), mocktoken.New(c.Token))
+
+	tokenWithID69, err := tokenManager.GenerateJWT("69")
+	if err != nil {
+		t.Fatal("unexpected error while generating mock token")
+	}
 
 	tests := []table{
 		{
