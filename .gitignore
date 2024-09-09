@@ -12,3 +12,13 @@ bin/*
 # Ignore IDE files
 .idea/
 .vscode/
+
+# Ignore storage files
+.database/
+.redis/
+
+# Ignore test results
+coverage.*
+
+# Ignore temp files and TODO
+TODO*

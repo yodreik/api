@@ -1,6 +1,24 @@
-env: "local"
+env: "local" # local, dev or prod
 
-http:
+server:
   address: ":6969"
   timeout: 4s
   idle_timeout: 60s
+
+mail:
+  address: "company@domain.com"
+  password: "password-for-apps"
+  smtp:
+    address: "smtp-address-of-email-service"
+    port: "port-of-smtp-email-service"
+
+token:
+  secret: "your-supa-secret-letters"
+
+postgres:
+  host: "localhost"
+  port: "1337"
+  user: "postgres"
+  name: "postgres"
+  password: "my-unhackable-password"
+  sslmode: "disable"

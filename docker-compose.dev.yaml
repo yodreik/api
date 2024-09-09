@@ -1,0 +1,11 @@
+services:
+  postgres:
+    container_name: dreik-postgres
+    image: postgres:latest
+    restart: unless-stopped
+    volumes:
+      - ./.database/postgres/data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_PASSWORD
+    ports:
+      - "5432:5432"

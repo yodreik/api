@@ -1,0 +1,24 @@
+services:
+  postgres:
+    container_name: dreik-postgres
+    image: postgres:latest
+    restart: unless-stopped
+    volumes:
+      - ./.database/postgres/data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_PASSWORD
+    ports:
+      - "5432:5432"
+
+  api:
+    container_name: dreik-api
+    image: jus1d/dreik-api:latest
+    depends_on:
+      - postgres
+    restart: unless-stopped
+    volumes:
+      - ./config:/app/config
+    environment:
+      - CONFIG_PATH=./config/dev.yaml
+    ports:
+      - "6969:6969"
