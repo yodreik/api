@@ -5,7 +5,7 @@
 #### 1/ First things first, clone the repo
 
 ```console
-$ git clone https://github.com/welnex/api.git && cd ./api
+$ git clone https://github.com/dreik/api.git && cd ./api
 ```
 
 ---

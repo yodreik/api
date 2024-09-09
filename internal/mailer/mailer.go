@@ -34,7 +34,7 @@ func (s *Sender) SendRecoveryEmail(recepient string, token string) error {
 		</html>
 	`, basepath, token)
 
-	return s.Send(recepient, "welnex: Password reset", body)
+	return s.Send(recepient, "dreik: Password reset", body)
 }
 
 func (s *Sender) SendConfirmationEmail(recepient string, token string) error {
@@ -47,7 +47,7 @@ func (s *Sender) SendConfirmationEmail(recepient string, token string) error {
 		</html>
 	`, basepath, token)
 
-	return s.Send(recepient, "welnex: Account confirmation", body)
+	return s.Send(recepient, "dreik: Account confirmation", body)
 }
 
 func (s *Sender) Send(recepient string, subject string, body string) error {

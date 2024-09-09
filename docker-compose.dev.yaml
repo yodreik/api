@@ -1,6 +1,6 @@
 services:
   postgres:
-    container_name: welnex-postgres
+    container_name: dreik-postgres
     image: postgres:latest
     restart: unless-stopped
     volumes:
