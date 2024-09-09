@@ -21,13 +21,13 @@ func (h *Handler) UserIdentity(c *gin.Context) {
 	header := c.GetHeader("Authorization")
 	parts := strings.Split(header, " ")
 	if len(parts) != 2 {
-		log.Info("Incorrect authorization header", slog.String("authorization", header))
+		log.Debug("incorrect authorization header", slog.String("authorization", header))
 		response.WithMessage(c, http.StatusUnauthorized, "empty authorization header")
 		return
 	}
 
 	if parts[0] != "Bearer" {
-		log.Info("Incorrect type of authorization token", slog.String("type", parts[0]))
+		log.Debug("incorrect type of authorization token", slog.String("type", parts[0]))
 		response.WithMessage(c, http.StatusUnauthorized, "invalid authorization token type")
 		return
 	}
@@ -36,7 +36,7 @@ func (h *Handler) UserIdentity(c *gin.Context) {
 
 	userID, err := h.token.ParseJWT(token)
 	if err != nil {
-		log.Error("Can't parse access token", slog.String("token", token), sl.Err(err))
+		log.Error("can't parse access token", slog.String("token", token), sl.Err(err))
 		response.WithMessage(c, http.StatusUnauthorized, "invalid authorization token")
 		return
 	}

@@ -49,15 +49,15 @@ func (a *App) Run() {
 
 	gin.SetMode(gin.ReleaseMode) // Turn off gin's logs
 
-	slog.Info("Starting API server...", slog.String("env", a.config.Env))
+	slog.Info("starting API server...", slog.String("env", a.config.Env))
 
 	db, err := postgres.New(&a.config.Postgres)
 	if err != nil {
-		slog.Error("Could not connect to PostgreSQL", sl.Err(err))
+		slog.Error("could not connect to PostgreSQL", sl.Err(err))
 		os.Exit(1)
 	}
 
-	slog.Info("Successfully connected to PostgreSQL")
+	slog.Info("successfully connected to PostgreSQL")
 
 	repo := repository.New(db)
 	m := mailer.New(a.config.Mail)
@@ -76,23 +76,23 @@ func (a *App) Run() {
 	go func() {
 		if err := server.ListenAndServe(); err != nil {
 			if !errors.Is(err, http.ErrServerClosed) {
-				slog.Error("Failed to start server", sl.Err(err))
+				slog.Error("failed to start server", sl.Err(err))
 				os.Exit(1)
 			}
 		}
 	}()
 
-	slog.Info("Server started", slog.String("address", server.Addr))
+	slog.Info("server started", slog.String("address", server.Addr))
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGTERM, syscall.SIGINT)
 	<-quit
 
-	slog.Info("Server shutting down")
+	slog.Info("server shutting down")
 
 	err = server.Shutdown(context.Background())
 	if err != nil {
-		slog.Error("Error occurred on server shutting down", sl.Err(err))
+		slog.Error("error occurred on server shutting down", sl.Err(err))
 		os.Exit(1)
 	}
 
@@ -100,9 +100,9 @@ func (a *App) Run() {
 
 	err = db.Close()
 	if err != nil {
-		slog.Error("Could not close PostgreSQL connection properly", sl.Err(err))
+		slog.Error("could not close PostgreSQL connection properly", sl.Err(err))
 		os.Exit(1)
 	}
 
-	slog.Info("PostgreSQL connection closed")
+	slog.Info("connection to PostgreSQL closed")
 }
