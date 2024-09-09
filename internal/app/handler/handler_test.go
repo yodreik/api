@@ -40,34 +40,6 @@ func TemplateTestHandler(tc table, mock sqlmock.Sqlmock, method string, path str
 			tc.repo(mock)
 		}
 
-		// if tc.repo != nil {
-		// 	if tc.repo.expectTxBegin {
-		// 		mock.ExpectBegin()
-		// 	}
-
-		// 	for _, q := range tc.repo.queries {
-		// 		if q.exec != "" {
-		// 			if q.err != nil {
-		// 				mock.ExpectExec(q.exec).WithArgs(q.args...).WillReturnError(q.err)
-		// 			} else if q.result != nil {
-		// 				mock.ExpectExec(q.exec).WithArgs(q.args...).WillReturnResult(q.result)
-		// 			}
-		// 		} else if q.query != "" {
-		// 			if q.err != nil {
-		// 				mock.ExpectQuery(q.query).WithArgs(q.args...).WillReturnError(q.err)
-		// 			} else {
-		// 				mock.ExpectQuery(q.query).WithArgs(q.args...).WillReturnRows(q.rows)
-		// 			}
-		// 		}
-		// 	}
-
-		// 	if tc.repo.expectTxCommit {
-		// 		mock.ExpectCommit()
-		// 	} else if tc.repo.expectTxRollback {
-		// 		mock.ExpectRollback()
-		// 	}
-		// }
-
 		gin.SetMode(gin.TestMode)
 		r := gin.Default()
 
