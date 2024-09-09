@@ -3,7 +3,7 @@ package handler
 import (
 	"api/internal/app/handler/response"
 	"api/internal/app/handler/response/responsebody"
-	"api/internal/lib/sl"
+	"api/internal/lib/logger/sl"
 	repoerr "api/internal/repository/errors"
 	"api/pkg/requestid"
 	"errors"
@@ -31,13 +31,13 @@ func (h *Handler) Me(c *gin.Context) {
 	userID := c.GetString("UserID")
 	user, err := h.repository.User.GetByID(c, userID)
 	if errors.Is(err, repoerr.ErrUserNotFound) {
-		log.Info("User not found", slog.String("id", userID))
-		c.AbortWithStatusJSON(http.StatusUnauthorized, response.Message("invalid authorization token"))
+		log.Debug("user not found", slog.String("id", userID))
+		response.WithMessage(c, http.StatusUnauthorized, "invalid authorization token")
 		return
 	}
 	if err != nil {
-		log.Error("Can't find user", sl.Err(err))
-		c.AbortWithStatusJSON(http.StatusInternalServerError, response.Message("can't get me"))
+		log.Error("can't find user", sl.Err(err))
+		response.InternalServerError(c)
 		return
 	}
 

@@ -29,9 +29,9 @@ func TestNew(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.NotEmpty(t, w.Header().Get(headerRequestID), "X-Request-ID header should be set")
+	assert.NotEmpty(t, req.Header.Get(headerRequestID), "X-Request-ID header should be set")
 
-	rid := w.Header().Get(headerRequestID)
+	rid := req.Header.Get(headerRequestID)
 	_, err = uuid.Parse(rid)
 	assert.NoError(t, err, "X-Request-ID header should be a valid UUID")
 }

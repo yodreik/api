@@ -11,13 +11,18 @@ import (
 
 type User interface {
 	Create(ctx context.Context, email string, name string, passwordHash string) (*user.User, error)
+	CreateWithEmailConfirmationRequest(ctx context.Context, email string, name string, passwordHash string, token string) (*user.User, error)
+	ConfirmEmail(ctx context.Context, email string, token string) error
 	GetByID(ctx context.Context, id string) (*user.User, error)
 	GetByCredentials(ctx context.Context, email string, passwordHash string) (*user.User, error)
 	GetByEmail(ctx context.Context, email string) (*user.User, error)
 	UpdatePasswordByEmail(ctx context.Context, email string, password string) error
-	CreatePasswordResetRequest(ctx context.Context, token string, email string) error
-	GetPasswordResetRequestByToken(ctx context.Context, token string) (*user.ResetPasswordRequest, error)
-	MarkResetPasswordTokenAsUsed(ctx context.Context, token string) error
+	CreateRequest(ctx context.Context, kind user.RequestKind, email string, token string, expiresAt time.Time) (*user.Request, error)
+	CreatePasswordResetRequest(ctx context.Context, token string, email string) (*user.Request, error)
+	CreateEmailConfirmationRequest(ctx context.Context, token string, email string) (*user.Request, error)
+	GetRequestByToken(ctx context.Context, token string) (*user.Request, error)
+	GetRequestByEmail(ctx context.Context, email string) (*user.Request, error)
+	MarkRequestAsUsed(ctx context.Context, token string) error
 }
 
 type Workout interface {

@@ -2,8 +2,9 @@ package handler
 
 import (
 	"api/internal/config"
+	mockmailer "api/internal/mailer/mock"
 	"api/internal/repository"
-	"database/sql/driver"
+	mocktoken "api/internal/token/mock"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -17,16 +18,9 @@ import (
 
 type table struct {
 	name    string
-	repo    *repoArgs
+	repo    func(mock sqlmock.Sqlmock)
 	request request
 	expect  expect
-}
-
-type repoArgs struct {
-	query string
-	args  []driver.Value
-	err   error
-	rows  *sqlmock.Rows
 }
 
 type request struct {
@@ -43,11 +37,7 @@ type expect struct {
 func TemplateTestHandler(tc table, mock sqlmock.Sqlmock, method string, path string, handlers ...gin.HandlerFunc) func(t *testing.T) {
 	return func(t *testing.T) {
 		if tc.repo != nil {
-			if tc.repo.err != nil {
-				mock.ExpectQuery(tc.repo.query).WithArgs(tc.repo.args...).WillReturnError(tc.repo.err)
-			} else {
-				mock.ExpectQuery(tc.repo.query).WithArgs(tc.repo.args...).WillReturnRows(tc.repo.rows)
-			}
+			tc.repo(mock)
 		}
 
 		gin.SetMode(gin.TestMode)
@@ -76,21 +66,26 @@ func TemplateTestHandler(tc table, mock sqlmock.Sqlmock, method string, path str
 			t.Fatalf("unexpected body returned: got %v, want %v\n", w.Body.String(), tc.expect.body)
 		}
 
-		var body map[string]any
-		err = json.Unmarshal(w.Body.Bytes(), &body)
-		if err != nil {
-			t.Fatalf("can't unmarshall response body: %v\n", err)
-		}
+		if w.Body.String() == "" && len(tc.expect.bodyFields) > 0 {
+			t.Fatal("expected some body fields, got empty body")
+		} else if len(w.Body.String()) != 0 {
 
-		for _, field := range tc.expect.bodyFields {
-			value, exists := body[field]
-			if !exists {
-				t.Fatalf("expected body field not found: %v\n", field)
+			var body map[string]any
+			err = json.Unmarshal(w.Body.Bytes(), &body)
+			if err != nil {
+				t.Fatalf("can't unmarshall response body: %v\n", err)
 			}
 
-			v := reflect.ValueOf(value)
-			if !v.IsValid() || v.IsZero() {
-				t.Fatalf("expected body field is empty: %v\n", field)
+			for _, field := range tc.expect.bodyFields {
+				value, exists := body[field]
+				if !exists {
+					t.Fatalf("expected body field not found: %v\n", field)
+				}
+
+				v := reflect.ValueOf(value)
+				if !v.IsValid() || v.IsZero() {
+					t.Fatalf("expected body field is empty: %v\n", field)
+				}
 			}
 		}
 	}
@@ -103,7 +98,7 @@ func TestHealthcheck(t *testing.T) {
 	c := config.Config{}
 	repo := repository.Repository{}
 
-	h := New(&c, &repo)
+	h := New(&c, &repo, mockmailer.New(), mocktoken.New(c.Token))
 
 	r.GET("/healthcheck", h.Healthcheck)
 

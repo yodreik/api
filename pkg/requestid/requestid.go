@@ -15,11 +15,10 @@ func New(c *gin.Context) {
 		c.Request.Header.Add(headerRequestID, rid)
 	}
 
-	c.Header(headerRequestID, rid)
 	c.Next()
 }
 
 // Get returns the request identifier
 func Get(c *gin.Context) string {
-	return c.Writer.Header().Get(headerRequestID)
+	return c.Request.Header.Get(headerRequestID)
 }

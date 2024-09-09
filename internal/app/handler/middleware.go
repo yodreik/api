@@ -2,7 +2,8 @@ package handler
 
 import (
 	"api/internal/app/handler/response"
-	"api/internal/lib/sl"
+	"api/internal/lib/logger/sl"
+
 	"api/pkg/requestid"
 	"log/slog"
 	"net/http"
@@ -20,23 +21,23 @@ func (h *Handler) UserIdentity(c *gin.Context) {
 	header := c.GetHeader("Authorization")
 	parts := strings.Split(header, " ")
 	if len(parts) != 2 {
-		log.Info("Incorrect authorization header", slog.String("authorization", header))
-		c.AbortWithStatusJSON(http.StatusUnauthorized, response.Message("empty authorization header"))
+		log.Debug("incorrect authorization header", slog.String("authorization", header))
+		response.WithMessage(c, http.StatusUnauthorized, "empty authorization header")
 		return
 	}
 
 	if parts[0] != "Bearer" {
-		log.Info("Incorrect type of authorization token", slog.String("type", parts[0]))
-		c.AbortWithStatusJSON(http.StatusUnauthorized, response.Message("invalid authorization token type"))
+		log.Debug("incorrect type of authorization token", slog.String("type", parts[0]))
+		response.WithMessage(c, http.StatusUnauthorized, "invalid authorization token type")
 		return
 	}
 
 	token := parts[1]
 
-	userID, err := h.token.ParseToID(token)
+	userID, err := h.token.ParseJWT(token)
 	if err != nil {
-		log.Error("Can't parse access token", slog.String("token", token), sl.Err(err))
-		c.AbortWithStatusJSON(http.StatusUnauthorized, response.Message("invalid authorization token"))
+		log.Error("can't parse access token", slog.String("token", token), sl.Err(err))
+		response.WithMessage(c, http.StatusUnauthorized, "invalid authorization token")
 		return
 	}
 

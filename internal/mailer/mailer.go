@@ -6,18 +6,25 @@ import (
 	"net/smtp"
 )
 
-type Mailer struct {
+const basepath = "http://localhost:3000"
+
+type Mailer interface {
+	SendRecoveryEmail(recepient string, token string) error
+	SendConfirmationEmail(recepient string, token string) error
+	Send(recepient string, subject string, body string) error
+}
+
+type Sender struct {
 	config config.Mail
 }
 
-func New(c config.Mail) *Mailer {
-	return &Mailer{
+func New(c config.Mail) *Sender {
+	return &Sender{
 		config: c,
 	}
 }
 
-func (m *Mailer) SendRecoveryEmail(recepient string, token string) error {
-	basepath := "http://localhost:3000"
+func (s *Sender) SendRecoveryEmail(recepient string, token string) error {
 	body := fmt.Sprintf(`
 		<html>
 		<body>
@@ -27,15 +34,28 @@ func (m *Mailer) SendRecoveryEmail(recepient string, token string) error {
 		</html>
 	`, basepath, token)
 
-	return m.Send(recepient, "welnex: Password reset", body)
+	return s.Send(recepient, "welnex: Password reset", body)
 }
 
-func (m *Mailer) Send(recepient string, subject string, body string) error {
-	auth := smtp.PlainAuth("", m.config.Address, m.config.Password, m.config.SMTP.Address)
+func (s *Sender) SendConfirmationEmail(recepient string, token string) error {
+	body := fmt.Sprintf(`
+		<html>
+		<body>
+			<p>Click <a href="%s/auth/confirm?token=%s">here</a> to verify your account!</p>
+			<p>This link will be available only for 48h!</p>
+		</body>
+		</html>
+	`, basepath, token)
+
+	return s.Send(recepient, "welnex: Account confirmation", body)
+}
+
+func (s *Sender) Send(recepient string, subject string, body string) error {
+	auth := smtp.PlainAuth("", s.config.Address, s.config.Password, s.config.SMTP.Address)
 
 	to := []string{recepient}
 	msg := []byte(fmt.Sprintf("To: %s\r\nSubject: %s\r\nContent-Type: text/html; charset=\"UTF-8\"\r\n\r\n%s\r\n",
 		recepient, subject, body))
 
-	return smtp.SendMail(fmt.Sprintf("%s:%s", m.config.SMTP.Address, m.config.SMTP.Port), auth, m.config.Address, to, msg)
+	return smtp.SendMail(fmt.Sprintf("%s:%s", s.config.SMTP.Address, s.config.SMTP.Port), auth, s.config.Address, to, msg)
 }

@@ -3,15 +3,15 @@ package router
 import (
 	"api/internal/app/handler"
 	"api/internal/config"
+	"api/internal/mailer"
 	"api/internal/repository"
+	"api/internal/token"
 	"api/pkg/requestid"
 	"api/pkg/requestlog"
-	"fmt"
-	"log/slog"
 
 	"github.com/gin-gonic/gin"
-	swaggerFiles "github.com/swaggo/files"
-	ginSwagger "github.com/swaggo/gin-swagger"
+	files "github.com/swaggo/files"
+	swaggin "github.com/swaggo/gin-swagger"
 )
 
 type Router struct {
@@ -19,8 +19,8 @@ type Router struct {
 	handler *handler.Handler
 }
 
-func New(c *config.Config, r *repository.Repository) *Router {
-	h := handler.New(c, r)
+func New(c *config.Config, r *repository.Repository, m mailer.Mailer, t token.Manager) *Router {
+	h := handler.New(c, r, m, t)
 	return &Router{
 		config:  c,
 		handler: h,
@@ -33,7 +33,7 @@ func (r *Router) InitRoutes() *gin.Engine {
 	router.Use(gin.Recovery())
 
 	router.Use(requestid.New)
-	router.Use(requestlog.Handled)
+	router.Use(requestlog.Completed)
 
 	switch r.config.Env {
 	case config.EnvLocal, config.EnvDevelopment:
@@ -55,36 +55,28 @@ func (r *Router) InitRoutes() *gin.Engine {
 			c.File("./coverage.html")
 		})
 
-		router.GET("/docs/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+		router.GET("/docs/*any", swaggin.WrapHandler(files.Handler))
 	}
 
 	api := router.Group("/api")
 	{
-
 		api.GET("/healthcheck", r.handler.Healthcheck)
 
-		api.POST("/auth/register", r.handler.Register)
-		api.POST("/auth/login", r.handler.Login)
+		auth := api.Group("/auth")
+		{
+			auth.POST("/register", r.handler.Register)
+			auth.POST("/login", r.handler.Login)
 
-		api.POST("/auth/password/reset", r.handler.ResetPassword)
-		api.PATCH("/auth/password/update", r.handler.UpdatePassword)
+			auth.POST("/password/reset", r.handler.ResetPassword)
+			auth.PATCH("/password/update", r.handler.UpdatePassword)
+
+			auth.POST("/confirm", r.handler.ConfirmEmail)
+		}
 
 		api.GET("/me", r.handler.UserIdentity, r.handler.Me)
 
 		api.POST("/workout", r.handler.UserIdentity, r.handler.CreateWorkout)
 	}
 
-	r.log(router.Routes())
-
 	return router
-}
-
-func (r *Router) log(routes gin.RoutesInfo) {
-	for _, route := range routes {
-		switch r.config.Env {
-		case config.EnvLocal, config.EnvDevelopment:
-			record := fmt.Sprintf("Registered handler for %s %s --> %s", route.Method, route.Path, route.Handler)
-			slog.Info(record)
-		}
-	}
 }

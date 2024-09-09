@@ -1,7 +1,7 @@
 package config
 
 import (
-	"api/internal/lib/sl"
+	"api/internal/lib/logger/sl"
 	"log/slog"
 	"os"
 	"time"

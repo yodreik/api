@@ -4,9 +4,8 @@ import (
 	"api/internal/app/handler/request/requestbody"
 	"api/internal/app/handler/response"
 	"api/internal/app/handler/response/responsebody"
-	"api/internal/lib/sl"
+	"api/internal/lib/logger/sl"
 	repoerr "api/internal/repository/errors"
-	"api/pkg/random"
 	"api/pkg/requestid"
 	"api/pkg/sha256"
 	"errors"
@@ -26,6 +25,7 @@ import (
 // @Param        input body      requestbody.Register true "User information"
 // @Success      201 {object}    responsebody.User
 // @Failure      400 {object}    responsebody.Message
+// @Failure      403 {object}    responsebody.Message
 // @Failure      409 {object}    responsebody.Message
 // @Router       /auth/register  [post]
 func (h *Handler) Register(c *gin.Context) {
@@ -36,43 +36,51 @@ func (h *Handler) Register(c *gin.Context) {
 
 	var body requestbody.Register
 	if err := c.BindJSON(&body); err != nil {
-		log.Info("Can't decode request body", sl.Err(err))
-		c.AbortWithStatusJSON(http.StatusBadRequest, response.Message("invalid request body"))
+		log.Debug("can't decode request body", sl.Err(err))
+		response.InvalidRequestBody(c)
 		return
 	}
 
 	_, err := mail.ParseAddress(body.Email)
 	if err != nil {
-		log.Info("Email is invalid", slog.String("email", body.Email))
-		c.AbortWithStatusJSON(http.StatusBadRequest, response.Message("invalid email format"))
+		log.Debug("email is invalid", slog.String("email", body.Email))
+		response.WithMessage(c, http.StatusBadRequest, "invalid email format")
 		return
 	}
 
 	if len(body.Name) > 50 {
-		log.Info("Name is too long")
-		c.AbortWithStatusJSON(http.StatusBadRequest, response.Message("name is too long"))
+		log.Debug("name is too long")
+		response.WithMessage(c, http.StatusBadRequest, "name is too long")
 		return
 	}
 
 	if len(body.Password) > 50 {
-		log.Info("Password is too long")
-		c.AbortWithStatusJSON(http.StatusBadRequest, response.Message("password is too long"))
+		log.Debug("password is too long")
+		response.WithMessage(c, http.StatusBadRequest, "password is too long")
 		return
 	}
 
-	user, err := h.repository.User.Create(c, body.Email, body.Name, sha256.String(body.Password))
+	token := h.token.Long()
+	user, err := h.repository.User.CreateWithEmailConfirmationRequest(c, body.Email, body.Name, sha256.String(body.Password), token)
 	if errors.Is(err, repoerr.ErrUserAlreadyExists) {
-		log.Info("User already exists", sl.Err(err))
-		c.AbortWithStatusJSON(http.StatusConflict, response.Message("user already exists"))
+		log.Info("user already exists", sl.Err(err))
+		response.WithMessage(c, http.StatusConflict, "user already exists")
 		return
 	}
 	if err != nil {
-		log.Error("Can't create user", sl.Err(err))
-		c.AbortWithStatusJSON(http.StatusInternalServerError, response.Message("can't register"))
+		log.Error("can't create user", sl.Err(err))
+		response.InternalServerError(c)
 		return
 	}
 
-	log.Info("Created a user", slog.String("id", user.ID), slog.String("email", user.Email), slog.String("name", user.Name))
+	log.Info("created a user", slog.String("id", user.ID), slog.String("email", user.Email), slog.String("name", user.Name))
+
+	go func() {
+		err = h.mailer.SendConfirmationEmail(body.Email, token)
+		if err != nil {
+			log.Error("can't send an email", sl.Err(err))
+		}
+	}()
 
 	// TOTHINK: Maybe additionally return an access token
 	c.JSON(http.StatusCreated, responsebody.User{
@@ -100,33 +108,68 @@ func (h *Handler) Login(c *gin.Context) {
 
 	var body requestbody.Login
 	if err := c.BindJSON(&body); err != nil {
-		log.Info("Can't decode request body", sl.Err(err))
-		c.AbortWithStatusJSON(http.StatusBadRequest, response.Message("invalid request body"))
+		log.Debug("can't decode request body", sl.Err(err))
+		response.InvalidRequestBody(c)
 		return
 	}
 
 	user, err := h.repository.User.GetByCredentials(c, body.Email, sha256.String(body.Password))
 	if errors.Is(err, repoerr.ErrUserNotFound) {
-		log.Info("User not found", slog.String("email", body.Email))
-		c.AbortWithStatusJSON(http.StatusNotFound, response.Message("user not found"))
+		log.Debug("user not found", slog.String("email", body.Email))
+		response.WithMessage(c, http.StatusNotFound, "user not found")
 		return
 	}
 	if err != nil {
-		log.Error("Can't find user", sl.Err(err))
-		c.AbortWithStatusJSON(http.StatusInternalServerError, response.Message("can't login"))
+		log.Error("can't find user", sl.Err(err))
+		response.InternalServerError(c)
 		return
 	}
 
-	token, err := h.token.GenerateToken(user.ID)
+	if user.IsEmailConfirmed {
+		token, err := h.token.GenerateJWT(user.ID)
+		if err != nil {
+			log.Error("can't generate JWT", sl.Err(err))
+			response.InternalServerError(c)
+			return
+		}
+
+		c.JSON(http.StatusOK, responsebody.Token{
+			Token: token,
+		})
+		return
+	}
+
+	log.Debug("user's email not confirmed")
+
+	request, err := h.repository.User.GetRequestByEmail(c, body.Email)
+	if errors.Is(err, repoerr.ErrRequestNotFound) || time.Now().After(request.ExpiresAt) {
+		log.Debug("confirmation request not found")
+		token := h.token.Long()
+		request, err := h.repository.User.CreateEmailConfirmationRequest(c, token, body.Email)
+		if err != nil {
+			log.Error("can't save new email confirmation request", sl.Err(err))
+			response.InternalServerError(c)
+			return
+		}
+
+		go func() {
+			err = h.mailer.SendConfirmationEmail(body.Email, request.Token)
+			if err != nil {
+				log.Error("can't send confirmation email", sl.Err(err))
+			}
+		}()
+
+		log.Debug("new confirmation email sent")
+		response.WithMessage(c, http.StatusForbidden, "email confirmation needed")
+		return
+	}
 	if err != nil {
-		log.Error("Can't generate JWT", sl.Err(err))
-		c.AbortWithStatusJSON(http.StatusInternalServerError, response.Message("can't login"))
+		log.Error("can't get confirmation request", sl.Err(err))
+		response.InternalServerError(c)
 		return
 	}
 
-	c.JSON(http.StatusOK, responsebody.Token{
-		Token: token,
-	})
+	response.WithMessage(c, http.StatusForbidden, "email confirmation needed")
 }
 
 // @Summary      Request password reset
@@ -147,37 +190,37 @@ func (h *Handler) ResetPassword(c *gin.Context) {
 
 	var body requestbody.ResetPassword
 	if err := c.BindJSON(&body); err != nil {
-		log.Info("Can't decode request body", sl.Err(err))
-		c.AbortWithStatusJSON(http.StatusBadRequest, response.Message("invalid request body"))
+		log.Debug("can't decode request body", sl.Err(err))
+		response.InvalidRequestBody(c)
 		return
 	}
 
 	_, err := h.repository.User.GetByEmail(c, body.Email)
 	if errors.Is(err, repoerr.ErrUserNotFound) {
-		log.Info("User not found", slog.String("email", body.Email))
-		c.AbortWithStatusJSON(http.StatusNotFound, response.Message("user not found"))
+		log.Debug("user not found", slog.String("email", body.Email))
+		response.WithMessage(c, http.StatusNotFound, "user not found")
 		return
 	}
 	if err != nil {
-		log.Error("Can't find user", sl.Err(err))
-		c.AbortWithStatusJSON(http.StatusInternalServerError, response.Message("can't request password reset"))
+		log.Error("can't find user", sl.Err(err))
+		response.InternalServerError(c)
 		return
 	}
 
-	token := random.String(64)
-	err = h.repository.User.CreatePasswordResetRequest(c, token, body.Email)
+	token := h.token.Long()
+	request, err := h.repository.User.CreatePasswordResetRequest(c, token, body.Email)
 	if err != nil {
-		log.Error("Can't save password reset request information", sl.Err(err))
-		c.AbortWithStatusJSON(http.StatusInternalServerError, response.Message("can't request password reset"))
+		log.Error("can't save password reset request information", sl.Err(err))
+		response.InternalServerError(c)
 		return
 	}
 
-	err = h.mailer.SendRecoveryEmail(body.Email, token)
-	if err != nil {
-		log.Error("Can't send password reset link", sl.Err(err))
-		c.AbortWithStatusJSON(http.StatusInternalServerError, response.Message("can't request password reset"))
-		return
-	}
+	go func() {
+		err = h.mailer.SendRecoveryEmail(body.Email, request.Token)
+		if err != nil {
+			log.Error("can't send password reset link", sl.Err(err))
+		}
+	}()
 
 	c.Status(http.StatusOK)
 }
@@ -187,7 +230,7 @@ func (h *Handler) ResetPassword(c *gin.Context) {
 // @Tags         auth
 // @Accept       json
 // @Produce      json
-// @Param        input body            requestbody.UpdatePassword true "User information"
+// @Param        input body             requestbody.UpdatePassword true "User information"
 // @Success      200
 // @Failure      400 {object}           responsebody.Message
 // @Failure      404 {object}           responsebody.Message
@@ -200,45 +243,104 @@ func (h *Handler) UpdatePassword(c *gin.Context) {
 
 	var body requestbody.UpdatePassword
 	if err := c.BindJSON(&body); err != nil {
-		log.Info("Can't decode request body", sl.Err(err))
-		c.AbortWithStatusJSON(http.StatusBadRequest, response.Message("invalid request body"))
+		log.Debug("can't decode request body", sl.Err(err))
+		response.InvalidRequestBody(c)
 		return
 	}
 
-	passwordResetRequest, err := h.repository.User.GetPasswordResetRequestByToken(c, body.Token)
-	if errors.Is(err, repoerr.ErrPasswordResetRequestNotFound) {
-		log.Info("Password reset request not found", slog.String("token", body.Token))
-		c.AbortWithStatusJSON(http.StatusNotFound, response.Message("password reset request not found"))
+	passwordResetRequest, err := h.repository.User.GetRequestByToken(c, body.Token)
+	if errors.Is(err, repoerr.ErrRequestNotFound) {
+		log.Debug("password reset request not found", slog.String("token", body.Token))
+		response.WithMessage(c, http.StatusNotFound, "password reset request not found")
 		return
 	}
 	if err != nil {
-		log.Error("Can't get password reset request by token", sl.Err(err), slog.String("token", body.Token))
-		c.AbortWithStatusJSON(http.StatusBadRequest, response.Message("invalid request body"))
+		log.Error("can't get password reset request by token", sl.Err(err), slog.String("token", body.Token))
+		response.InternalServerError(c)
 		return
 	}
 
 	if time.Now().After(passwordResetRequest.ExpiresAt) {
-		log.Info("Password reset token already expired")
-		c.AbortWithStatusJSON(http.StatusForbidden, response.Message("recovery token expired"))
+		log.Debug("password reset token already expired")
+		response.WithMessage(c, http.StatusForbidden, "recovery token expired")
 		return
 	}
 
 	if passwordResetRequest.IsUsed {
-		log.Info("Password reset token already used")
-		c.AbortWithStatusJSON(http.StatusForbidden, response.Message("this recovery token has been used"))
+		log.Debug("password reset token already used")
+		response.WithMessage(c, http.StatusForbidden, "this recovery token has been used")
 		return
 	}
 
 	err = h.repository.User.UpdatePasswordByEmail(c, passwordResetRequest.Email, sha256.String(body.Password))
 	if err != nil {
-		log.Error("Can't update password", sl.Err(err))
-		c.AbortWithStatusJSON(http.StatusBadRequest, response.Message("can't update password"))
+		log.Error("can't update password", sl.Err(err))
+		response.InternalServerError(c)
 		return
 	}
 
-	err = h.repository.User.MarkResetPasswordTokenAsUsed(c, passwordResetRequest.Token)
+	err = h.repository.User.MarkRequestAsUsed(c, passwordResetRequest.Token)
 	if err != nil {
-		log.Error("Can't mark token as used", sl.Err(err))
+		log.Error("can't mark token as used", sl.Err(err))
+	}
+
+	c.Status(http.StatusOK)
+}
+
+// @Summary      Confirm email
+// @Description  confirms user's email
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        input body             requestbody.ConfirmEmail true "Token"
+// @Success      200
+// @Failure      400 {object}           responsebody.Message
+// @Failure      404 {object}           responsebody.Message
+// @Router       /auth/confirm          [post]
+func (h *Handler) ConfirmEmail(c *gin.Context) {
+	log := slog.With(
+		slog.String("op", "handler.ConfirmEmail"),
+		slog.String("request_id", requestid.Get(c)),
+	)
+
+	var body requestbody.ConfirmEmail
+	if err := c.BindJSON(&body); err != nil {
+		log.Debug("can't decode request body", sl.Err(err))
+		response.InvalidRequestBody(c)
+		return
+	}
+
+	request, err := h.repository.User.GetRequestByToken(c, body.Token)
+	if errors.Is(err, repoerr.ErrRequestNotFound) {
+		log.Error("request not found")
+		response.WithMessage(c, http.StatusNotFound, "confirmation request not found")
+		return
+	}
+	if err != nil {
+		log.Error("can't confirm email", sl.Err(err))
+		response.InternalServerError(c)
+		return
+	}
+
+	if time.Now().After(request.ExpiresAt) {
+		log.Debug("confirmation token expired", slog.String("id", request.ID))
+
+		go func() {
+			err := h.mailer.SendConfirmationEmail(request.Email, request.Token)
+			if err != nil {
+				log.Error("can't send confirmation email", sl.Err(err))
+			}
+		}()
+
+		response.WithMessage(c, http.StatusForbidden, "confirmation link expired. we will send you new confirmation email")
+		return
+	}
+
+	err = h.repository.User.ConfirmEmail(c, request.Email, request.Token)
+	if err != nil {
+		log.Error("can't mark user as confirmed", sl.Err(err))
+		response.InternalServerError(c)
+		return
 	}
 
 	c.Status(http.StatusOK)

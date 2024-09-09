@@ -2,7 +2,9 @@ package handler
 
 import (
 	"api/internal/config"
+	mockmailer "api/internal/mailer/mock"
 	"api/internal/repository"
+	mocktoken "api/internal/token/mock"
 	"net/http"
 	"testing"
 )
@@ -10,7 +12,7 @@ import (
 func TestUserIdentity(t *testing.T) {
 	c := config.Config{}
 	repo := repository.Repository{}
-	handler := New(&c, &repo)
+	handler := New(&c, &repo, mockmailer.New(), mocktoken.New(c.Token))
 
 	tests := []table{
 		{
