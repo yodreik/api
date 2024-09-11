@@ -64,7 +64,7 @@ func (p *Postgres) GetUserWorkouts(ctx context.Context, userID string, begin tim
 	var workouts []Workout
 	err := p.db.SelectContext(ctx, &workouts, query, userID, begin, end)
 	if errors.Is(err, sql.ErrNoRows) {
-		return nil, repoerr.ErrWorkoutNotFound
+		return workouts, nil
 	}
 	if err != nil {
 		return nil, err

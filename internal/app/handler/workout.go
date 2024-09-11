@@ -5,9 +5,7 @@ import (
 	"api/internal/app/handler/response"
 	"api/internal/app/handler/response/responsebody"
 	"api/internal/lib/logger/sl"
-	repoerr "api/internal/repository/errors"
 	"api/pkg/requestid"
-	"errors"
 	"log/slog"
 	"net/http"
 	"time"
@@ -100,7 +98,7 @@ func (h *Handler) GetWorkouts(c *gin.Context) {
 
 	userID := c.GetString("UserID")
 	workouts, err := h.repository.Workout.GetUserWorkouts(c, userID, beginDate, endDate)
-	if err != nil && !errors.Is(err, repoerr.ErrWorkoutNotFound) {
+	if err != nil {
 		log.Error("can't get workouts", sl.Err(err))
 		response.InternalServerError(c)
 		return
