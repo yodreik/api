@@ -302,6 +302,56 @@ const docTemplate = `{
                 }
             }
         },
+        "/me/workouts": {
+            "get": {
+                "security": [
+                    {
+                        "AccessToken": []
+                    }
+                ],
+                "description": "reeturns user's workout history",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "workout"
+                ],
+                "summary": "Get workout history",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Begin date",
+                        "name": "begin",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "End date",
+                        "name": "end",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/responsebody.Workouts"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/responsebody.Message"
+                        }
+                    }
+                }
+            }
+        },
         "/workout": {
             "post": {
                 "security": [
@@ -483,6 +533,23 @@ const docTemplate = `{
                 },
                 "kind": {
                     "type": "string"
+                }
+            }
+        },
+        "responsebody.Workouts": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                },
+                "user_id": {
+                    "type": "string"
+                },
+                "workouts": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/responsebody.Workout"
+                    }
                 }
             }
         }

@@ -90,6 +90,17 @@ definitions:
       kind:
         type: string
     type: object
+  responsebody.Workouts:
+    properties:
+      count:
+        type: integer
+      user_id:
+        type: string
+      workouts:
+        items:
+          $ref: '#/definitions/responsebody.Workout'
+        type: array
+    type: object
 host: localhost:6969
 info:
   contact: {}
@@ -283,6 +294,38 @@ paths:
       summary: Get information about current user
       tags:
       - user
+  /me/workouts:
+    get:
+      consumes:
+      - application/json
+      description: reeturns user's workout history
+      parameters:
+      - description: Begin date
+        in: query
+        name: begin
+        required: true
+        type: string
+      - description: End date
+        in: query
+        name: end
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responsebody.Workouts'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responsebody.Message'
+      security:
+      - AccessToken: []
+      summary: Get workout history
+      tags:
+      - workout
   /workout:
     post:
       consumes:
