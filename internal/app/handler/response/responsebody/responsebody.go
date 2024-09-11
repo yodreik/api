@@ -17,6 +17,12 @@ type Workout struct {
 	Kind     string `json:"kind"`
 }
 
+type Workouts struct {
+	UserID   string    `json:"user_id"`
+	Count    int       `json:"count"`
+	Workouts []Workout `json:"workouts"`
+}
+
 type Token struct {
 	Token string `json:"token"`
 }

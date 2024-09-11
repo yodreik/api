@@ -75,6 +75,8 @@ func (r *Router) InitRoutes() *gin.Engine {
 
 		api.GET("/me", r.handler.UserIdentity, r.handler.Me)
 
+		api.GET("/me/workouts", r.handler.UserIdentity, r.handler.GetWorkouts)
+
 		api.POST("/workout", r.handler.UserIdentity, r.handler.CreateWorkout)
 	}
 

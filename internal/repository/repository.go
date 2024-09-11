@@ -27,8 +27,8 @@ type User interface {
 
 type Workout interface {
 	Create(ctx context.Context, userID string, date time.Time, duration int, kind string) (*workout.Workout, error)
-	GetAllByUserID(ctx context.Context, userID string) ([]workout.Workout, error)
 	GetByID(ctx context.Context, id string) (*workout.Workout, error)
+	GetUserWorkouts(ctx context.Context, userID string, bedginDate time.Time, endDate time.Time) ([]workout.Workout, error)
 }
 
 type Repository struct {
