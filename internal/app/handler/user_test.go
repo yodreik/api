@@ -96,6 +96,6 @@ func TestMe(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		t.Run(tc.name, TemplateTestHandler(tc, mock, http.MethodGet, "/api/me", handler.UserIdentity, handler.Me))
+		t.Run(tc.name, TemplateTestHandler(tc, mock, http.MethodGet, "/api/me", handler.UserIdentity, handler.GetCurrentAccount))
 	}
 }

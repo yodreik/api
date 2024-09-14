@@ -1,12 +1,12 @@
 package requestbody
 
-type Register struct {
+type CreateAccount struct {
 	Email    string `json:"email" binding:"required"`
 	Name     string `json:"name" binding:"required"`
 	Password string `json:"password" binding:"required"`
 }
 
-type Login struct {
+type CreateSession struct {
 	Email    string `json:"email" binding:"required"`
 	Password string `json:"password" binding:"required"`
 }
@@ -26,6 +26,6 @@ type UpdatePassword struct {
 	Password string `json:"password" binding:"required"`
 }
 
-type ConfirmEmail struct {
+type ConfirmAccount struct {
 	Token string `json:"token" binding:"required"`
 }

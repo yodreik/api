@@ -18,13 +18,12 @@ import (
 // @Security     AccessToken
 // @Tags         user
 // @Produce      json
-// @Success      200 {object}  responsebody.User
-// @Failure      400 {object}  responsebody.Message
-// @Failure      404 {object}  responsebody.Message
-// @Router       /me           [get]
-func (h *Handler) Me(c *gin.Context) {
+// @Success      200 {object}   responsebody.User
+// @Failure      401 {object}   responsebody.Message
+// @Router       /auth/account  [get]
+func (h *Handler) GetCurrentAccount(c *gin.Context) {
 	log := slog.With(
-		slog.String("op", "handler.Me"),
+		slog.String("op", "handler.GetCurrentAccount"),
 		slog.String("request_id", requestid.Get(c)),
 	)
 

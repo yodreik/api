@@ -151,7 +151,7 @@ func TestRegister(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		t.Run(tc.name, TemplateTestHandler(tc, mock, http.MethodPost, "/api/auth/register", handler.Register))
+		t.Run(tc.name, TemplateTestHandler(tc, mock, http.MethodPost, "/api/auth/register", handler.CreateAccount))
 	}
 }
 
@@ -318,7 +318,7 @@ func TestLogin(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		t.Run(tc.name, TemplateTestHandler(tc, mock, http.MethodPost, "/api/auth/login", handler.Login))
+		t.Run(tc.name, TemplateTestHandler(tc, mock, http.MethodPost, "/api/auth/login", handler.CreateSession))
 	}
 }
 
@@ -766,6 +766,6 @@ func TestConfirmEmail(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		t.Run(tc.name, TemplateTestHandler(tc, mock, http.MethodPost, "/api/auth/confirm", handler.ConfirmEmail))
+		t.Run(tc.name, TemplateTestHandler(tc, mock, http.MethodPost, "/api/auth/confirm", handler.ConfirmAccount))
 	}
 }

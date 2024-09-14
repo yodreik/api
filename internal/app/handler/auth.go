@@ -22,19 +22,18 @@ import (
 // @Tags         auth
 // @Accept       json
 // @Produce      json
-// @Param        input body      requestbody.Register true "User information"
-// @Success      201 {object}    responsebody.User
-// @Failure      400 {object}    responsebody.Message
-// @Failure      403 {object}    responsebody.Message
-// @Failure      409 {object}    responsebody.Message
-// @Router       /auth/register  [post]
-func (h *Handler) Register(c *gin.Context) {
+// @Param        input body     requestbody.Register true "User information"
+// @Success      201 {object}   responsebody.User
+// @Failure      400 {object}   responsebody.Message
+// @Failure      409 {object}   responsebody.Message
+// @Router       /auth/account  [post]
+func (h *Handler) CreateAccount(c *gin.Context) {
 	log := slog.With(
-		slog.String("op", "handler.Register"),
+		slog.String("op", "handler.CreateAccount"),
 		slog.String("request_id", requestid.Get(c)),
 	)
 
-	var body requestbody.Register
+	var body requestbody.CreateAccount
 	if err := c.BindJSON(&body); err != nil {
 		log.Debug("can't decode request body", sl.Err(err))
 		response.InvalidRequestBody(c)
@@ -95,18 +94,18 @@ func (h *Handler) Register(c *gin.Context) {
 // @Tags         auth
 // @Accept       json
 // @Produce      json
-// @Param        input body    requestbody.Login true "User information"
-// @Success      200 {object}  responsebody.Token
-// @Failure      400 {object}  responsebody.Message
-// @Failure      404 {object}  responsebody.Message
-// @Router       /auth/login   [post]
-func (h *Handler) Login(c *gin.Context) {
+// @Param        input body     requestbody.CreateSession true "User information"
+// @Success      200 {object}   responsebody.Token
+// @Failure      400 {object}   responsebody.Message
+// @Failure      401 {object}   responsebody.Message
+// @Router       /auth/session  [post]
+func (h *Handler) CreateSession(c *gin.Context) {
 	log := slog.With(
-		slog.String("op", "handler.Login"),
+		slog.String("op", "handler.CreateSession"),
 		slog.String("request_id", requestid.Get(c)),
 	)
 
-	var body requestbody.Login
+	var body requestbody.CreateSession
 	if err := c.BindJSON(&body); err != nil {
 		log.Debug("can't decode request body", sl.Err(err))
 		response.InvalidRequestBody(c)
@@ -116,7 +115,7 @@ func (h *Handler) Login(c *gin.Context) {
 	user, err := h.repository.User.GetByCredentials(c, body.Email, sha256.String(body.Password))
 	if errors.Is(err, repoerr.ErrUserNotFound) {
 		log.Debug("user not found", slog.String("email", body.Email))
-		response.WithMessage(c, http.StatusNotFound, "user not found")
+		response.WithMessage(c, http.StatusUnauthorized, "user not found")
 		return
 	}
 	if err != nil {
@@ -287,23 +286,23 @@ func (h *Handler) UpdatePassword(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
-// @Summary      Confirm email
+// @Summary      Confirm account's email
 // @Description  confirms user's email
 // @Tags         auth
 // @Accept       json
 // @Produce      json
-// @Param        input body             requestbody.ConfirmEmail true "Token"
+// @Param        input body              requestbody.ConfirmEmail true "Token"
 // @Success      200
-// @Failure      400 {object}           responsebody.Message
-// @Failure      404 {object}           responsebody.Message
-// @Router       /auth/confirm          [post]
-func (h *Handler) ConfirmEmail(c *gin.Context) {
+// @Failure      400 {object}            responsebody.Message
+// @Failure      404 {object}            responsebody.Message
+// @Router       /auth//account/confirm  [post]
+func (h *Handler) ConfirmAccount(c *gin.Context) {
 	log := slog.With(
-		slog.String("op", "handler.ConfirmEmail"),
+		slog.String("op", "handler.ConfirmAccount"),
 		slog.String("request_id", requestid.Get(c)),
 	)
 
-	var body requestbody.ConfirmEmail
+	var body requestbody.ConfirmAccount
 	if err := c.BindJSON(&body); err != nil {
 		log.Debug("can't decode request body", sl.Err(err))
 		response.InvalidRequestBody(c)
