@@ -17,7 +17,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// @Summary      Register user
+// @Summary      Create new account
 // @Description  create user in database
 // @Tags         auth
 // @Accept       json
@@ -89,7 +89,7 @@ func (h *Handler) CreateAccount(c *gin.Context) {
 	})
 }
 
-// @Summary      Log into user's account
+// @Summary      Create a session for existing account
 // @Description  check if user exists, and return an access token
 // @Tags         auth
 // @Accept       json
@@ -295,7 +295,7 @@ func (h *Handler) UpdatePassword(c *gin.Context) {
 // @Success      200
 // @Failure      400 {object}            responsebody.Message
 // @Failure      404 {object}            responsebody.Message
-// @Router       /auth//account/confirm  [post]
+// @Router       /auth/account/confirm  [post]
 func (h *Handler) ConfirmAccount(c *gin.Context) {
 	log := slog.With(
 		slog.String("op", "handler.ConfirmAccount"),

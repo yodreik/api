@@ -140,34 +140,6 @@ paths:
       summary: Get user's activity history
       tags:
       - workout
-  /auth//account/confirm:
-    post:
-      consumes:
-      - application/json
-      description: confirms user's email
-      parameters:
-      - description: Token
-        in: body
-        name: input
-        required: true
-        schema:
-          $ref: '#/definitions/requestbody.ConfirmAccount'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/responsebody.Message'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/responsebody.Message'
-      summary: Confirm account's email
-      tags:
-      - auth
   /auth/account:
     get:
       description: returns an user's information, that currently logged in
@@ -213,7 +185,35 @@ paths:
           description: Conflict
           schema:
             $ref: '#/definitions/responsebody.Message'
-      summary: Register user
+      summary: Create new account
+      tags:
+      - auth
+  /auth/account/confirm:
+    post:
+      consumes:
+      - application/json
+      description: confirms user's email
+      parameters:
+      - description: Token
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/requestbody.ConfirmAccount'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responsebody.Message'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responsebody.Message'
+      summary: Confirm account's email
       tags:
       - auth
   /auth/password:
@@ -299,7 +299,7 @@ paths:
           description: Unauthorized
           schema:
             $ref: '#/definitions/responsebody.Message'
-      summary: Log into user's account
+      summary: Create a session for existing account
       tags:
       - auth
   /healthcheck:

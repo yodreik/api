@@ -65,49 +65,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/auth//account/confirm": {
-            "post": {
-                "description": "confirms user's email",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "auth"
-                ],
-                "summary": "Confirm account's email",
-                "parameters": [
-                    {
-                        "description": "Token",
-                        "name": "input",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/requestbody.ConfirmAccount"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK"
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/responsebody.Message"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/responsebody.Message"
-                        }
-                    }
-                }
-            }
-        },
         "/auth/account": {
             "get": {
                 "security": [
@@ -149,7 +106,7 @@ const docTemplate = `{
                 "tags": [
                     "auth"
                 ],
-                "summary": "Register user",
+                "summary": "Create new account",
                 "parameters": [
                     {
                         "description": "User information",
@@ -176,6 +133,49 @@ const docTemplate = `{
                     },
                     "409": {
                         "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/responsebody.Message"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/account/confirm": {
+            "post": {
+                "description": "confirms user's email",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Confirm account's email",
+                "parameters": [
+                    {
+                        "description": "Token",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/requestbody.ConfirmAccount"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/responsebody.Message"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "$ref": "#/definitions/responsebody.Message"
                         }
@@ -281,7 +281,7 @@ const docTemplate = `{
                 "tags": [
                     "auth"
                 ],
-                "summary": "Log into user's account",
+                "summary": "Create a session for existing account",
                 "parameters": [
                     {
                         "description": "User information",
