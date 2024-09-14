@@ -33,7 +33,7 @@ func TestCreateWorkout(t *testing.T) {
 		t.Fatal("unexpected error while generating mock token")
 	}
 
-	expectedDate, err := time.Parse("02.01.2006", "11.11.2024")
+	expectedDate, err := time.Parse("02-01-2006", "11-11-2024")
 	if err != nil {
 		t.Fatal("err no expected while parsing mock date")
 	}
@@ -54,12 +54,12 @@ func TestCreateWorkout(t *testing.T) {
 				headers: map[string]string{
 					"Authorization": fmt.Sprintf("Bearer %s", tokenWithID69),
 				},
-				body: `{"date":"11.11.2024","duration":71,"kind":"Calisthenics"}`,
+				body: `{"date":"11-11-2024","duration":71,"kind":"Calisthenics"}`,
 			},
 
 			expect: expect{
 				status: http.StatusCreated,
-				body:   `{"id":"96","date":"11.11.2024","duration":71,"kind":"Calisthenics"}`,
+				body:   `{"id":"96","date":"11-11-2024","duration":71,"kind":"Calisthenics"}`,
 			},
 		},
 		{
@@ -84,7 +84,7 @@ func TestCreateWorkout(t *testing.T) {
 				headers: map[string]string{
 					"Authorization": fmt.Sprintf("Bearer %s", tokenWithID69),
 				},
-				body: `{"date":"69.11.2024","duration":71,"kind":"Calisthenics"}`,
+				body: `{"date":"69-11-2024","duration":71,"kind":"Calisthenics"}`,
 			},
 
 			expect: expect{
@@ -112,7 +112,7 @@ func TestCreateWorkout(t *testing.T) {
 				headers: map[string]string{
 					"Authorization": fmt.Sprintf("Bearer %s", tokenWithID69),
 				},
-				body: `{"date":"11.11.2024","duration":71,"kind":"Calisthenics"}`,
+				body: `{"date":"11-11-2024","duration":71,"kind":"Calisthenics"}`,
 			},
 
 			expect: expect{
