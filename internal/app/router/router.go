@@ -69,32 +69,13 @@ func (r *Router) InitRoutes() *gin.Engine {
 		api.POST("/auth/account/confirm", r.handler.ConfirmAccount)
 
 		api.POST("/auth/password/reset", r.handler.ResetPassword)
-		api.PATCH("/auth/password")
+		api.PATCH("/auth/password", r.handler.UpdatePassword)
 
-		api.POST("/workout")
+		api.POST("/workout", r.handler.UserIdentity, r.handler.CreateWorkout)
 
-		api.GET("/activity")
+		api.GET("/activity", r.handler.UserIdentity, r.handler.GetActivityHistory)
 
 		api.GET("/user/{username}")
-
-		// api.GET("/healthcheck", r.handler.Healthcheck)
-
-		// auth := api.Group("/auth")
-		// {
-		// 	auth.POST("/register", r.handler.Register)
-		// 	auth.POST("/login", r.handler.Login)
-
-		// 	auth.POST("/password/reset", r.handler.ResetPassword)
-		// 	auth.PATCH("/password/update", r.handler.UpdatePassword)
-
-		// 	auth.POST("/confirm", r.handler.ConfirmEmail)
-		// }
-
-		// api.GET("/me", r.handler.UserIdentity, r.handler.Me)
-
-		// api.GET("/me/workouts", r.handler.UserIdentity, r.handler.GetWorkouts)
-
-		// api.POST("/workout", r.handler.UserIdentity, r.handler.CreateWorkout)
 	}
 
 	return router

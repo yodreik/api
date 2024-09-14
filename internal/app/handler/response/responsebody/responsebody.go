@@ -17,7 +17,7 @@ type Workout struct {
 	Kind     string `json:"kind"`
 }
 
-type Workouts struct {
+type ActivityHistory struct {
 	UserID   string    `json:"user_id"`
 	Count    int       `json:"count"`
 	Workouts []Workout `json:"workouts"`

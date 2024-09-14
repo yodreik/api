@@ -22,7 +22,7 @@ import (
 // @Tags         auth
 // @Accept       json
 // @Produce      json
-// @Param        input body     requestbody.Register true "User information"
+// @Param        input body     requestbody.CreateAccount true "User information"
 // @Success      201 {object}   responsebody.User
 // @Failure      400 {object}   responsebody.Message
 // @Failure      409 {object}   responsebody.Message
@@ -229,11 +229,11 @@ func (h *Handler) ResetPassword(c *gin.Context) {
 // @Tags         auth
 // @Accept       json
 // @Produce      json
-// @Param        input body             requestbody.UpdatePassword true "User information"
+// @Param        input body      requestbody.UpdatePassword true "User information"
 // @Success      200
-// @Failure      400 {object}           responsebody.Message
-// @Failure      404 {object}           responsebody.Message
-// @Router       /auth/password/update  [patch]
+// @Failure      400 {object}    responsebody.Message
+// @Failure      404 {object}    responsebody.Message
+// @Router       /auth/password  [patch]
 func (h *Handler) UpdatePassword(c *gin.Context) {
 	log := slog.With(
 		slog.String("op", "handler.UpdatePassword"),
@@ -291,7 +291,7 @@ func (h *Handler) UpdatePassword(c *gin.Context) {
 // @Tags         auth
 // @Accept       json
 // @Produce      json
-// @Param        input body              requestbody.ConfirmEmail true "Token"
+// @Param        input body              requestbody.ConfirmAccount true "Token"
 // @Success      200
 // @Failure      400 {object}            responsebody.Message
 // @Failure      404 {object}            responsebody.Message
