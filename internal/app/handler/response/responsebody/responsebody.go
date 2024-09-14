@@ -4,11 +4,12 @@ type Message struct {
 	Message string `json:"message"`
 }
 
-type User struct {
+type Account struct {
 	ID          string `json:"id"`
 	Email       string `json:"email"`
 	Username    string `json:"username"`
 	DisplayName string `json:"display_name"`
+	IsConfirmed bool   `json:"is_confirmed"`
 }
 
 type Workout struct {

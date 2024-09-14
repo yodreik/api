@@ -18,7 +18,7 @@ import (
 // @Security     AccessToken
 // @Tags         user
 // @Produce      json
-// @Success      200 {object}   responsebody.User
+// @Success      200 {object}   responsebody.Account
 // @Failure      401 {object}   responsebody.Message
 // @Router       /auth/account  [get]
 func (h *Handler) GetCurrentAccount(c *gin.Context) {
@@ -40,11 +40,12 @@ func (h *Handler) GetCurrentAccount(c *gin.Context) {
 		return
 	}
 
-	resUser := responsebody.User{
+	resUser := responsebody.Account{
 		ID:          user.ID,
 		Email:       user.Email,
 		Username:    user.Username,
 		DisplayName: user.DisplayName,
+		IsConfirmed: user.IsConfirmed,
 	}
 
 	c.JSON(http.StatusOK, resUser)

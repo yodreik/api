@@ -54,7 +54,7 @@ func TestGetCurrentAccount(t *testing.T) {
 
 			expect: expect{
 				status: http.StatusOK,
-				body:   `{"id":"USER_ID","email":"john.doe@example.com","username":"johndoe","display_name":"John Doe"}`,
+				body:   `{"id":"USER_ID","email":"john.doe@example.com","username":"johndoe","display_name":"John Doe","is_confirmed":true}`,
 			},
 		},
 		{

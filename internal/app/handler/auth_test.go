@@ -46,7 +46,7 @@ func TestCreateAccount(t *testing.T) {
 
 			expect: expect{
 				status: http.StatusCreated,
-				body:   `{"id":"USER_ID","email":"john.doe@example.com","username":"johndoe","display_name":""}`,
+				body:   `{"id":"USER_ID","email":"john.doe@example.com","username":"johndoe","display_name":"","is_confirmed":false}`,
 			},
 		},
 		{

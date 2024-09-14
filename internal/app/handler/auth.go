@@ -23,7 +23,7 @@ import (
 // @Accept       json
 // @Produce      json
 // @Param        input body     requestbody.CreateAccount true "User information"
-// @Success      201 {object}   responsebody.User
+// @Success      201 {object}   responsebody.Account
 // @Failure      400 {object}   responsebody.Message
 // @Failure      409 {object}   responsebody.Message
 // @Router       /auth/account  [post]
@@ -80,7 +80,7 @@ func (h *Handler) CreateAccount(c *gin.Context) {
 		}
 	}()
 
-	c.JSON(http.StatusCreated, responsebody.User{
+	c.JSON(http.StatusCreated, responsebody.Account{
 		ID:       user.ID,
 		Email:    body.Email,
 		Username: body.Username,
