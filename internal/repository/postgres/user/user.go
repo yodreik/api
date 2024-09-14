@@ -111,8 +111,8 @@ func (p *Postgres) UpdatePasswordByEmail(ctx context.Context, email string, pass
 }
 
 func (p *Postgres) CreatePasswordResetRequest(ctx context.Context, token string, email string) (*Request, error) {
-	query := "INSERT INTO requests (email, token, expires_at) VALUES ($1, $2, $3, $4) RETURNING *"
-	row := p.db.QueryRowContext(ctx, query, email, token, time.Now().Add(5*time.Minute))
+	query := "INSERT INTO requests (email, token, expires_at) VALUES ($1, $2, $3) RETURNING *"
+	row := p.db.QueryRowContext(ctx, query, email, token, time.Now().Add(5*time.Minute).Truncate(time.Minute))
 	if row.Err() != nil {
 		return nil, row.Err()
 	}
