@@ -19,7 +19,7 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-func TestRegister(t *testing.T) {
+func TestCreateAccount(t *testing.T) {
 	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
 	if err != nil {
 		t.Fatalf("err not expected: %v\n", err)
@@ -151,11 +151,11 @@ func TestRegister(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		t.Run(tc.name, TemplateTestHandler(tc, mock, http.MethodPost, "/api/auth/register", handler.CreateAccount))
+		t.Run(tc.name, TemplateTestHandler(tc, mock, http.MethodPost, "/api/auth/account", handler.CreateAccount))
 	}
 }
 
-func TestLogin(t *testing.T) {
+func TestCreateSession(t *testing.T) {
 	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
 	if err != nil {
 		t.Fatalf("err not expected: %v\n", err)
@@ -212,7 +212,7 @@ func TestLogin(t *testing.T) {
 			},
 
 			expect: expect{
-				status: http.StatusNotFound,
+				status: http.StatusUnauthorized,
 				body:   `{"message":"user not found"}`,
 			},
 		},
@@ -257,39 +257,6 @@ func TestLogin(t *testing.T) {
 				body:   `{"message":"email confirmation needed"}`,
 			},
 		},
-		// {
-		// 	name: "user not confirmed + request not found", // TODO: How to mock tokenizer
-
-		// 	repo: &repoArgs{
-		// 		queries: []queryArgs{
-		// 			{
-		// 				query: "SELECT * FROM users WHERE email = $1 AND password_hash = $2",
-		// 				args:  []driver.Value{"john.doe@example.com", sha256.String("testword")},
-		// 				rows: sqlmock.NewRows([]string{"id", "email", "name", "password_hash", "is_email_confirmed", "created_at"}).
-		// 					AddRow("69", "john.doe@example.com", "John Doe", sha256.String("testword"), false, time.Now()),
-		// 			},
-		// 			{
-		// 				query: "SELECT * FROM requests WHERE email = $1",
-		// 				args:  []driver.Value{"john.doe@example.com"},
-		// 				err:   repoerr.ErrRequestNotFound,
-		// 			},
-		// 			{
-		// 				query: "INSERT INTO requests (kind, email, token, expires_at) VALUES ($1, $2, $3, $4) RETURNING *",
-		// 				args:  []driver.Value{user.RequestKindEmailConfirmation, "john.doe@example.com", random.String(64), time.Now().Add(48 * time.Hour)},
-		// 				err:   errors.New("repo: Some repository error"),
-		// 			},
-		// 		},
-		// 	},
-
-		// 	request: request{
-		// 		body: `{"email":"john.doe@example.com","password":"testword"}`,
-		// 	},
-
-		// 	expect: expect{
-		// 		status: http.StatusInternalServerError,
-		// 		body:   `{"message":"internal server error"}`,
-		// 	},
-		// },
 		{
 			name: "user not confirmed + repo error",
 
@@ -318,7 +285,7 @@ func TestLogin(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		t.Run(tc.name, TemplateTestHandler(tc, mock, http.MethodPost, "/api/auth/login", handler.CreateSession))
+		t.Run(tc.name, TemplateTestHandler(tc, mock, http.MethodPost, "/api/auth/session", handler.CreateSession))
 	}
 }
 
@@ -601,11 +568,11 @@ func TestUpdatePassword(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		t.Run(tc.name, TemplateTestHandler(tc, mock, http.MethodPatch, "/api/auth/password/update", handler.UpdatePassword))
+		t.Run(tc.name, TemplateTestHandler(tc, mock, http.MethodPatch, "/api/auth/password", handler.UpdatePassword))
 	}
 }
 
-func TestConfirmEmail(t *testing.T) {
+func TestConfirmAccount(t *testing.T) {
 	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
 	if err != nil {
 		t.Fatalf("err not expected: %v\n", err)
@@ -766,6 +733,6 @@ func TestConfirmEmail(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		t.Run(tc.name, TemplateTestHandler(tc, mock, http.MethodPost, "/api/auth/confirm", handler.ConfirmAccount))
+		t.Run(tc.name, TemplateTestHandler(tc, mock, http.MethodPost, "/api/auth/account/confirm", handler.ConfirmAccount))
 	}
 }
