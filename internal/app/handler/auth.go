@@ -286,10 +286,10 @@ func (h *Handler) ConfirmAccount(c *gin.Context) {
 		return
 	}
 
-	request, err := h.repository.User.GetRequestByToken(c, body.Token)
-	if errors.Is(err, repoerr.ErrRequestNotFound) {
-		log.Error("request not found")
-		response.WithMessage(c, http.StatusNotFound, "confirmation request not found")
+	user, err := h.repository.User.GetByConfirmationToken(c, body.Token)
+	if errors.Is(err, repoerr.ErrUserNotFound) {
+		log.Error("user not found")
+		response.WithMessage(c, http.StatusNotFound, "user not found")
 		return
 	}
 	if err != nil {
@@ -298,21 +298,7 @@ func (h *Handler) ConfirmAccount(c *gin.Context) {
 		return
 	}
 
-	if time.Now().After(request.ExpiresAt) {
-		log.Debug("confirmation token expired", slog.String("id", request.ID))
-
-		go func() {
-			err := h.mailer.SendConfirmationEmail(request.Email, request.Token)
-			if err != nil {
-				log.Error("can't send confirmation email", sl.Err(err))
-			}
-		}()
-
-		response.WithMessage(c, http.StatusForbidden, "confirmation link expired. we will send you new confirmation email")
-		return
-	}
-
-	err = h.repository.User.ConfirmEmail(c, request.Email, request.Token)
+	err = h.repository.User.SetUserConfirmed(c, user.Email, user.ConfirmationToken)
 	if err != nil {
 		log.Error("can't mark user as confirmed", sl.Err(err))
 		response.InternalServerError(c)

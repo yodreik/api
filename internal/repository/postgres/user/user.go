@@ -103,6 +103,21 @@ func (p *Postgres) GetByEmail(ctx context.Context, email string) (*User, error) 
 	return &user, nil
 }
 
+func (p *Postgres) GetByConfirmationToken(ctx context.Context, token string) (*User, error) {
+	query := "SELECT * FROM users WHERE confirmation_token = $1"
+
+	var user User
+	err := p.db.GetContext(ctx, &user, query, token)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, repoerr.ErrUserNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return &user, nil
+}
+
 func (p *Postgres) UpdatePasswordByEmail(ctx context.Context, email string, passwordHash string) error {
 	query := "UPDATE users SET password_hash = $1 WHERE email = $2"
 
@@ -163,33 +178,9 @@ func (p *Postgres) MarkRequestAsUsed(ctx context.Context, token string) error {
 	return err
 }
 
-func (p *Postgres) ConfirmEmail(ctx context.Context, email string, token string) error {
-	tx, err := p.db.BeginTx(ctx, nil)
-	if err != nil {
-		return err
-	}
+func (p *Postgres) SetUserConfirmed(ctx context.Context, email string, token string) error {
+	query := "UPDATE users SET is_confirmed = true WHERE email = $1 AND confirmation_token = $2"
 
-	defer func() {
-		if err != nil {
-			tx.Rollback()
-		}
-	}()
-
-	query := "UPDATE users SET is_email_confirmed=true WHERE email = $1"
-	_, err = tx.ExecContext(ctx, query, email)
-	if err != nil {
-		return err
-	}
-
-	query = "UPDATE requests SET is_used=true WHERE token = $1"
-	_, err = tx.ExecContext(ctx, query, token)
-	if err != nil {
-		return err
-	}
-
-	if err = tx.Commit(); err != nil {
-		return err
-	}
-
-	return nil
+	_, err := p.db.ExecContext(ctx, query, email, token)
+	return err
 }
