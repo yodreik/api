@@ -18,7 +18,7 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-func TestMe(t *testing.T) {
+func TestGetCurrentAccount(t *testing.T) {
 	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
 	if err != nil {
 		t.Fatalf("err not expected: %v\n", err)
@@ -30,7 +30,7 @@ func TestMe(t *testing.T) {
 	tokenManager := token.New(c.Token)
 	handler := New(&c, repo, mockmailer.New(), mocktoken.New(c.Token))
 
-	tokenWithID69, err := tokenManager.GenerateJWT("69")
+	accessToken, err := tokenManager.GenerateJWT("USER_ID")
 	if err != nil {
 		t.Fatal("unexpected error while generating mock token")
 	}
@@ -40,33 +40,33 @@ func TestMe(t *testing.T) {
 			name: "ok",
 
 			repo: func(mock sqlmock.Sqlmock) {
-				rows := sqlmock.NewRows([]string{"id", "email", "name", "password_hash", "created_at"}).
-					AddRow("69", "john.doe@example.com", "John Doe", sha256.String("testword"), time.Now())
+				rows := sqlmock.NewRows([]string{"id", "username", "display_name", "email", "password_hash", "is_confirmed", "confirmation_token", "created_at"}).
+					AddRow("USER_ID", "johndoe", "John Doe", "john.doe@example.com", sha256.String("testword"), true, "CONFIRmATION_TOKEN", time.Now())
 
-				mock.ExpectQuery("SELECT * FROM users WHERE id = $1").WithArgs("69").WillReturnRows(rows)
+				mock.ExpectQuery("SELECT * FROM users WHERE id = $1").WithArgs("USER_ID").WillReturnRows(rows)
 			},
 
 			request: request{
 				headers: map[string]string{
-					"Authorization": fmt.Sprintf("Bearer %s", tokenWithID69),
+					"Authorization": fmt.Sprintf("Bearer %s", accessToken),
 				},
 			},
 
 			expect: expect{
 				status: http.StatusOK,
-				body:   `{"id":"69","email":"john.doe@example.com","name":"John Doe"}`,
+				body:   `{"id":"USER_ID","email":"john.doe@example.com","username":"johndoe","display_name":"John Doe"}`,
 			},
 		},
 		{
 			name: "user not found",
 
 			repo: func(mock sqlmock.Sqlmock) {
-				mock.ExpectQuery("SELECT * FROM users WHERE id = $1").WithArgs("69").WillReturnError(repoerr.ErrUserNotFound)
+				mock.ExpectQuery("SELECT * FROM users WHERE id = $1").WithArgs("USER_ID").WillReturnError(repoerr.ErrUserNotFound)
 			},
 
 			request: request{
 				headers: map[string]string{
-					"Authorization": fmt.Sprintf("Bearer %s", tokenWithID69),
+					"Authorization": fmt.Sprintf("Bearer %s", accessToken),
 				},
 			},
 
@@ -79,12 +79,12 @@ func TestMe(t *testing.T) {
 			name: "repository error",
 
 			repo: func(mock sqlmock.Sqlmock) {
-				mock.ExpectQuery("SELECT * FROM users WHERE id = $1").WithArgs("69").WillReturnError(errors.New("repo: Some repository error"))
+				mock.ExpectQuery("SELECT * FROM users WHERE id = $1").WithArgs("USER_ID").WillReturnError(errors.New("repo: Some repository error"))
 			},
 
 			request: request{
 				headers: map[string]string{
-					"Authorization": fmt.Sprintf("Bearer %s", tokenWithID69),
+					"Authorization": fmt.Sprintf("Bearer %s", accessToken),
 				},
 			},
 
@@ -96,6 +96,6 @@ func TestMe(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		t.Run(tc.name, TemplateTestHandler(tc, mock, http.MethodGet, "/api/me", handler.UserIdentity, handler.GetCurrentAccount))
+		t.Run(tc.name, TemplateTestHandler(tc, mock, http.MethodGet, "/api/account", handler.UserIdentity, handler.GetCurrentAccount))
 	}
 }
