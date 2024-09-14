@@ -55,7 +55,7 @@ func (h *Handler) CreateWorkout(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, responsebody.Workout{
 		ID:       workout.ID,
-		Date:     date.Format("02.01.2006"),
+		Date:     date.Format("02-01-2006"),
 		Duration: workout.Duration,
 		Kind:     workout.Kind,
 	})
@@ -74,7 +74,7 @@ func (h *Handler) CreateWorkout(c *gin.Context) {
 // @Router       /me/workouts  [get]
 func (h *Handler) GetWorkouts(c *gin.Context) {
 	log := slog.With(
-		slog.String("op", "handler.CreateWorkout"),
+		slog.String("op", "handler.GetWorkouts"),
 		slog.String("request_id", requestid.Get(c)),
 	)
 
