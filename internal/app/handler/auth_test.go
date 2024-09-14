@@ -34,7 +34,7 @@ func TestCreateAccount(t *testing.T) {
 
 			repo: func(mock sqlmock.Sqlmock) {
 				rows := sqlmock.NewRows([]string{"id", "email", "username", "display_name", "password_hash", "is_confirmed", "confirmation_token", "created_at"}).
-					AddRow("69", "john.doe@example.com", "johndoe", "", sha256.String("testword"), false, "96", time.Now())
+					AddRow("USER_ID", "john.doe@example.com", "johndoe", "", sha256.String("testword"), false, "CONFIRMATION_TOKEN", time.Now())
 
 				mock.ExpectQuery("INSERT INTO users (email, username, password_hash) VALUES ($1, $2, $3) RETURNING *").
 					WithArgs("john.doe@example.com", "johndoe", sha256.String("testword")).WillReturnRows(rows)
@@ -46,7 +46,7 @@ func TestCreateAccount(t *testing.T) {
 
 			expect: expect{
 				status: http.StatusCreated,
-				body:   `{"id":"69","email":"john.doe@example.com","username":"johndoe","display_name":""}`,
+				body:   `{"id":"USER_ID","email":"john.doe@example.com","username":"johndoe","display_name":""}`,
 			},
 		},
 		{
@@ -155,7 +155,7 @@ func TestCreateSession(t *testing.T) {
 
 			repo: func(mock sqlmock.Sqlmock) {
 				rows := sqlmock.NewRows([]string{"id", "email", "username", "password_hash", "is_confirmed", "created_at"}).
-					AddRow("69", "john.doe@example.com", "johndoe", sha256.String("testword"), true, time.Now())
+					AddRow("USER_ID", "john.doe@example.com", "johndoe", sha256.String("testword"), true, time.Now())
 
 				mock.ExpectQuery("SELECT * FROM users WHERE email = $1 AND password_hash = $2").
 					WithArgs("john.doe@example.com", sha256.String("testword")).WillReturnRows(rows)
@@ -221,7 +221,7 @@ func TestCreateSession(t *testing.T) {
 
 			repo: func(mock sqlmock.Sqlmock) {
 				rows := sqlmock.NewRows([]string{"id", "email", "username", "display_name", "password_hash", "is_confirmed", "confirmation_token", "created_at"}).
-					AddRow("69", "john.doe@example.com", "johndoe", "", sha256.String("testword"), false, "96", time.Now())
+					AddRow("USER_ID", "john.doe@example.com", "johndoe", "", sha256.String("testword"), false, "CONFIRMATION_TOKEN", time.Now())
 
 				mock.ExpectQuery("SELECT * FROM users WHERE email = $1 AND password_hash = $2").WithArgs("john.doe@example.com", sha256.String("testword")).WillReturnRows(rows)
 			},
@@ -259,12 +259,12 @@ func TestResetPassword(t *testing.T) {
 
 			repo: func(mock sqlmock.Sqlmock) {
 				rows := sqlmock.NewRows([]string{"id", "email", "username", "display_name", "password_hash", "is_confirmed", "confirmation_token", "created_at"}).
-					AddRow("69", "john.doe@example.com", "johndoe", "John Doe", sha256.String("testword"), true, "96", time.Now())
+					AddRow("USER_ID", "john.doe@example.com", "johndoe", "John Doe", sha256.String("testword"), true, "CONFIRMATION_TOKEN", time.Now())
 
 				mock.ExpectQuery("SELECT * FROM users WHERE email = $1").WithArgs("john.doe@example.com").WillReturnRows(rows)
 
 				rows = sqlmock.NewRows([]string{"id", "email", "token", "is_used", "expires_at", "created_at"}).
-					AddRow("69", "john.doe@example.com", "LONGTOKEN", false, time.Now().Add(5*time.Minute).Truncate(time.Minute), time.Now())
+					AddRow("USER_ID", "john.doe@example.com", "LONGTOKEN", false, time.Now().Add(5*time.Minute).Truncate(time.Minute), time.Now())
 
 				mock.ExpectQuery("INSERT INTO requests (email, token, expires_at) VALUES ($1, $2, $3) RETURNING *").WithArgs("john.doe@example.com", "LONGTOKEN", time.Now().Add(5*time.Minute).Truncate(time.Minute)).WillReturnRows(rows)
 			},
@@ -322,7 +322,7 @@ func TestResetPassword(t *testing.T) {
 
 			repo: func(mock sqlmock.Sqlmock) {
 				rows := sqlmock.NewRows([]string{"id", "email", "username", "display_name", "password_hash", "is_confirmed", "confirmation_token", "created_at"}).
-					AddRow("69", "john.doe@example.com", "johndoe", "John Doe", sha256.String("testword"), true, "96", time.Now())
+					AddRow("USER_ID", "john.doe@example.com", "johndoe", "John Doe", sha256.String("testword"), true, "CONFIRMATION_TOKEN", time.Now())
 
 				mock.ExpectQuery("SELECT * FROM users WHERE email = $1").WithArgs("john.doe@example.com").WillReturnRows(rows)
 
@@ -361,7 +361,7 @@ func TestUpdatePassword(t *testing.T) {
 
 			repo: func(mock sqlmock.Sqlmock) {
 				rows := sqlmock.NewRows([]string{"id", "email", "token", "is_used", "expires_at", "created_at"}).
-					AddRow("69", "john.doe@example.com", "LONGTOKEN", false, time.Now().Add(5*time.Minute), time.Now())
+					AddRow("USER_ID", "john.doe@example.com", "LONGTOKEN", false, time.Now().Add(5*time.Minute), time.Now())
 
 				mock.ExpectQuery("SELECT * FROM requests WHERE token = $1").
 					WithArgs("LONGTOKEN").WillReturnRows(rows)
@@ -432,7 +432,7 @@ func TestUpdatePassword(t *testing.T) {
 
 			repo: func(mock sqlmock.Sqlmock) {
 				rows := sqlmock.NewRows([]string{"id", "email", "token", "is_used", "expires_at", "created_at"}).
-					AddRow("69", "john.doe@example.com", "LONGTOKEN", false, time.Now().Add(-5*time.Minute), time.Now())
+					AddRow("USER_ID", "john.doe@example.com", "LONGTOKEN", false, time.Now().Add(-5*time.Minute), time.Now())
 
 				mock.ExpectQuery("SELECT * FROM requests WHERE token = $1").
 					WithArgs("LONGTOKEN").WillReturnRows(rows)
@@ -452,7 +452,7 @@ func TestUpdatePassword(t *testing.T) {
 
 			repo: func(mock sqlmock.Sqlmock) {
 				rows := sqlmock.NewRows([]string{"id", "email", "token", "is_used", "expires_at", "created_at"}).
-					AddRow("69", "john.doe@example.com", "LONGTOKEN", true, time.Now().Add(5*time.Minute), time.Now())
+					AddRow("USER_ID", "john.doe@example.com", "LONGTOKEN", true, time.Now().Add(5*time.Minute), time.Now())
 
 				mock.ExpectQuery("SELECT * FROM requests WHERE token = $1").
 					WithArgs("LONGTOKEN").WillReturnRows(rows)
@@ -472,7 +472,7 @@ func TestUpdatePassword(t *testing.T) {
 
 			repo: func(mock sqlmock.Sqlmock) {
 				rows := sqlmock.NewRows([]string{"id", "email", "token", "is_used", "expires_at", "created_at"}).
-					AddRow("69", "john.doe@example.com", "LONGTOKEN", false, time.Now().Add(5*time.Minute), time.Now())
+					AddRow("USER_ID", "john.doe@example.com", "LONGTOKEN", false, time.Now().Add(5*time.Minute), time.Now())
 
 				mock.ExpectQuery("SELECT * FROM requests WHERE token = $1").
 					WithArgs("LONGTOKEN").WillReturnRows(rows)
@@ -496,7 +496,7 @@ func TestUpdatePassword(t *testing.T) {
 
 			repo: func(mock sqlmock.Sqlmock) {
 				rows := sqlmock.NewRows([]string{"id", "email", "token", "is_used", "expires_at", "created_at"}).
-					AddRow("69", "john.doe@example.com", "LONGTOKEN", false, time.Now().Add(5*time.Minute), time.Now())
+					AddRow("USER_ID", "john.doe@example.com", "LONGTOKEN", false, time.Now().Add(5*time.Minute), time.Now())
 
 				mock.ExpectQuery("SELECT * FROM requests WHERE token = $1").
 					WithArgs("LONGTOKEN").WillReturnRows(rows)
@@ -541,7 +541,7 @@ func TestConfirmAccount(t *testing.T) {
 
 			repo: func(mock sqlmock.Sqlmock) {
 				rows := sqlmock.NewRows([]string{"id", "email", "username", "display_name", "password_hash", "is_confirmed", "confirmation_token", "created_at"}).
-					AddRow("69", "john.doe@example.com", "johndoe", "John Doe", sha256.String("testword"), true, "CONFIRMATION_TOKEN", time.Now())
+					AddRow("USER_ID", "john.doe@example.com", "johndoe", "John Doe", sha256.String("testword"), true, "CONFIRMATION_TOKEN", time.Now())
 
 				mock.ExpectQuery("SELECT * FROM users WHERE confirmation_token = $1").
 					WithArgs("CONFIRMATION_TOKEN").
@@ -607,7 +607,7 @@ func TestConfirmAccount(t *testing.T) {
 
 			repo: func(mock sqlmock.Sqlmock) {
 				rows := sqlmock.NewRows([]string{"id", "kind", "email", "token", "is_used", "expires_at", "created_at"}).
-					AddRow("69", "email_confirmation", "john.doe@example.com", "LONGTOKEN", false, time.Now().Add(48*time.Hour).Truncate(time.Hour), time.Now())
+					AddRow("USER_ID", "email_confirmation", "john.doe@example.com", "LONGTOKEN", false, time.Now().Add(48*time.Hour).Truncate(time.Hour), time.Now())
 
 				mock.ExpectQuery("SELECT * FROM requests WHERE token = $1").WithArgs("LONGTOKEN").WillReturnRows(rows)
 
@@ -634,7 +634,7 @@ func TestConfirmAccount(t *testing.T) {
 
 			repo: func(mock sqlmock.Sqlmock) {
 				rows := sqlmock.NewRows([]string{"id", "kind", "email", "token", "is_used", "expires_at", "created_at"}).
-					AddRow("69", "email_confirmation", "john.doe@example.com", "LONGTOKEN", false, time.Now().Add(48*time.Hour).Truncate(time.Hour), time.Now())
+					AddRow("USER_ID", "email_confirmation", "john.doe@example.com", "LONGTOKEN", false, time.Now().Add(48*time.Hour).Truncate(time.Hour), time.Now())
 
 				mock.ExpectQuery("SELECT * FROM requests WHERE token = $1").WithArgs("LONGTOKEN").WillReturnRows(rows)
 
