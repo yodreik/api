@@ -41,9 +41,10 @@ func (h *Handler) GetCurrentAccount(c *gin.Context) {
 	}
 
 	resUser := responsebody.User{
-		ID:    user.ID,
-		Email: user.Email,
-		Name:  user.Name,
+		ID:          user.ID,
+		Email:       user.Email,
+		Username:    user.Username,
+		DisplayName: user.DisplayName,
 	}
 
 	c.JSON(http.StatusOK, resUser)

@@ -4,16 +4,17 @@ CREATE TABLE users
 (
     id UUID DEFAULT uuid_generate_v4() NOT NULL UNIQUE,
     email VARCHAR(254) NOT NULL UNIQUE,
-    name VARCHAR(50) NOT NULL,
+    username VARCHAR(32) NOT NULL UNIQUE,
+    display_name VARCHAR(50) DEFAULT "" NOT NULL,
     password_hash CHAR(64) NOT NULL,
-    is_email_confirmed BOOLEAN DEFAULT false NOT NULL,
+    is_confirmed BOOLEAN DEFAULT false NOT NULL,
+    confirmation_token UUID DEFAULT uuid_generate_v4() NOT NULL UNIQUE,
     created_at TIMESTAMP DEFAULT now() NOT NULL
 );
 
-CREATE TABLE requests
+CREATE TABLE reset_password_requests
 (
     id UUID DEFAULT uuid_generate_v4() NOT NULL UNIQUE,
-    kind VARCHAR(20) NOT NULL,
     email VARCHAR(254) NOT NULL REFERENCES users(email) ON DELETE CASCADE,
     token VARCHAR(64) NOT NULL UNIQUE,
     is_used BOOLEAN DEFAULT false NOT NULL,

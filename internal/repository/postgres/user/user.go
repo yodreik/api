@@ -11,43 +11,37 @@ import (
 	"github.com/lib/pq"
 )
 
-type RequestKind string
-
-const (
-	RequestKindPasswordReset     RequestKind = "password_reset"
-	RequestKindEmailConfirmation RequestKind = "email_confirmation"
-)
-
 type Postgres struct {
 	db *sqlx.DB
 }
 
 type User struct {
-	ID               string    `db:"id"`
-	Email            string    `db:"email"`
-	Name             string    `db:"name"`
-	PasswordHash     string    `db:"password_hash"`
-	IsEmailConfirmed bool      `db:"is_email_confirmed"`
-	CreatedAt        time.Time `db:"created_at"`
+	ID                string    `db:"id"`
+	Email             string    `db:"email"`
+	Username          string    `db:"username"`
+	DisplayName       string    `db:"display_name"`
+	PasswordHash      string    `db:"password_hash"`
+	IsConfirmed       bool      `db:"is_confirmed"`
+	ConfirmationToken string    `db:"confirmation_token"`
+	CreatedAt         time.Time `db:"created_at"`
 }
 
 type Request struct {
-	ID        string      `db:"id"`
-	Kind      RequestKind `db:"kind"`
-	Email     string      `db:"email"`
-	Token     string      `db:"token"`
-	IsUsed    bool        `db:"is_used"`
-	ExpiresAt time.Time   `db:"expires_at"`
-	CreatedAt time.Time   `db:"created_at"`
+	ID        string    `db:"id"`
+	Email     string    `db:"email"`
+	Token     string    `db:"token"`
+	IsUsed    bool      `db:"is_used"`
+	ExpiresAt time.Time `db:"expires_at"`
+	CreatedAt time.Time `db:"created_at"`
 }
 
 func New(db *sqlx.DB) *Postgres {
 	return &Postgres{db: db}
 }
 
-func (p *Postgres) Create(ctx context.Context, email string, name string, passwordHash string) (*User, error) {
-	query := "INSERT INTO users (email, name, password_hash) VALUES ($1, $2, $3) RETURNING *"
-	row := p.db.QueryRowContext(ctx, query, email, name, passwordHash)
+func (p *Postgres) Create(ctx context.Context, email string, username string, passwordHash string) (*User, error) {
+	query := "INSERT INTO users (email, username, password_hash) VALUES ($1, $2, $3) RETURNING *"
+	row := p.db.QueryRowContext(ctx, query, email, username, passwordHash)
 	if pqErr, ok := row.Err().(*pq.Error); ok && pqErr.Code == "23505" {
 		return nil, repoerr.ErrUserAlreadyExists
 	}
@@ -56,49 +50,8 @@ func (p *Postgres) Create(ctx context.Context, email string, name string, passwo
 	}
 
 	var user User
-	err := row.Scan(&user.ID, &user.Email, &user.Name, &user.PasswordHash, &user.IsEmailConfirmed, &user.CreatedAt)
+	err := row.Scan(&user.ID, &user.Email, &user.Username, &user.DisplayName, &user.PasswordHash, &user.IsConfirmed, &user.ConfirmationToken, &user.CreatedAt)
 	if err != nil {
-		return nil, err
-	}
-
-	return &user, nil
-}
-
-func (p *Postgres) CreateWithEmailConfirmationRequest(ctx context.Context, email string, name string, passwordHash string, token string) (*User, error) {
-	tx, err := p.db.BeginTx(ctx, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	defer func() {
-		if err != nil {
-			tx.Rollback()
-		}
-	}()
-
-	query := "INSERT INTO users (email, name, password_hash) VALUES ($1, $2, $3) RETURNING *"
-	row := tx.QueryRowContext(ctx, query, email, name, passwordHash)
-
-	if pqErr, ok := row.Err().(*pq.Error); ok && pqErr.Code == "23505" {
-		return nil, repoerr.ErrUserAlreadyExists
-	}
-	if row.Err() != nil {
-		return nil, row.Err()
-	}
-
-	var user User
-	err = row.Scan(&user.ID, &user.Email, &user.Name, &user.PasswordHash, &user.IsEmailConfirmed, &user.CreatedAt)
-	if err != nil {
-		return nil, err
-	}
-
-	query = "INSERT INTO requests (kind, email, token, expires_at) VALUES ($1, $2, $3, $4)"
-	_, err = tx.ExecContext(ctx, query, RequestKindEmailConfirmation, email, token, time.Now().Add(48*time.Hour).Truncate(time.Hour))
-	if err != nil {
-		return nil, err
-	}
-
-	if err = tx.Commit(); err != nil {
 		return nil, err
 	}
 
@@ -158,22 +111,14 @@ func (p *Postgres) UpdatePasswordByEmail(ctx context.Context, email string, pass
 }
 
 func (p *Postgres) CreatePasswordResetRequest(ctx context.Context, token string, email string) (*Request, error) {
-	return p.CreateRequest(ctx, RequestKindPasswordReset, email, token, time.Now().Add(15*time.Minute).Truncate(time.Minute))
-}
-
-func (p *Postgres) CreateEmailConfirmationRequest(ctx context.Context, token string, email string) (*Request, error) {
-	return p.CreateRequest(ctx, RequestKindEmailConfirmation, email, token, time.Now().Add(48*time.Hour).Truncate(time.Hour))
-}
-
-func (p *Postgres) CreateRequest(ctx context.Context, kind RequestKind, email string, token string, expiresAt time.Time) (*Request, error) {
-	query := "INSERT INTO requests (kind, email, token, expires_at) VALUES ($1, $2, $3, $4) RETURNING *"
-	row := p.db.QueryRowContext(ctx, query, kind, email, token, expiresAt)
+	query := "INSERT INTO requests (email, token, expires_at) VALUES ($1, $2, $3, $4) RETURNING *"
+	row := p.db.QueryRowContext(ctx, query, email, token, time.Now().Add(5*time.Minute))
 	if row.Err() != nil {
 		return nil, row.Err()
 	}
 
 	var request Request
-	err := row.Scan(&request.ID, &request.Kind, &request.Email, &request.Token, &request.IsUsed, &request.ExpiresAt, &request.CreatedAt)
+	err := row.Scan(&request.ID, &request.Email, &request.Token, &request.IsUsed, &request.ExpiresAt, &request.CreatedAt)
 	if err != nil {
 		return nil, err
 	}

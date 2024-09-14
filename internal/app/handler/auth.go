@@ -47,9 +47,9 @@ func (h *Handler) CreateAccount(c *gin.Context) {
 		return
 	}
 
-	if len(body.Name) > 50 {
-		log.Debug("name is too long")
-		response.WithMessage(c, http.StatusBadRequest, "name is too long")
+	if len(body.Username) < 5 {
+		log.Debug("username is too short")
+		response.WithMessage(c, http.StatusBadRequest, "username is too short")
 		return
 	}
 
@@ -59,8 +59,7 @@ func (h *Handler) CreateAccount(c *gin.Context) {
 		return
 	}
 
-	token := h.token.Long()
-	user, err := h.repository.User.CreateWithEmailConfirmationRequest(c, body.Email, body.Name, sha256.String(body.Password), token)
+	user, err := h.repository.User.Create(c, body.Email, body.Username, sha256.String(body.Password))
 	if errors.Is(err, repoerr.ErrUserAlreadyExists) {
 		log.Info("user already exists", sl.Err(err))
 		response.WithMessage(c, http.StatusConflict, "user already exists")
@@ -72,20 +71,19 @@ func (h *Handler) CreateAccount(c *gin.Context) {
 		return
 	}
 
-	log.Info("created a user", slog.String("id", user.ID), slog.String("email", user.Email), slog.String("name", user.Name))
+	log.Info("created a user", slog.String("id", user.ID), slog.String("email", user.Email), slog.String("username", user.Username))
 
 	go func() {
-		err = h.mailer.SendConfirmationEmail(body.Email, token)
+		err = h.mailer.SendConfirmationEmail(body.Email, user.ConfirmationToken)
 		if err != nil {
 			log.Error("can't send an email", sl.Err(err))
 		}
 	}()
 
-	// TOTHINK: Maybe additionally return an access token
 	c.JSON(http.StatusCreated, responsebody.User{
-		ID:    user.ID,
-		Email: body.Email,
-		Name:  body.Name,
+		ID:       user.ID,
+		Email:    body.Email,
+		Username: body.Username,
 	})
 }
 
@@ -124,7 +122,7 @@ func (h *Handler) CreateSession(c *gin.Context) {
 		return
 	}
 
-	if user.IsEmailConfirmed {
+	if user.IsConfirmed {
 		token, err := h.token.GenerateJWT(user.ID)
 		if err != nil {
 			log.Error("can't generate JWT", sl.Err(err))
@@ -140,33 +138,12 @@ func (h *Handler) CreateSession(c *gin.Context) {
 
 	log.Debug("user's email not confirmed")
 
-	request, err := h.repository.User.GetRequestByEmail(c, body.Email)
-	if errors.Is(err, repoerr.ErrRequestNotFound) || time.Now().After(request.ExpiresAt) {
-		log.Debug("confirmation request not found")
-		token := h.token.Long()
-		request, err := h.repository.User.CreateEmailConfirmationRequest(c, token, body.Email)
+	go func() {
+		err = h.mailer.SendConfirmationEmail(body.Email, user.ConfirmationToken)
 		if err != nil {
-			log.Error("can't save new email confirmation request", sl.Err(err))
-			response.InternalServerError(c)
-			return
+			log.Error("can't send confirmation email", sl.Err(err))
 		}
-
-		go func() {
-			err = h.mailer.SendConfirmationEmail(body.Email, request.Token)
-			if err != nil {
-				log.Error("can't send confirmation email", sl.Err(err))
-			}
-		}()
-
-		log.Debug("new confirmation email sent")
-		response.WithMessage(c, http.StatusForbidden, "email confirmation needed")
-		return
-	}
-	if err != nil {
-		log.Error("can't get confirmation request", sl.Err(err))
-		response.InternalServerError(c)
-		return
-	}
+	}()
 
 	response.WithMessage(c, http.StatusForbidden, "email confirmation needed")
 }
