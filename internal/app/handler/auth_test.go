@@ -590,69 +590,38 @@ func TestConfirmAccount(t *testing.T) {
 			name: "repository error",
 
 			repo: func(mock sqlmock.Sqlmock) {
-				mock.ExpectQuery("SELECT * FROM requests WHERE token = $1").WithArgs("LONGTOKEN").WillReturnError(errors.New("repo: Some repository error"))
-			},
-
-			request: request{
-				body: `{"token":"LONGTOKEN"}`,
-			},
-
-			expect: expect{
-				status: http.StatusInternalServerError,
-				body:   `{"message":"internal server error"}`,
-			},
-		},
-		{
-			name: "transaction error 1",
-
-			repo: func(mock sqlmock.Sqlmock) {
-				rows := sqlmock.NewRows([]string{"id", "kind", "email", "token", "is_used", "expires_at", "created_at"}).
-					AddRow("USER_ID", "email_confirmation", "john.doe@example.com", "LONGTOKEN", false, time.Now().Add(48*time.Hour).Truncate(time.Hour), time.Now())
-
-				mock.ExpectQuery("SELECT * FROM requests WHERE token = $1").WithArgs("LONGTOKEN").WillReturnRows(rows)
-
-				mock.ExpectBegin()
-
-				mock.ExpectExec("UPDATE users SET is_email_confirmed=true WHERE email = $1").
-					WithArgs("john.doe@example.com").
-					WillReturnError(errors.New("repo: Some repo/tx error"))
-
-				mock.ExpectRollback()
-			},
-
-			request: request{
-				body: `{"token":"LONGTOKEN"}`,
-			},
-
-			expect: expect{
-				status: http.StatusInternalServerError,
-				body:   `{"message":"internal server error"}`,
-			},
-		},
-		{
-			name: "transaction error 2",
-
-			repo: func(mock sqlmock.Sqlmock) {
-				rows := sqlmock.NewRows([]string{"id", "kind", "email", "token", "is_used", "expires_at", "created_at"}).
-					AddRow("USER_ID", "email_confirmation", "john.doe@example.com", "LONGTOKEN", false, time.Now().Add(48*time.Hour).Truncate(time.Hour), time.Now())
-
-				mock.ExpectQuery("SELECT * FROM requests WHERE token = $1").WithArgs("LONGTOKEN").WillReturnRows(rows)
-
-				mock.ExpectBegin()
-
-				mock.ExpectExec("UPDATE users SET is_email_confirmed=true WHERE email = $1").
-					WithArgs("john.doe@example.com").
-					WillReturnResult(driver.RowsAffected(1))
-
-				mock.ExpectExec("UPDATE requests SET is_used=true WHERE token = $1").
-					WithArgs("LONGTOKEN").
+				mock.ExpectQuery("SELECT * FROM users WHERE confirmation_token = $1").
+					WithArgs("CONFIRMATION_TOKEN").
 					WillReturnError(errors.New("repo: Some repository error"))
-
-				mock.ExpectRollback()
 			},
 
 			request: request{
-				body: `{"token":"LONGTOKEN"}`,
+				body: `{"token":"CONFIRMATION_TOKEN"}`,
+			},
+
+			expect: expect{
+				status: http.StatusInternalServerError,
+				body:   `{"message":"internal server error"}`,
+			},
+		},
+		{
+			name: "repository error on confirming",
+
+			repo: func(mock sqlmock.Sqlmock) {
+				rows := sqlmock.NewRows([]string{"id", "email", "username", "display_name", "password_hash", "is_confirmed", "confirmation_token", "created_at"}).
+					AddRow("USER_ID", "john.doe@example.com", "johndoe", "John Doe", sha256.String("testword"), true, "CONFIRMATION_TOKEN", time.Now())
+
+				mock.ExpectQuery("SELECT * FROM users WHERE confirmation_token = $1").
+					WithArgs("CONFIRMATION_TOKEN").
+					WillReturnRows(rows)
+
+				mock.ExpectExec("UPDATE users SET is_confirmed = true WHERE email = $1 AND confirmation_token = $2").
+					WithArgs("john.doe@example.com", "CONFIRMATION_TOKEN").
+					WillReturnError(errors.New("repo: Some repository error"))
+			},
+
+			request: request{
+				body: `{"token":"CONFIRMATION_TOKEN"}`,
 			},
 
 			expect: expect{

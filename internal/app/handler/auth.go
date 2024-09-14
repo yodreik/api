@@ -268,10 +268,10 @@ func (h *Handler) UpdatePassword(c *gin.Context) {
 // @Tags         auth
 // @Accept       json
 // @Produce      json
-// @Param        input body              requestbody.ConfirmAccount true "Token"
+// @Param        input body             requestbody.ConfirmAccount true "Token"
 // @Success      200
-// @Failure      400 {object}            responsebody.Message
-// @Failure      404 {object}            responsebody.Message
+// @Failure      400 {object}           responsebody.Message
+// @Failure      404 {object}           responsebody.Message
 // @Router       /auth/account/confirm  [post]
 func (h *Handler) ConfirmAccount(c *gin.Context) {
 	log := slog.With(

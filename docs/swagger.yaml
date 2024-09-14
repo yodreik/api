@@ -11,14 +11,14 @@ definitions:
     properties:
       email:
         type: string
-      name:
-        type: string
       password:
+        type: string
+      username:
         type: string
     required:
     - email
-    - name
     - password
+    - username
     type: object
   requestbody.CreateSession:
     properties:
@@ -83,11 +83,13 @@ definitions:
     type: object
   responsebody.User:
     properties:
+      display_name:
+        type: string
       email:
         type: string
       id:
         type: string
-      name:
+      username:
         type: string
     type: object
   responsebody.Workout:
