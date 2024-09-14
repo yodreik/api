@@ -184,3 +184,13 @@ func (p *Postgres) SetUserConfirmed(ctx context.Context, email string, token str
 	_, err := p.db.ExecContext(ctx, query, email, token)
 	return err
 }
+
+func (p *Postgres) RemoveExpiredRecords(ctx context.Context) (n int64, err error) {
+	query := "DELETE FROM reset_password_requests WHERE expires_at < now()"
+
+	result, err := p.db.ExecContext(ctx, query)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}

@@ -21,6 +21,8 @@ type User interface {
 	GetRequestByToken(ctx context.Context, token string) (*user.Request, error)
 	GetRequestByEmail(ctx context.Context, email string) (*user.Request, error)
 	MarkRequestAsUsed(ctx context.Context, token string) error
+
+	RemoveExpiredRecords(ctx context.Context) (n int64, err error)
 }
 
 type Workout interface {

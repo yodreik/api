@@ -16,6 +16,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -31,6 +32,8 @@ func New(c *config.Config) *App {
 }
 
 func (a *App) Run() {
+	ctx := context.Background()
+
 	var logger *slog.Logger
 	switch a.config.Env {
 	case config.EnvLocal:
@@ -84,13 +87,25 @@ func (a *App) Run() {
 
 	slog.Info("server started", slog.String("address", server.Addr))
 
+	go func() {
+		for {
+			n, err := repo.User.RemoveExpiredRecords(ctx)
+			if err != nil {
+				slog.Error("failed to delete expired records", sl.Err(err))
+			} else if n > 0 {
+				slog.Debug("expired records deleted", slog.Int64("count", n))
+			}
+			time.Sleep(1 * time.Hour)
+		}
+	}()
+
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGTERM, syscall.SIGINT)
 	<-quit
 
 	slog.Info("server shutting down")
 
-	err = server.Shutdown(context.Background())
+	err = server.Shutdown(ctx)
 	if err != nil {
 		slog.Error("error occurred on server shutting down", sl.Err(err))
 		os.Exit(1)

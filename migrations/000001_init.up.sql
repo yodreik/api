@@ -5,7 +5,7 @@ CREATE TABLE users
     id UUID DEFAULT uuid_generate_v4() NOT NULL UNIQUE,
     email VARCHAR(254) NOT NULL UNIQUE,
     username VARCHAR(32) NOT NULL UNIQUE,
-    display_name VARCHAR(50) DEFAULT "" NOT NULL,
+    display_name VARCHAR(50) DEFAULT '' NOT NULL,
     password_hash CHAR(64) NOT NULL,
     is_confirmed BOOLEAN DEFAULT false NOT NULL,
     confirmation_token UUID DEFAULT uuid_generate_v4() NOT NULL UNIQUE,
