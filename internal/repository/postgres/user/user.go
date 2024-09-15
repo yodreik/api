@@ -142,7 +142,7 @@ func (p *Postgres) UpdatePasswordByEmail(ctx context.Context, email string, pass
 }
 
 func (p *Postgres) CreatePasswordResetRequest(ctx context.Context, token string, email string) (*Request, error) {
-	query := "INSERT INTO requests (email, token, expires_at) VALUES ($1, $2, $3) RETURNING *"
+	query := "INSERT INTO reset_password_requests (email, token, expires_at) VALUES ($1, $2, $3) RETURNING *"
 	row := p.db.QueryRowContext(ctx, query, email, token, time.Now().Add(5*time.Minute).Truncate(time.Minute))
 	if row.Err() != nil {
 		return nil, row.Err()
@@ -158,7 +158,7 @@ func (p *Postgres) CreatePasswordResetRequest(ctx context.Context, token string,
 }
 
 func (p *Postgres) GetRequestByToken(ctx context.Context, token string) (*Request, error) {
-	query := "SELECT * FROM requests WHERE token = $1"
+	query := "SELECT * FROM reset_password_requests WHERE token = $1"
 
 	var request Request
 	err := p.db.GetContext(ctx, &request, query, token)
@@ -173,7 +173,7 @@ func (p *Postgres) GetRequestByToken(ctx context.Context, token string) (*Reques
 }
 
 func (p *Postgres) GetRequestByEmail(ctx context.Context, email string) (*Request, error) {
-	query := "SELECT * FROM requests WHERE email = $1"
+	query := "SELECT * FROM reset_password_requests WHERE email = $1"
 
 	var request Request
 	err := p.db.GetContext(ctx, &request, query, email)
@@ -188,7 +188,7 @@ func (p *Postgres) GetRequestByEmail(ctx context.Context, email string) (*Reques
 }
 
 func (p *Postgres) MarkRequestAsUsed(ctx context.Context, token string) error {
-	query := "UPDATE requests SET is_used = true WHERE token = $1"
+	query := "UPDATE reset_password_requests SET is_used = true WHERE token = $1"
 
 	_, err := p.db.ExecContext(ctx, query, token)
 	return err
