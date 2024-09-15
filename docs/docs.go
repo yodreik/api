@@ -77,14 +77,14 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "user"
+                    "auth"
                 ],
                 "summary": "Get information about current user",
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/responsebody.User"
+                            "$ref": "#/definitions/responsebody.Account"
                         }
                     },
                     "401": {
@@ -122,7 +122,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/responsebody.User"
+                            "$ref": "#/definitions/responsebody.Account"
                         }
                     },
                     "400": {
@@ -338,6 +338,41 @@ const docTemplate = `{
                 }
             }
         },
+        "/user/{username}": {
+            "get": {
+                "description": "returns an user's information and week activity history",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "user"
+                ],
+                "summary": "Get public information about user by username",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Username",
+                        "name": "username",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/responsebody.PrivateProfile"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/responsebody.Message"
+                        }
+                    }
+                }
+            }
+        },
         "/workout": {
             "post": {
                 "security": [
@@ -475,6 +510,29 @@ const docTemplate = `{
                 }
             }
         },
+        "responsebody.Account": {
+            "type": "object",
+            "properties": {
+                "display_name": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_confirmed": {
+                    "type": "boolean"
+                },
+                "is_private": {
+                    "type": "boolean"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
         "responsebody.ActivityHistory": {
             "type": "object",
             "properties": {
@@ -500,27 +558,47 @@ const docTemplate = `{
                 }
             }
         },
-        "responsebody.Token": {
+        "responsebody.PrivateProfile": {
             "type": "object",
             "properties": {
-                "token": {
+                "id": {
+                    "type": "string"
+                },
+                "is_private": {
+                    "type": "boolean"
+                },
+                "username": {
                     "type": "string"
                 }
             }
         },
-        "responsebody.User": {
+        "responsebody.PublicProfile": {
             "type": "object",
             "properties": {
                 "display_name": {
                     "type": "string"
                 },
-                "email": {
-                    "type": "string"
-                },
                 "id": {
                     "type": "string"
                 },
+                "is_private": {
+                    "type": "boolean"
+                },
                 "username": {
+                    "type": "string"
+                },
+                "week_activity": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/responsebody.Workout"
+                    }
+                }
+            }
+        },
+        "responsebody.Token": {
+            "type": "object",
+            "properties": {
+                "token": {
                     "type": "string"
                 }
             }

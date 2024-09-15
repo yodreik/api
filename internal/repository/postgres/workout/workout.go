@@ -59,7 +59,7 @@ func (p *Postgres) GetByID(ctx context.Context, id string) (*Workout, error) {
 }
 
 func (p *Postgres) GetUserWorkouts(ctx context.Context, userID string, begin time.Time, end time.Time) ([]Workout, error) {
-	query := "SELECT * FROM workouts WHERE user_id = $1 AND date BETWEEN $2 AND $3"
+	query := "SELECT * FROM workouts WHERE user_id = $1 AND date BETWEEN $2 AND $3 ORDER BY date ASC"
 
 	var workouts []Workout
 	err := p.db.SelectContext(ctx, &workouts, query, userID, begin, end)

@@ -104,6 +104,21 @@ func (p *Postgres) GetByEmail(ctx context.Context, email string) (*User, error) 
 	return &user, nil
 }
 
+func (p *Postgres) GetByUsername(ctx context.Context, username string) (*User, error) {
+	query := "SELECT * FROM users WHERE username = $1"
+
+	var user User
+	err := p.db.GetContext(ctx, &user, query, username)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, repoerr.ErrUserNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return &user, nil
+}
+
 func (p *Postgres) GetByConfirmationToken(ctx context.Context, token string) (*User, error) {
 	query := "SELECT * FROM users WHERE confirmation_token = $1"
 

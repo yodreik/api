@@ -75,7 +75,7 @@ func (r *Router) InitRoutes() *gin.Engine {
 
 		api.GET("/activity", r.handler.UserIdentity, r.handler.GetActivityHistory)
 
-		api.GET("/user/{username}")
+		api.GET("/user/:username", r.handler.GetUserByUsername)
 	}
 
 	return router

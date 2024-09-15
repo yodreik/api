@@ -310,3 +310,40 @@ func (h *Handler) ConfirmAccount(c *gin.Context) {
 
 	c.Status(http.StatusOK)
 }
+
+// @Summary      Get information about current user
+// @Description  returns an user's information, that currently logged in
+// @Security     AccessToken
+// @Tags         auth
+// @Produce      json
+// @Success      200 {object}   responsebody.Account
+// @Failure      401 {object}   responsebody.Message
+// @Router       /auth/account  [get]
+func (h *Handler) GetCurrentAccount(c *gin.Context) {
+	log := slog.With(
+		slog.String("op", "handler.GetCurrentAccount"),
+		slog.String("request_id", requestid.Get(c)),
+	)
+
+	userID := c.GetString("UserID")
+	user, err := h.repository.User.GetByID(c, userID)
+	if errors.Is(err, repoerr.ErrUserNotFound) {
+		log.Debug("user not found", slog.String("id", userID))
+		response.WithMessage(c, http.StatusUnauthorized, "invalid authorization token")
+		return
+	}
+	if err != nil {
+		log.Error("can't find user", sl.Err(err))
+		response.InternalServerError(c)
+		return
+	}
+
+	c.JSON(http.StatusOK, responsebody.Account{
+		ID:          user.ID,
+		Email:       user.Email,
+		Username:    user.Username,
+		DisplayName: user.DisplayName,
+		IsPrivate:   user.IsPrivate,
+		IsConfirmed: user.IsConfirmed,
+	})
+}

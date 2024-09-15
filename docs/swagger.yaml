@@ -60,6 +60,21 @@ definitions:
     - password
     - token
     type: object
+  responsebody.Account:
+    properties:
+      display_name:
+        type: string
+      email:
+        type: string
+      id:
+        type: string
+      is_confirmed:
+        type: boolean
+      is_private:
+        type: boolean
+      username:
+        type: string
+    type: object
   responsebody.ActivityHistory:
     properties:
       count:
@@ -76,20 +91,33 @@ definitions:
       message:
         type: string
     type: object
-  responsebody.Token:
+  responsebody.PrivateProfile:
     properties:
-      token:
+      id:
+        type: string
+      is_private:
+        type: boolean
+      username:
         type: string
     type: object
-  responsebody.User:
+  responsebody.PublicProfile:
     properties:
       display_name:
         type: string
-      email:
-        type: string
       id:
         type: string
+      is_private:
+        type: boolean
       username:
+        type: string
+      week_activity:
+        items:
+          $ref: '#/definitions/responsebody.Workout'
+        type: array
+    type: object
+  responsebody.Token:
+    properties:
+      token:
         type: string
     type: object
   responsebody.Workout:
@@ -151,7 +179,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/responsebody.User'
+            $ref: '#/definitions/responsebody.Account'
         "401":
           description: Unauthorized
           schema:
@@ -160,7 +188,7 @@ paths:
       - AccessToken: []
       summary: Get information about current user
       tags:
-      - user
+      - auth
     post:
       consumes:
       - application/json
@@ -178,7 +206,7 @@ paths:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/responsebody.User'
+            $ref: '#/definitions/responsebody.Account'
         "400":
           description: Bad Request
           schema:
@@ -319,6 +347,29 @@ paths:
       summary: Ping a server
       tags:
       - status
+  /user/{username}:
+    get:
+      description: returns an user's information and week activity history
+      parameters:
+      - description: Username
+        in: path
+        name: username
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responsebody.PrivateProfile'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responsebody.Message'
+      summary: Get public information about user by username
+      tags:
+      - user
   /workout:
     post:
       consumes:

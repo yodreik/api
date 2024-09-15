@@ -15,6 +15,7 @@ type User interface {
 	GetByID(ctx context.Context, id string) (*user.User, error)
 	GetByCredentials(ctx context.Context, email string, passwordHash string) (*user.User, error)
 	GetByEmail(ctx context.Context, email string) (*user.User, error)
+	GetByUsername(ctx context.Context, username string) (*user.User, error)
 	GetByConfirmationToken(ctx context.Context, token string) (*user.User, error)
 	UpdatePasswordByEmail(ctx context.Context, email string, password string) error
 	CreatePasswordResetRequest(ctx context.Context, token string, email string) (*user.Request, error)
