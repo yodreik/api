@@ -361,7 +361,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/responsebody.PrivateProfile"
+                            "$ref": "#/definitions/responsebody.Profile"
                         }
                     },
                     "404": {
@@ -558,21 +558,7 @@ const docTemplate = `{
                 }
             }
         },
-        "responsebody.PrivateProfile": {
-            "type": "object",
-            "properties": {
-                "id": {
-                    "type": "string"
-                },
-                "is_private": {
-                    "type": "boolean"
-                },
-                "username": {
-                    "type": "string"
-                }
-            }
-        },
-        "responsebody.PublicProfile": {
+        "responsebody.Profile": {
             "type": "object",
             "properties": {
                 "display_name": {

@@ -91,16 +91,7 @@ definitions:
       message:
         type: string
     type: object
-  responsebody.PrivateProfile:
-    properties:
-      id:
-        type: string
-      is_private:
-        type: boolean
-      username:
-        type: string
-    type: object
-  responsebody.PublicProfile:
+  responsebody.Profile:
     properties:
       display_name:
         type: string
@@ -362,7 +353,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/responsebody.PrivateProfile'
+            $ref: '#/definitions/responsebody.Profile'
         "404":
           description: Not Found
           schema:

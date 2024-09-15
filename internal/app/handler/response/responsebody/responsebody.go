@@ -13,18 +13,12 @@ type Account struct {
 	IsConfirmed bool   `json:"is_confirmed"`
 }
 
-type PublicProfile struct {
+type Profile struct {
 	ID           string    `json:"id"`
 	Username     string    `json:"username"`
 	DisplayName  string    `json:"display_name"`
 	IsPrivate    bool      `json:"is_private"`
 	WeekActivity []Workout `json:"week_activity"`
-}
-
-type PrivateProfile struct {
-	ID        string `json:"id"`
-	Username  string `json:"username"`
-	IsPrivate bool   `json:"is_private"`
 }
 
 type Workout struct {

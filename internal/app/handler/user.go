@@ -20,8 +20,7 @@ import (
 // @Tags         user
 // @Produce      json
 // @Param        username          path string true "Username"
-// @Success      200 {object}      responsebody.PublicProfile
-// @Success      200 {object}      responsebody.PrivateProfile
+// @Success      200 {object}      responsebody.Profile
 // @Failure      404 {object}      responsebody.Message
 // @Router       /user/{username}  [get]
 func (h *Handler) GetUserByUsername(c *gin.Context) {
@@ -45,7 +44,7 @@ func (h *Handler) GetUserByUsername(c *gin.Context) {
 	}
 
 	if user.IsPrivate {
-		c.JSON(http.StatusOK, responsebody.PrivateProfile{
+		c.JSON(http.StatusOK, responsebody.Profile{
 			ID:        user.ID,
 			Username:  user.Username,
 			IsPrivate: user.IsPrivate,
@@ -74,7 +73,7 @@ func (h *Handler) GetUserByUsername(c *gin.Context) {
 		})
 	}
 
-	c.JSON(http.StatusOK, responsebody.PublicProfile{
+	c.JSON(http.StatusOK, responsebody.Profile{
 		ID:           user.ID,
 		Username:     user.Username,
 		DisplayName:  user.DisplayName,
