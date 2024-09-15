@@ -40,8 +40,8 @@ func TestGetCurrentAccount(t *testing.T) {
 			name: "ok",
 
 			repo: func(mock sqlmock.Sqlmock) {
-				rows := sqlmock.NewRows([]string{"id", "username", "display_name", "email", "password_hash", "is_confirmed", "confirmation_token", "created_at"}).
-					AddRow("USER_ID", "johndoe", "John Doe", "john.doe@example.com", sha256.String("testword"), true, "CONFIRmATION_TOKEN", time.Now())
+				rows := sqlmock.NewRows([]string{"id", "username", "display_name", "email", "password_hash", "is_private", "is_confirmed", "confirmation_token", "created_at"}).
+					AddRow("USER_ID", "johndoe", "John Doe", "john.doe@example.com", sha256.String("testword"), false, true, "CONFIRmATION_TOKEN", time.Now())
 
 				mock.ExpectQuery("SELECT * FROM users WHERE id = $1").WithArgs("USER_ID").WillReturnRows(rows)
 			},
@@ -54,7 +54,7 @@ func TestGetCurrentAccount(t *testing.T) {
 
 			expect: expect{
 				status: http.StatusOK,
-				body:   `{"id":"USER_ID","email":"john.doe@example.com","username":"johndoe","display_name":"John Doe","is_confirmed":true}`,
+				body:   `{"id":"USER_ID","email":"john.doe@example.com","username":"johndoe","display_name":"John Doe","is_private":false,"is_confirmed":true}`,
 			},
 		},
 		{

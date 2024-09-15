@@ -9,6 +9,7 @@ type Account struct {
 	Email       string `json:"email"`
 	Username    string `json:"username"`
 	DisplayName string `json:"display_name"`
+	IsPrivate   bool   `json:"is_private"`
 	IsConfirmed bool   `json:"is_confirmed"`
 }
 

@@ -33,8 +33,8 @@ func TestCreateAccount(t *testing.T) {
 			name: "ok",
 
 			repo: func(mock sqlmock.Sqlmock) {
-				rows := sqlmock.NewRows([]string{"id", "email", "username", "display_name", "password_hash", "is_confirmed", "confirmation_token", "created_at"}).
-					AddRow("USER_ID", "john.doe@example.com", "johndoe", "", sha256.String("testword"), false, "CONFIRMATION_TOKEN", time.Now())
+				rows := sqlmock.NewRows([]string{"id", "email", "username", "display_name", "password_hash", "is_private", "is_confirmed", "confirmation_token", "created_at"}).
+					AddRow("USER_ID", "john.doe@example.com", "johndoe", "", sha256.String("testword"), false, false, "CONFIRMATION_TOKEN", time.Now())
 
 				mock.ExpectQuery("INSERT INTO users (email, username, password_hash) VALUES ($1, $2, $3) RETURNING *").
 					WithArgs("john.doe@example.com", "johndoe", sha256.String("testword")).WillReturnRows(rows)
@@ -46,7 +46,7 @@ func TestCreateAccount(t *testing.T) {
 
 			expect: expect{
 				status: http.StatusCreated,
-				body:   `{"id":"USER_ID","email":"john.doe@example.com","username":"johndoe","display_name":"","is_confirmed":false}`,
+				body:   `{"id":"USER_ID","email":"john.doe@example.com","username":"johndoe","display_name":"","is_private":false,"is_confirmed":false}`,
 			},
 		},
 		{

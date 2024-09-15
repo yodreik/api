@@ -81,9 +81,12 @@ func (h *Handler) CreateAccount(c *gin.Context) {
 	}()
 
 	c.JSON(http.StatusCreated, responsebody.Account{
-		ID:       user.ID,
-		Email:    body.Email,
-		Username: body.Username,
+		ID:          user.ID,
+		Email:       user.Email,
+		Username:    user.Username,
+		DisplayName: user.DisplayName,
+		IsPrivate:   user.IsPrivate,
+		IsConfirmed: user.IsConfirmed,
 	})
 }
 
