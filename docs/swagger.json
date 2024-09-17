@@ -507,6 +507,9 @@
         "responsebody.Account": {
             "type": "object",
             "properties": {
+                "avatar_url": {
+                    "type": "string"
+                },
                 "display_name": {
                     "type": "string"
                 },
@@ -555,6 +558,9 @@
         "responsebody.Profile": {
             "type": "object",
             "properties": {
+                "avatar_url": {
+                    "type": "string"
+                },
                 "display_name": {
                     "type": "string"
                 },
