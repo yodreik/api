@@ -1,11 +1,34 @@
 basePath: /api
 definitions:
-  requestbody.ConfirmEmail:
+  requestbody.ConfirmAccount:
     properties:
       token:
         type: string
     required:
     - token
+    type: object
+  requestbody.CreateAccount:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+      username:
+        type: string
+    required:
+    - email
+    - password
+    - username
+    type: object
+  requestbody.CreateSession:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    required:
+    - email
+    - password
     type: object
   requestbody.CreateWorkout:
     properties:
@@ -19,29 +42,6 @@ definitions:
     - date
     - duration
     - kind
-    type: object
-  requestbody.Login:
-    properties:
-      email:
-        type: string
-      password:
-        type: string
-    required:
-    - email
-    - password
-    type: object
-  requestbody.Register:
-    properties:
-      email:
-        type: string
-      name:
-        type: string
-      password:
-        type: string
-    required:
-    - email
-    - name
-    - password
     type: object
   requestbody.ResetPassword:
     properties:
@@ -60,23 +60,55 @@ definitions:
     - password
     - token
     type: object
+  responsebody.Account:
+    properties:
+      display_name:
+        type: string
+      email:
+        type: string
+      id:
+        type: string
+      is_confirmed:
+        type: boolean
+      is_private:
+        type: boolean
+      username:
+        type: string
+    type: object
+  responsebody.ActivityHistory:
+    properties:
+      count:
+        type: integer
+      user_id:
+        type: string
+      workouts:
+        items:
+          $ref: '#/definitions/responsebody.Workout'
+        type: array
+    type: object
   responsebody.Message:
     properties:
       message:
         type: string
     type: object
-  responsebody.Token:
+  responsebody.Profile:
     properties:
-      token:
-        type: string
-    type: object
-  responsebody.User:
-    properties:
-      email:
+      display_name:
         type: string
       id:
         type: string
-      name:
+      is_private:
+        type: boolean
+      username:
+        type: string
+      week_activity:
+        items:
+          $ref: '#/definitions/responsebody.Workout'
+        type: array
+    type: object
+  responsebody.Token:
+    properties:
+      token:
         type: string
     type: object
   responsebody.Workout:
@@ -97,7 +129,87 @@ info:
   title: Welnex API
   version: "0.1"
 paths:
-  /auth/confirm:
+  /activity:
+    get:
+      consumes:
+      - application/json
+      description: reeturns user's workout history
+      parameters:
+      - description: Begin date
+        in: query
+        name: begin
+        required: true
+        type: string
+      - description: End date
+        in: query
+        name: end
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responsebody.ActivityHistory'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responsebody.Message'
+      security:
+      - AccessToken: []
+      summary: Get user's activity history
+      tags:
+      - workout
+  /auth/account:
+    get:
+      description: returns an user's information, that currently logged in
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responsebody.Account'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/responsebody.Message'
+      security:
+      - AccessToken: []
+      summary: Get information about current user
+      tags:
+      - auth
+    post:
+      consumes:
+      - application/json
+      description: create user in database
+      parameters:
+      - description: User information
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/requestbody.CreateAccount'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/responsebody.Account'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responsebody.Message'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/responsebody.Message'
+      summary: Create new account
+      tags:
+      - auth
+  /auth/account/confirm:
     post:
       consumes:
       - application/json
@@ -108,7 +220,7 @@ paths:
         name: input
         required: true
         schema:
-          $ref: '#/definitions/requestbody.ConfirmEmail'
+          $ref: '#/definitions/requestbody.ConfirmAccount'
       produces:
       - application/json
       responses:
@@ -122,28 +234,26 @@ paths:
           description: Not Found
           schema:
             $ref: '#/definitions/responsebody.Message'
-      summary: Confirm email
+      summary: Confirm account's email
       tags:
       - auth
-  /auth/login:
-    post:
+  /auth/password:
+    patch:
       consumes:
       - application/json
-      description: check if user exists, and return an access token
+      description: updates password for user
       parameters:
       - description: User information
         in: body
         name: input
         required: true
         schema:
-          $ref: '#/definitions/requestbody.Login'
+          $ref: '#/definitions/requestbody.UpdatePassword'
       produces:
       - application/json
       responses:
         "200":
           description: OK
-          schema:
-            $ref: '#/definitions/responsebody.Token'
         "400":
           description: Bad Request
           schema:
@@ -152,7 +262,7 @@ paths:
           description: Not Found
           schema:
             $ref: '#/definitions/responsebody.Message'
-      summary: Log into user's account
+      summary: Update password
       tags:
       - auth
   /auth/password/reset:
@@ -183,66 +293,34 @@ paths:
       summary: Request password reset
       tags:
       - auth
-  /auth/password/update:
-    patch:
+  /auth/session:
+    post:
       consumes:
       - application/json
-      description: updates password for user
+      description: check if user exists, and return an access token
       parameters:
       - description: User information
         in: body
         name: input
         required: true
         schema:
-          $ref: '#/definitions/requestbody.UpdatePassword'
+          $ref: '#/definitions/requestbody.CreateSession'
       produces:
       - application/json
       responses:
         "200":
           description: OK
+          schema:
+            $ref: '#/definitions/responsebody.Token'
         "400":
           description: Bad Request
           schema:
             $ref: '#/definitions/responsebody.Message'
-        "404":
-          description: Not Found
+        "401":
+          description: Unauthorized
           schema:
             $ref: '#/definitions/responsebody.Message'
-      summary: Update password
-      tags:
-      - auth
-  /auth/register:
-    post:
-      consumes:
-      - application/json
-      description: create user in database
-      parameters:
-      - description: User information
-        in: body
-        name: input
-        required: true
-        schema:
-          $ref: '#/definitions/requestbody.Register'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/responsebody.User'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/responsebody.Message'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/responsebody.Message'
-        "409":
-          description: Conflict
-          schema:
-            $ref: '#/definitions/responsebody.Message'
-      summary: Register user
+      summary: Create a session for existing account
       tags:
       - auth
   /healthcheck:
@@ -260,27 +338,27 @@ paths:
       summary: Ping a server
       tags:
       - status
-  /me:
+  /user/{username}:
     get:
-      description: returns an user's information, that currently logged in
+      description: returns an user's information and week activity history
+      parameters:
+      - description: Username
+        in: path
+        name: username
+        required: true
+        type: string
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/responsebody.User'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/responsebody.Message'
+            $ref: '#/definitions/responsebody.Profile'
         "404":
           description: Not Found
           schema:
             $ref: '#/definitions/responsebody.Message'
-      security:
-      - AccessToken: []
-      summary: Get information about current user
+      summary: Get public information about user by username
       tags:
       - user
   /workout:

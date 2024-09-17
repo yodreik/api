@@ -28,12 +28,12 @@ func TestCreateWorkout(t *testing.T) {
 	tokenManager := token.New(c.Token)
 	handler := New(&c, repo, mockmailer.New(), mocktoken.New(c.Token))
 
-	tokenWithID69, err := tokenManager.GenerateJWT("69")
+	accessToken, err := tokenManager.GenerateJWT("USER_ID")
 	if err != nil {
 		t.Fatal("unexpected error while generating mock token")
 	}
 
-	expectedDate, err := time.Parse("02.01.2006", "11.11.2024")
+	expectedDate, err := time.Parse("02-01-2006", "11-11-2024")
 	if err != nil {
 		t.Fatal("err no expected while parsing mock date")
 	}
@@ -44,22 +44,22 @@ func TestCreateWorkout(t *testing.T) {
 
 			repo: func(mock sqlmock.Sqlmock) {
 				rows := sqlmock.NewRows([]string{"id", "user_id", "date", "duration", "kind", "created_at"}).
-					AddRow("96", "69", expectedDate, 71, "Calisthenics", time.Now())
+					AddRow("WORKOUT_ID", "USER_ID", expectedDate, 69, "Calisthenics", time.Now())
 
 				mock.ExpectQuery("INSERT INTO workouts (user_id, date, duration, kind) VALUES ($1, $2, $3, $4) RETURNING *").
-					WithArgs("69", expectedDate, 71, "Calisthenics").WillReturnRows(rows)
+					WithArgs("USER_ID", expectedDate, 69, "Calisthenics").WillReturnRows(rows)
 			},
 
 			request: request{
 				headers: map[string]string{
-					"Authorization": fmt.Sprintf("Bearer %s", tokenWithID69),
+					"Authorization": fmt.Sprintf("Bearer %s", accessToken),
 				},
-				body: `{"date":"11.11.2024","duration":71,"kind":"Calisthenics"}`,
+				body: `{"date":"11-11-2024","duration":69,"kind":"Calisthenics"}`,
 			},
 
 			expect: expect{
 				status: http.StatusCreated,
-				body:   `{"id":"96","date":"11.11.2024","duration":71,"kind":"Calisthenics"}`,
+				body:   `{"id":"WORKOUT_ID","date":"11-11-2024","duration":69,"kind":"Calisthenics"}`,
 			},
 		},
 		{
@@ -67,7 +67,7 @@ func TestCreateWorkout(t *testing.T) {
 
 			request: request{
 				headers: map[string]string{
-					"Authorization": fmt.Sprintf("Bearer %s", tokenWithID69),
+					"Authorization": fmt.Sprintf("Bearer %s", accessToken),
 				},
 				body: `{"invalid":"body"}`,
 			},
@@ -82,9 +82,9 @@ func TestCreateWorkout(t *testing.T) {
 
 			request: request{
 				headers: map[string]string{
-					"Authorization": fmt.Sprintf("Bearer %s", tokenWithID69),
+					"Authorization": fmt.Sprintf("Bearer %s", accessToken),
 				},
-				body: `{"date":"69.11.2024","duration":71,"kind":"Calisthenics"}`,
+				body: `{"date":"69-11-2024","duration":69,"kind":"Calisthenics"}`,
 			},
 
 			expect: expect{
@@ -105,14 +105,14 @@ func TestCreateWorkout(t *testing.T) {
 
 			repo: func(mock sqlmock.Sqlmock) {
 				mock.ExpectQuery("INSERT INTO workouts (user_id, date, duration, kind) VALUES ($1, $2, $3, $4) RETURNING *").
-					WithArgs("69", expectedDate, 71, "Calisthenics").WillReturnError(errors.New("repo: Some repository error"))
+					WithArgs("USER_ID", expectedDate, 69, "Calisthenics").WillReturnError(errors.New("repo: Some repository error"))
 			},
 
 			request: request{
 				headers: map[string]string{
-					"Authorization": fmt.Sprintf("Bearer %s", tokenWithID69),
+					"Authorization": fmt.Sprintf("Bearer %s", accessToken),
 				},
-				body: `{"date":"11.11.2024","duration":71,"kind":"Calisthenics"}`,
+				body: `{"date":"11-11-2024","duration":69,"kind":"Calisthenics"}`,
 			},
 
 			expect: expect{

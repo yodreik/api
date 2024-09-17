@@ -15,7 +15,132 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/auth/confirm": {
+        "/activity": {
+            "get": {
+                "security": [
+                    {
+                        "AccessToken": []
+                    }
+                ],
+                "description": "reeturns user's workout history",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "workout"
+                ],
+                "summary": "Get user's activity history",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Begin date",
+                        "name": "begin",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "End date",
+                        "name": "end",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/responsebody.ActivityHistory"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/responsebody.Message"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/account": {
+            "get": {
+                "security": [
+                    {
+                        "AccessToken": []
+                    }
+                ],
+                "description": "returns an user's information, that currently logged in",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Get information about current user",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/responsebody.Account"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/responsebody.Message"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "create user in database",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Create new account",
+                "parameters": [
+                    {
+                        "description": "User information",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/requestbody.CreateAccount"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/responsebody.Account"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/responsebody.Message"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/responsebody.Message"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/account/confirm": {
             "post": {
                 "description": "confirms user's email",
                 "consumes": [
@@ -27,7 +152,7 @@ const docTemplate = `{
                 "tags": [
                     "auth"
                 ],
-                "summary": "Confirm email",
+                "summary": "Confirm account's email",
                 "parameters": [
                     {
                         "description": "Token",
@@ -35,7 +160,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/requestbody.ConfirmEmail"
+                            "$ref": "#/definitions/requestbody.ConfirmAccount"
                         }
                     }
                 ],
@@ -58,9 +183,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/auth/login": {
-            "post": {
-                "description": "check if user exists, and return an access token",
+        "/auth/password": {
+            "patch": {
+                "description": "updates password for user",
                 "consumes": [
                     "application/json"
                 ],
@@ -70,7 +195,7 @@ const docTemplate = `{
                 "tags": [
                     "auth"
                 ],
-                "summary": "Log into user's account",
+                "summary": "Update password",
                 "parameters": [
                     {
                         "description": "User information",
@@ -78,16 +203,13 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/requestbody.Login"
+                            "$ref": "#/definitions/requestbody.UpdatePassword"
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/responsebody.Token"
-                        }
+                        "description": "OK"
                     },
                     "400": {
                         "description": "Bad Request",
@@ -147,9 +269,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/auth/password/update": {
-            "patch": {
-                "description": "updates password for user",
+        "/auth/session": {
+            "post": {
+                "description": "check if user exists, and return an access token",
                 "consumes": [
                     "application/json"
                 ],
@@ -159,7 +281,7 @@ const docTemplate = `{
                 "tags": [
                     "auth"
                 ],
-                "summary": "Update password",
+                "summary": "Create a session for existing account",
                 "parameters": [
                     {
                         "description": "User information",
@@ -167,58 +289,15 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/requestbody.UpdatePassword"
+                            "$ref": "#/definitions/requestbody.CreateSession"
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK"
-                    },
-                    "400": {
-                        "description": "Bad Request",
+                        "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/responsebody.Message"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/responsebody.Message"
-                        }
-                    }
-                }
-            }
-        },
-        "/auth/register": {
-            "post": {
-                "description": "create user in database",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "auth"
-                ],
-                "summary": "Register user",
-                "parameters": [
-                    {
-                        "description": "User information",
-                        "name": "input",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/requestbody.Register"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "$ref": "#/definitions/responsebody.User"
+                            "$ref": "#/definitions/responsebody.Token"
                         }
                     },
                     "400": {
@@ -227,14 +306,8 @@ const docTemplate = `{
                             "$ref": "#/definitions/responsebody.Message"
                         }
                     },
-                    "403": {
-                        "description": "Forbidden",
-                        "schema": {
-                            "$ref": "#/definitions/responsebody.Message"
-                        }
-                    },
-                    "409": {
-                        "description": "Conflict",
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/responsebody.Message"
                         }
@@ -265,32 +338,30 @@ const docTemplate = `{
                 }
             }
         },
-        "/me": {
+        "/user/{username}": {
             "get": {
-                "security": [
-                    {
-                        "AccessToken": []
-                    }
-                ],
-                "description": "returns an user's information, that currently logged in",
+                "description": "returns an user's information and week activity history",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "user"
                 ],
-                "summary": "Get information about current user",
+                "summary": "Get public information about user by username",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Username",
+                        "name": "username",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/responsebody.User"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/responsebody.Message"
+                            "$ref": "#/definitions/responsebody.Profile"
                         }
                     },
                     "404": {
@@ -349,13 +420,47 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "requestbody.ConfirmEmail": {
+        "requestbody.ConfirmAccount": {
             "type": "object",
             "required": [
                 "token"
             ],
             "properties": {
                 "token": {
+                    "type": "string"
+                }
+            }
+        },
+        "requestbody.CreateAccount": {
+            "type": "object",
+            "required": [
+                "email",
+                "password",
+                "username"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "requestbody.CreateSession": {
+            "type": "object",
+            "required": [
+                "email",
+                "password"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "password": {
                     "type": "string"
                 }
             }
@@ -375,40 +480,6 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "kind": {
-                    "type": "string"
-                }
-            }
-        },
-        "requestbody.Login": {
-            "type": "object",
-            "required": [
-                "email",
-                "password"
-            ],
-            "properties": {
-                "email": {
-                    "type": "string"
-                },
-                "password": {
-                    "type": "string"
-                }
-            }
-        },
-        "requestbody.Register": {
-            "type": "object",
-            "required": [
-                "email",
-                "name",
-                "password"
-            ],
-            "properties": {
-                "email": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "password": {
                     "type": "string"
                 }
             }
@@ -439,6 +510,46 @@ const docTemplate = `{
                 }
             }
         },
+        "responsebody.Account": {
+            "type": "object",
+            "properties": {
+                "display_name": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_confirmed": {
+                    "type": "boolean"
+                },
+                "is_private": {
+                    "type": "boolean"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "responsebody.ActivityHistory": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                },
+                "user_id": {
+                    "type": "string"
+                },
+                "workouts": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/responsebody.Workout"
+                    }
+                }
+            }
+        },
         "responsebody.Message": {
             "type": "object",
             "properties": {
@@ -447,24 +558,33 @@ const docTemplate = `{
                 }
             }
         },
-        "responsebody.Token": {
+        "responsebody.Profile": {
             "type": "object",
             "properties": {
-                "token": {
-                    "type": "string"
-                }
-            }
-        },
-        "responsebody.User": {
-            "type": "object",
-            "properties": {
-                "email": {
+                "display_name": {
                     "type": "string"
                 },
                 "id": {
                     "type": "string"
                 },
-                "name": {
+                "is_private": {
+                    "type": "boolean"
+                },
+                "username": {
+                    "type": "string"
+                },
+                "week_activity": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/responsebody.Workout"
+                    }
+                }
+            }
+        },
+        "responsebody.Token": {
+            "type": "object",
+            "properties": {
+                "token": {
                     "type": "string"
                 }
             }

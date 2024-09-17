@@ -62,20 +62,20 @@ func (r *Router) InitRoutes() *gin.Engine {
 	{
 		api.GET("/healthcheck", r.handler.Healthcheck)
 
-		auth := api.Group("/auth")
-		{
-			auth.POST("/register", r.handler.Register)
-			auth.POST("/login", r.handler.Login)
+		api.POST("/auth/session", r.handler.CreateSession)
 
-			auth.POST("/password/reset", r.handler.ResetPassword)
-			auth.PATCH("/password/update", r.handler.UpdatePassword)
+		api.POST("/auth/account", r.handler.CreateAccount)
+		api.GET("/auth/account", r.handler.UserIdentity, r.handler.GetCurrentAccount)
+		api.POST("/auth/account/confirm", r.handler.ConfirmAccount)
 
-			auth.POST("/confirm", r.handler.ConfirmEmail)
-		}
-
-		api.GET("/me", r.handler.UserIdentity, r.handler.Me)
+		api.POST("/auth/password/reset", r.handler.ResetPassword)
+		api.PATCH("/auth/password", r.handler.UpdatePassword)
 
 		api.POST("/workout", r.handler.UserIdentity, r.handler.CreateWorkout)
+
+		api.GET("/activity", r.handler.UserIdentity, r.handler.GetActivityHistory)
+
+		api.GET("/user/:username", r.handler.GetUserByUsername)
 	}
 
 	return router

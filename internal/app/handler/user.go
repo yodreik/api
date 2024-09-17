@@ -7,45 +7,78 @@ import (
 	repoerr "api/internal/repository/errors"
 	"api/pkg/requestid"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
 
-// @Summary      Get information about current user
-// @Description  returns an user's information, that currently logged in
-// @Security     AccessToken
+// @Summary      Get public information about user by username
+// @Description  returns an user's information and week activity history
 // @Tags         user
 // @Produce      json
-// @Success      200 {object}  responsebody.User
-// @Failure      400 {object}  responsebody.Message
-// @Failure      404 {object}  responsebody.Message
-// @Router       /me           [get]
-func (h *Handler) Me(c *gin.Context) {
+// @Param        username          path string true "Username"
+// @Success      200 {object}      responsebody.Profile
+// @Failure      404 {object}      responsebody.Message
+// @Router       /user/{username}  [get]
+func (h *Handler) GetUserByUsername(c *gin.Context) {
 	log := slog.With(
-		slog.String("op", "handler.Me"),
+		slog.String("op", "handler.GetUserByUsername"),
 		slog.String("request_id", requestid.Get(c)),
 	)
 
-	userID := c.GetString("UserID")
-	user, err := h.repository.User.GetByID(c, userID)
+	username := c.Param("username")
+
+	user, err := h.repository.User.GetByUsername(c, username)
 	if errors.Is(err, repoerr.ErrUserNotFound) {
-		log.Debug("user not found", slog.String("id", userID))
-		response.WithMessage(c, http.StatusUnauthorized, "invalid authorization token")
+		log.Debug("user not found")
+		response.WithMessage(c, http.StatusNotFound, "user not found")
 		return
 	}
 	if err != nil {
-		log.Error("can't find user", sl.Err(err))
+		log.Error("could not get user by username", sl.Err(err), slog.String("username", username))
 		response.InternalServerError(c)
 		return
 	}
 
-	resUser := responsebody.User{
-		ID:    user.ID,
-		Email: user.Email,
-		Name:  user.Name,
+	if user.IsPrivate {
+		c.JSON(http.StatusOK, responsebody.Profile{
+			ID:        user.ID,
+			Username:  user.Username,
+			IsPrivate: user.IsPrivate,
+		})
+		return
 	}
 
-	c.JSON(http.StatusOK, resUser)
+	workouts, err := h.repository.Workout.GetUserWorkouts(c, user.ID, time.Now().Add(-6*24*time.Hour).Truncate(24*time.Hour), time.Now().Add(time.Hour).Truncate(time.Hour))
+	if err != nil {
+		log.Error("could not get workouts", sl.Err(err))
+		response.InternalServerError(c)
+		return
+	}
+
+	activity := make([]responsebody.Workout, 0)
+
+	fmt.Println("workouts ", workouts)
+	fmt.Println("activity ", activity)
+
+	for _, workout := range workouts {
+		activity = append(activity, responsebody.Workout{
+			ID:       workout.ID,
+			Date:     workout.Date.Format("02-01-2006"),
+			Duration: workout.Duration,
+			Kind:     workout.Kind,
+		})
+	}
+
+	c.JSON(http.StatusOK, responsebody.Profile{
+		ID:           user.ID,
+		Username:     user.Username,
+		DisplayName:  user.DisplayName,
+		AvatarURL:    user.AvatarURL,
+		IsPrivate:    user.IsPrivate,
+		WeekActivity: activity,
+	})
 }

@@ -17,24 +17,23 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// @Summary      Register user
+// @Summary      Create new account
 // @Description  create user in database
 // @Tags         auth
 // @Accept       json
 // @Produce      json
-// @Param        input body      requestbody.Register true "User information"
-// @Success      201 {object}    responsebody.User
-// @Failure      400 {object}    responsebody.Message
-// @Failure      403 {object}    responsebody.Message
-// @Failure      409 {object}    responsebody.Message
-// @Router       /auth/register  [post]
-func (h *Handler) Register(c *gin.Context) {
+// @Param        input body     requestbody.CreateAccount true "User information"
+// @Success      201 {object}   responsebody.Account
+// @Failure      400 {object}   responsebody.Message
+// @Failure      409 {object}   responsebody.Message
+// @Router       /auth/account  [post]
+func (h *Handler) CreateAccount(c *gin.Context) {
 	log := slog.With(
-		slog.String("op", "handler.Register"),
+		slog.String("op", "handler.CreateAccount"),
 		slog.String("request_id", requestid.Get(c)),
 	)
 
-	var body requestbody.Register
+	var body requestbody.CreateAccount
 	if err := c.BindJSON(&body); err != nil {
 		log.Debug("can't decode request body", sl.Err(err))
 		response.InvalidRequestBody(c)
@@ -48,9 +47,9 @@ func (h *Handler) Register(c *gin.Context) {
 		return
 	}
 
-	if len(body.Name) > 50 {
-		log.Debug("name is too long")
-		response.WithMessage(c, http.StatusBadRequest, "name is too long")
+	if len(body.Username) < 5 {
+		log.Debug("username is too short")
+		response.WithMessage(c, http.StatusBadRequest, "username is too short")
 		return
 	}
 
@@ -60,8 +59,7 @@ func (h *Handler) Register(c *gin.Context) {
 		return
 	}
 
-	token := h.token.Long()
-	user, err := h.repository.User.CreateWithEmailConfirmationRequest(c, body.Email, body.Name, sha256.String(body.Password), token)
+	user, err := h.repository.User.Create(c, body.Email, body.Username, sha256.String(body.Password))
 	if errors.Is(err, repoerr.ErrUserAlreadyExists) {
 		log.Info("user already exists", sl.Err(err))
 		response.WithMessage(c, http.StatusConflict, "user already exists")
@@ -73,40 +71,42 @@ func (h *Handler) Register(c *gin.Context) {
 		return
 	}
 
-	log.Info("created a user", slog.String("id", user.ID), slog.String("email", user.Email), slog.String("name", user.Name))
+	log.Info("created a user", slog.String("id", user.ID), slog.String("email", user.Email), slog.String("username", user.Username))
 
 	go func() {
-		err = h.mailer.SendConfirmationEmail(body.Email, token)
+		err = h.mailer.SendConfirmationEmail(body.Email, user.ConfirmationToken)
 		if err != nil {
 			log.Error("can't send an email", sl.Err(err))
 		}
 	}()
 
-	// TOTHINK: Maybe additionally return an access token
-	c.JSON(http.StatusCreated, responsebody.User{
-		ID:    user.ID,
-		Email: body.Email,
-		Name:  body.Name,
+	c.JSON(http.StatusCreated, responsebody.Account{
+		ID:          user.ID,
+		Email:       user.Email,
+		Username:    user.Username,
+		DisplayName: user.DisplayName,
+		IsPrivate:   user.IsPrivate,
+		IsConfirmed: user.IsConfirmed,
 	})
 }
 
-// @Summary      Log into user's account
+// @Summary      Create a session for existing account
 // @Description  check if user exists, and return an access token
 // @Tags         auth
 // @Accept       json
 // @Produce      json
-// @Param        input body    requestbody.Login true "User information"
-// @Success      200 {object}  responsebody.Token
-// @Failure      400 {object}  responsebody.Message
-// @Failure      404 {object}  responsebody.Message
-// @Router       /auth/login   [post]
-func (h *Handler) Login(c *gin.Context) {
+// @Param        input body     requestbody.CreateSession true "User information"
+// @Success      200 {object}   responsebody.Token
+// @Failure      400 {object}   responsebody.Message
+// @Failure      401 {object}   responsebody.Message
+// @Router       /auth/session  [post]
+func (h *Handler) CreateSession(c *gin.Context) {
 	log := slog.With(
-		slog.String("op", "handler.Login"),
+		slog.String("op", "handler.CreateSession"),
 		slog.String("request_id", requestid.Get(c)),
 	)
 
-	var body requestbody.Login
+	var body requestbody.CreateSession
 	if err := c.BindJSON(&body); err != nil {
 		log.Debug("can't decode request body", sl.Err(err))
 		response.InvalidRequestBody(c)
@@ -116,7 +116,7 @@ func (h *Handler) Login(c *gin.Context) {
 	user, err := h.repository.User.GetByCredentials(c, body.Email, sha256.String(body.Password))
 	if errors.Is(err, repoerr.ErrUserNotFound) {
 		log.Debug("user not found", slog.String("email", body.Email))
-		response.WithMessage(c, http.StatusNotFound, "user not found")
+		response.WithMessage(c, http.StatusUnauthorized, "user not found")
 		return
 	}
 	if err != nil {
@@ -125,7 +125,7 @@ func (h *Handler) Login(c *gin.Context) {
 		return
 	}
 
-	if user.IsEmailConfirmed {
+	if user.IsConfirmed {
 		token, err := h.token.GenerateJWT(user.ID)
 		if err != nil {
 			log.Error("can't generate JWT", sl.Err(err))
@@ -141,33 +141,12 @@ func (h *Handler) Login(c *gin.Context) {
 
 	log.Debug("user's email not confirmed")
 
-	request, err := h.repository.User.GetRequestByEmail(c, body.Email)
-	if errors.Is(err, repoerr.ErrRequestNotFound) || time.Now().After(request.ExpiresAt) {
-		log.Debug("confirmation request not found")
-		token := h.token.Long()
-		request, err := h.repository.User.CreateEmailConfirmationRequest(c, token, body.Email)
+	go func() {
+		err = h.mailer.SendConfirmationEmail(body.Email, user.ConfirmationToken)
 		if err != nil {
-			log.Error("can't save new email confirmation request", sl.Err(err))
-			response.InternalServerError(c)
-			return
+			log.Error("can't send confirmation email", sl.Err(err))
 		}
-
-		go func() {
-			err = h.mailer.SendConfirmationEmail(body.Email, request.Token)
-			if err != nil {
-				log.Error("can't send confirmation email", sl.Err(err))
-			}
-		}()
-
-		log.Debug("new confirmation email sent")
-		response.WithMessage(c, http.StatusForbidden, "email confirmation needed")
-		return
-	}
-	if err != nil {
-		log.Error("can't get confirmation request", sl.Err(err))
-		response.InternalServerError(c)
-		return
-	}
+	}()
 
 	response.WithMessage(c, http.StatusForbidden, "email confirmation needed")
 }
@@ -230,11 +209,11 @@ func (h *Handler) ResetPassword(c *gin.Context) {
 // @Tags         auth
 // @Accept       json
 // @Produce      json
-// @Param        input body             requestbody.UpdatePassword true "User information"
+// @Param        input body      requestbody.UpdatePassword true "User information"
 // @Success      200
-// @Failure      400 {object}           responsebody.Message
-// @Failure      404 {object}           responsebody.Message
-// @Router       /auth/password/update  [patch]
+// @Failure      400 {object}    responsebody.Message
+// @Failure      404 {object}    responsebody.Message
+// @Router       /auth/password  [patch]
 func (h *Handler) UpdatePassword(c *gin.Context) {
 	log := slog.With(
 		slog.String("op", "handler.UpdatePassword"),
@@ -287,33 +266,33 @@ func (h *Handler) UpdatePassword(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
-// @Summary      Confirm email
+// @Summary      Confirm account's email
 // @Description  confirms user's email
 // @Tags         auth
 // @Accept       json
 // @Produce      json
-// @Param        input body             requestbody.ConfirmEmail true "Token"
+// @Param        input body             requestbody.ConfirmAccount true "Token"
 // @Success      200
 // @Failure      400 {object}           responsebody.Message
 // @Failure      404 {object}           responsebody.Message
-// @Router       /auth/confirm          [post]
-func (h *Handler) ConfirmEmail(c *gin.Context) {
+// @Router       /auth/account/confirm  [post]
+func (h *Handler) ConfirmAccount(c *gin.Context) {
 	log := slog.With(
-		slog.String("op", "handler.ConfirmEmail"),
+		slog.String("op", "handler.ConfirmAccount"),
 		slog.String("request_id", requestid.Get(c)),
 	)
 
-	var body requestbody.ConfirmEmail
+	var body requestbody.ConfirmAccount
 	if err := c.BindJSON(&body); err != nil {
 		log.Debug("can't decode request body", sl.Err(err))
 		response.InvalidRequestBody(c)
 		return
 	}
 
-	request, err := h.repository.User.GetRequestByToken(c, body.Token)
-	if errors.Is(err, repoerr.ErrRequestNotFound) {
-		log.Error("request not found")
-		response.WithMessage(c, http.StatusNotFound, "confirmation request not found")
+	user, err := h.repository.User.GetByConfirmationToken(c, body.Token)
+	if errors.Is(err, repoerr.ErrUserNotFound) {
+		log.Error("user not found")
+		response.WithMessage(c, http.StatusNotFound, "user not found")
 		return
 	}
 	if err != nil {
@@ -322,21 +301,7 @@ func (h *Handler) ConfirmEmail(c *gin.Context) {
 		return
 	}
 
-	if time.Now().After(request.ExpiresAt) {
-		log.Debug("confirmation token expired", slog.String("id", request.ID))
-
-		go func() {
-			err := h.mailer.SendConfirmationEmail(request.Email, request.Token)
-			if err != nil {
-				log.Error("can't send confirmation email", sl.Err(err))
-			}
-		}()
-
-		response.WithMessage(c, http.StatusForbidden, "confirmation link expired. we will send you new confirmation email")
-		return
-	}
-
-	err = h.repository.User.ConfirmEmail(c, request.Email, request.Token)
+	err = h.repository.User.SetUserConfirmed(c, user.Email, user.ConfirmationToken)
 	if err != nil {
 		log.Error("can't mark user as confirmed", sl.Err(err))
 		response.InternalServerError(c)
@@ -344,4 +309,42 @@ func (h *Handler) ConfirmEmail(c *gin.Context) {
 	}
 
 	c.Status(http.StatusOK)
+}
+
+// @Summary      Get information about current user
+// @Description  returns an user's information, that currently logged in
+// @Security     AccessToken
+// @Tags         auth
+// @Produce      json
+// @Success      200 {object}   responsebody.Account
+// @Failure      401 {object}   responsebody.Message
+// @Router       /auth/account  [get]
+func (h *Handler) GetCurrentAccount(c *gin.Context) {
+	log := slog.With(
+		slog.String("op", "handler.GetCurrentAccount"),
+		slog.String("request_id", requestid.Get(c)),
+	)
+
+	userID := c.GetString("UserID")
+	user, err := h.repository.User.GetByID(c, userID)
+	if errors.Is(err, repoerr.ErrUserNotFound) {
+		log.Debug("user not found", slog.String("id", userID))
+		response.WithMessage(c, http.StatusUnauthorized, "invalid authorization token")
+		return
+	}
+	if err != nil {
+		log.Error("can't find user", sl.Err(err))
+		response.InternalServerError(c)
+		return
+	}
+
+	c.JSON(http.StatusOK, responsebody.Account{
+		ID:          user.ID,
+		Email:       user.Email,
+		Username:    user.Username,
+		DisplayName: user.DisplayName,
+		AvatarURL:   user.AvatarURL,
+		IsPrivate:   user.IsPrivate,
+		IsConfirmed: user.IsConfirmed,
+	})
 }
