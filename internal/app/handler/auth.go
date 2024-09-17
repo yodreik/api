@@ -47,18 +47,6 @@ func (h *Handler) CreateAccount(c *gin.Context) {
 		return
 	}
 
-	if len(body.Username) < 5 {
-		log.Debug("username is too short")
-		response.WithMessage(c, http.StatusBadRequest, "username is too short")
-		return
-	}
-
-	if len(body.Password) > 50 {
-		log.Debug("password is too long")
-		response.WithMessage(c, http.StatusBadRequest, "password is too long")
-		return
-	}
-
 	user, err := h.repository.User.Create(c, body.Email, body.Username, sha256.String(body.Password))
 	if errors.Is(err, repoerr.ErrUserAlreadyExists) {
 		log.Info("user already exists", sl.Err(err))

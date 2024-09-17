@@ -76,30 +76,6 @@ func TestCreateAccount(t *testing.T) {
 			},
 		},
 		{
-			name: "usernamename is too short",
-
-			request: request{
-				body: `{"email":"john.doe@example.com","username":"wort","password":"testword"}`,
-			},
-
-			expect: expect{
-				status: http.StatusBadRequest,
-				body:   `{"message":"username is too short"}`,
-			},
-		},
-		{
-			name: "password is too long",
-
-			request: request{
-				body: `{"email":"john.doe@example.com","username":"John Doe","password":"very-looooooooooooooooooooooooooooooooooooooooooong-password"}`,
-			},
-
-			expect: expect{
-				status: http.StatusBadRequest,
-				body:   `{"message":"password is too long"}`,
-			},
-		},
-		{
 			name: "user already exists",
 
 			repo: func(mock sqlmock.Sqlmock) {
