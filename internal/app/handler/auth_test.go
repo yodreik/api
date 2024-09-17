@@ -35,8 +35,8 @@ func TestCreateAccount(t *testing.T) {
 			name: "ok",
 
 			repo: func(mock sqlmock.Sqlmock) {
-				rows := sqlmock.NewRows([]string{"id", "email", "username", "display_name", "password_hash", "is_private", "is_confirmed", "confirmation_token", "created_at"}).
-					AddRow("USER_ID", "john.doe@example.com", "johndoe", "", sha256.String("testword"), false, false, "CONFIRMATION_TOKEN", time.Now())
+				rows := sqlmock.NewRows([]string{"id", "email", "username", "display_name", "avatar_url", "password_hash", "is_private", "is_confirmed", "confirmation_token", "created_at"}).
+					AddRow("USER_ID", "john.doe@example.com", "johndoe", "", "https://cdn.domain.com/avatar.jpeg", sha256.String("testword"), false, false, "CONFIRMATION_TOKEN", time.Now())
 
 				mock.ExpectQuery("INSERT INTO users (email, username, password_hash) VALUES ($1, $2, $3) RETURNING *").
 					WithArgs("john.doe@example.com", "johndoe", sha256.String("testword")).WillReturnRows(rows)
@@ -48,7 +48,7 @@ func TestCreateAccount(t *testing.T) {
 
 			expect: expect{
 				status: http.StatusCreated,
-				body:   `{"id":"USER_ID","email":"john.doe@example.com","username":"johndoe","display_name":"","is_private":false,"is_confirmed":false}`,
+				body:   `{"id":"USER_ID","email":"john.doe@example.com","username":"johndoe","display_name":"","avatar_url":"","is_private":false,"is_confirmed":false}`,
 			},
 		},
 		{
@@ -156,8 +156,8 @@ func TestCreateSession(t *testing.T) {
 			name: "ok",
 
 			repo: func(mock sqlmock.Sqlmock) {
-				rows := sqlmock.NewRows([]string{"id", "email", "username", "password_hash", "is_confirmed", "created_at"}).
-					AddRow("USER_ID", "john.doe@example.com", "johndoe", sha256.String("testword"), true, time.Now())
+				rows := sqlmock.NewRows([]string{"id", "email", "username", "display_name", "avatar_url", "password_hash", "is_private", "is_confirmed", "confirmation_token", "created_at"}).
+					AddRow("USER_ID", "john.doe@example.com", "johndoe", "", "https://cdn.domain.com/avatar.jpeg", sha256.String("testword"), false, true, "CONFIRMATION_TOKEN", time.Now())
 
 				mock.ExpectQuery("SELECT * FROM users WHERE email = $1 AND password_hash = $2").
 					WithArgs("john.doe@example.com", sha256.String("testword")).WillReturnRows(rows)
@@ -222,8 +222,8 @@ func TestCreateSession(t *testing.T) {
 			name: "user not confirmed",
 
 			repo: func(mock sqlmock.Sqlmock) {
-				rows := sqlmock.NewRows([]string{"id", "email", "username", "display_name", "password_hash", "is_confirmed", "confirmation_token", "created_at"}).
-					AddRow("USER_ID", "john.doe@example.com", "johndoe", "", sha256.String("testword"), false, "CONFIRMATION_TOKEN", time.Now())
+				rows := sqlmock.NewRows([]string{"id", "email", "username", "display_name", "avatar_url", "password_hash", "is_private", "is_confirmed", "confirmation_token", "created_at"}).
+					AddRow("USER_ID", "john.doe@example.com", "johndoe", "", "https://cdn.domain.com/avatar.jpeg", sha256.String("testword"), false, false, "CONFIRMATION_TOKEN", time.Now())
 
 				mock.ExpectQuery("SELECT * FROM users WHERE email = $1 AND password_hash = $2").WithArgs("john.doe@example.com", sha256.String("testword")).WillReturnRows(rows)
 			},
@@ -260,8 +260,8 @@ func TestResetPassword(t *testing.T) {
 			name: "ok",
 
 			repo: func(mock sqlmock.Sqlmock) {
-				rows := sqlmock.NewRows([]string{"id", "email", "username", "display_name", "password_hash", "is_confirmed", "confirmation_token", "created_at"}).
-					AddRow("USER_ID", "john.doe@example.com", "johndoe", "John Doe", sha256.String("testword"), true, "CONFIRMATION_TOKEN", time.Now())
+				rows := sqlmock.NewRows([]string{"id", "email", "username", "display_name", "avatar_url", "password_hash", "is_private", "is_confirmed", "confirmation_token", "created_at"}).
+					AddRow("USER_ID", "john.doe@example.com", "johndoe", "John Doe", "https://cdn.domain.com/avatar.jpeg", sha256.String("testword"), false, true, "CONFIRMATION_TOKEN", time.Now())
 
 				mock.ExpectQuery("SELECT * FROM users WHERE email = $1").WithArgs("john.doe@example.com").WillReturnRows(rows)
 
@@ -323,8 +323,8 @@ func TestResetPassword(t *testing.T) {
 			name: "repository error",
 
 			repo: func(mock sqlmock.Sqlmock) {
-				rows := sqlmock.NewRows([]string{"id", "email", "username", "display_name", "password_hash", "is_confirmed", "confirmation_token", "created_at"}).
-					AddRow("USER_ID", "john.doe@example.com", "johndoe", "John Doe", sha256.String("testword"), true, "CONFIRMATION_TOKEN", time.Now())
+				rows := sqlmock.NewRows([]string{"id", "email", "username", "display_name", "avatar_url", "password_hash", "is_private", "is_confirmed", "confirmation_token", "created_at"}).
+					AddRow("USER_ID", "john.doe@example.com", "johndoe", "John Doe", "https://cdn.domain.com/avatar.jpeg", sha256.String("testword"), false, true, "CONFIRMATION_TOKEN", time.Now())
 
 				mock.ExpectQuery("SELECT * FROM users WHERE email = $1").WithArgs("john.doe@example.com").WillReturnRows(rows)
 
@@ -542,8 +542,8 @@ func TestConfirmAccount(t *testing.T) {
 			name: "ok",
 
 			repo: func(mock sqlmock.Sqlmock) {
-				rows := sqlmock.NewRows([]string{"id", "email", "username", "display_name", "password_hash", "is_confirmed", "confirmation_token", "created_at"}).
-					AddRow("USER_ID", "john.doe@example.com", "johndoe", "John Doe", sha256.String("testword"), true, "CONFIRMATION_TOKEN", time.Now())
+				rows := sqlmock.NewRows([]string{"id", "email", "username", "display_name", "avatar_url", "password_hash", "is_private", "is_confirmed", "confirmation_token", "created_at"}).
+					AddRow("USER_ID", "john.doe@example.com", "johndoe", "John Doe", "https://cdn.domain.com/avatar.jpeg", sha256.String("testword"), false, true, "CONFIRMATION_TOKEN", time.Now())
 
 				mock.ExpectQuery("SELECT * FROM users WHERE confirmation_token = $1").
 					WithArgs("CONFIRMATION_TOKEN").
@@ -610,8 +610,8 @@ func TestConfirmAccount(t *testing.T) {
 			name: "repository error on confirming",
 
 			repo: func(mock sqlmock.Sqlmock) {
-				rows := sqlmock.NewRows([]string{"id", "email", "username", "display_name", "password_hash", "is_confirmed", "confirmation_token", "created_at"}).
-					AddRow("USER_ID", "john.doe@example.com", "johndoe", "John Doe", sha256.String("testword"), true, "CONFIRMATION_TOKEN", time.Now())
+				rows := sqlmock.NewRows([]string{"id", "email", "username", "display_name", "avatar_url", "password_hash", "is_private", "is_confirmed", "confirmation_token", "created_at"}).
+					AddRow("USER_ID", "john.doe@example.com", "johndoe", "John Doe", "https://cdn.domain.com/avatar.jpeg", sha256.String("testword"), false, true, "CONFIRMATION_TOKEN", time.Now())
 
 				mock.ExpectQuery("SELECT * FROM users WHERE confirmation_token = $1").
 					WithArgs("CONFIRMATION_TOKEN").
@@ -660,8 +660,8 @@ func TestGetCurrentAccount(t *testing.T) {
 			name: "ok",
 
 			repo: func(mock sqlmock.Sqlmock) {
-				rows := sqlmock.NewRows([]string{"id", "username", "display_name", "email", "password_hash", "is_private", "is_confirmed", "confirmation_token", "created_at"}).
-					AddRow("USER_ID", "johndoe", "John Doe", "john.doe@example.com", sha256.String("testword"), false, true, "CONFIRmATION_TOKEN", time.Now())
+				rows := sqlmock.NewRows([]string{"id", "email", "username", "display_name", "avatar_url", "password_hash", "is_private", "is_confirmed", "confirmation_token", "created_at"}).
+					AddRow("USER_ID", "john.doe@example.com", "johndoe", "John Doe", "https://cdn.domain.com/avatar.jpeg", sha256.String("testword"), false, true, "CONFIRMATION_TOKEN", time.Now())
 
 				mock.ExpectQuery("SELECT * FROM users WHERE id = $1").WithArgs("USER_ID").WillReturnRows(rows)
 			},
@@ -674,7 +674,7 @@ func TestGetCurrentAccount(t *testing.T) {
 
 			expect: expect{
 				status: http.StatusOK,
-				body:   `{"id":"USER_ID","email":"john.doe@example.com","username":"johndoe","display_name":"John Doe","is_private":false,"is_confirmed":true}`,
+				body:   `{"id":"USER_ID","email":"john.doe@example.com","username":"johndoe","display_name":"John Doe","avatar_url":"https://cdn.domain.com/avatar.jpeg","is_private":false,"is_confirmed":true}`,
 			},
 		},
 		{

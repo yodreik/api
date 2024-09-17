@@ -343,6 +343,7 @@ func (h *Handler) GetCurrentAccount(c *gin.Context) {
 		Email:       user.Email,
 		Username:    user.Username,
 		DisplayName: user.DisplayName,
+		AvatarURL:   user.AvatarURL,
 		IsPrivate:   user.IsPrivate,
 		IsConfirmed: user.IsConfirmed,
 	})

@@ -6,6 +6,7 @@ CREATE TABLE users
     email VARCHAR(254) NOT NULL UNIQUE,
     username VARCHAR(32) NOT NULL UNIQUE,
     display_name VARCHAR(50) DEFAULT '' NOT NULL,
+    avatar_url TEXT DEFAULT '' NOT NULL,
     password_hash CHAR(64) NOT NULL,
     is_private BOOLEAN DEFAULT false NOT NULL,
     is_confirmed BOOLEAN DEFAULT false NOT NULL,

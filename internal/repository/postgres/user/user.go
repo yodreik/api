@@ -20,6 +20,7 @@ type User struct {
 	Email             string    `db:"email"`
 	Username          string    `db:"username"`
 	DisplayName       string    `db:"display_name"`
+	AvatarURL         string    `db:"avatar_url"`
 	PasswordHash      string    `db:"password_hash"`
 	IsPrivate         bool      `db:"is_private"`
 	IsConfirmed       bool      `db:"is_confirmed"`
@@ -51,7 +52,7 @@ func (p *Postgres) Create(ctx context.Context, email string, username string, pa
 	}
 
 	var user User
-	err := row.Scan(&user.ID, &user.Email, &user.Username, &user.DisplayName, &user.PasswordHash, &user.IsPrivate, &user.IsConfirmed, &user.ConfirmationToken, &user.CreatedAt)
+	err := row.Scan(&user.ID, &user.Email, &user.Username, &user.DisplayName, &user.AvatarURL, &user.PasswordHash, &user.IsPrivate, &user.IsConfirmed, &user.ConfirmationToken, &user.CreatedAt)
 	if err != nil {
 		return nil, err
 	}

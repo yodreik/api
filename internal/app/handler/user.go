@@ -77,6 +77,7 @@ func (h *Handler) GetUserByUsername(c *gin.Context) {
 		ID:           user.ID,
 		Username:     user.Username,
 		DisplayName:  user.DisplayName,
+		AvatarURL:    user.AvatarURL,
 		IsPrivate:    user.IsPrivate,
 		WeekActivity: activity,
 	})
