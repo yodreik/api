@@ -348,3 +348,55 @@ func (h *Handler) GetCurrentAccount(c *gin.Context) {
 		IsConfirmed: user.IsConfirmed,
 	})
 }
+
+func (h *Handler) UpdateAccount(c *gin.Context) {
+	log := slog.With(
+		slog.String("op", "handler.UpdateAccount"),
+		slog.String("request_id", requestid.Get(c)),
+	)
+
+	var body requestbody.UpdateAccount
+	if err := c.BindJSON(&body); err != nil {
+		log.Debug("can't decode request body", sl.Err(err))
+		response.InvalidRequestBody(c)
+		return
+	}
+
+	userID := c.GetString("UserID")
+	user, err := h.repository.User.GetByID(c, userID)
+	if errors.Is(err, repoerr.ErrUserNotFound) {
+		log.Debug("user does not exists")
+		response.WithMessage(c, http.StatusNotFound, "user not found")
+		return
+	}
+	if err != nil {
+		log.Error("can't find user", sl.Err(err))
+		response.InternalServerError(c)
+		return
+	}
+
+	if body.Username != nil {
+		user.Username = *body.Username
+	}
+	if body.DisplayName != nil {
+		user.DisplayName = *body.DisplayName
+	}
+	if body.AvatarURL != nil {
+		user.AvatarURL = *body.AvatarURL
+	}
+	if body.Password != nil {
+		user.PasswordHash = sha256.String(*body.Password)
+	}
+	if body.IsPrivate != nil {
+		user.IsPrivate = *body.IsPrivate
+	}
+
+	err = h.repository.User.UpdateUser(c, userID, user.Email, user.Username, user.DisplayName, user.AvatarURL, user.PasswordHash, user.IsPrivate)
+	if err != nil {
+		log.Error("can't update user", sl.Err(err))
+		response.InternalServerError(c)
+		return
+	}
+
+	c.Status(http.StatusOK)
+}

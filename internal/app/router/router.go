@@ -66,6 +66,7 @@ func (r *Router) InitRoutes() *gin.Engine {
 
 		api.POST("/auth/account", r.handler.CreateAccount)
 		api.GET("/auth/account", r.handler.UserIdentity, r.handler.GetCurrentAccount)
+		api.PATCH("/auth/account", r.handler.UserIdentity, r.handler.UpdateAccount)
 		api.POST("/auth/account/confirm", r.handler.ConfirmAccount)
 
 		api.POST("/auth/password/reset", r.handler.ResetPassword)

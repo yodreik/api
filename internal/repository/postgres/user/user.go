@@ -60,6 +60,13 @@ func (p *Postgres) Create(ctx context.Context, email string, username string, pa
 	return &user, nil
 }
 
+func (p *Postgres) UpdateUser(ctx context.Context, userID string, email string, username string, displayName string, avatarURL string, passwordHash string, isPrivate bool) error {
+	query := "UPDATE users SET email = $1, username = $2, display_name = $3, avatar_url = $4, password_hash = $5, is_private = $6 WHERE id = $7"
+
+	_, err := p.db.ExecContext(ctx, query, email, username, displayName, avatarURL, passwordHash, isPrivate, userID)
+	return err
+}
+
 func (p *Postgres) GetByID(ctx context.Context, id string) (*User, error) {
 	query := "SELECT * FROM users WHERE id = $1"
 

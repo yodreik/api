@@ -12,6 +12,7 @@ import (
 type User interface {
 	Create(ctx context.Context, email string, username string, passwordHash string) (*user.User, error)
 	SetUserConfirmed(ctx context.Context, email string, token string) error
+	UpdateUser(ctx context.Context, userID string, email string, username string, displayName string, avatarURL string, passwordHash string, isPrivate bool) error
 	GetByID(ctx context.Context, id string) (*user.User, error)
 	GetByCredentials(ctx context.Context, email string, passwordHash string) (*user.User, error)
 	GetByEmail(ctx context.Context, email string) (*user.User, error)
