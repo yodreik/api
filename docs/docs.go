@@ -22,7 +22,7 @@ const docTemplate = `{
                         "AccessToken": []
                     }
                 ],
-                "description": "reeturns user's workout history",
+                "description": "returns user's workout history",
                 "consumes": [
                     "application/json"
                 ],
@@ -58,6 +58,12 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/responsebody.Message"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/responsebody.Message"
                         }
@@ -666,6 +672,20 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/responsebody.Workout"
                     }
+                }
+            }
+        },
+        "responsebody.Statistics": {
+            "type": "object",
+            "properties": {
+                "longest_activity": {
+                    "type": "integer"
+                },
+                "minutes_spent": {
+                    "type": "integer"
+                },
+                "user_id": {
+                    "type": "string"
                 }
             }
         },

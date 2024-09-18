@@ -62,7 +62,7 @@ func (h *Handler) CreateWorkout(c *gin.Context) {
 }
 
 // @Summary      Get user's activity history
-// @Description  reeturns user's workout history
+// @Description  returns user's workout history
 // @Security     AccessToken
 // @Tags         workout
 // @Accept       json
@@ -71,6 +71,7 @@ func (h *Handler) CreateWorkout(c *gin.Context) {
 // @Param        end   query   string true "End date"
 // @Success      200 {object}  responsebody.ActivityHistory
 // @Failure      400 {object}  responsebody.Message
+// @Failure      401 {object}  responsebody.Message
 // @Router       /activity     [get]
 func (h *Handler) GetActivityHistory(c *gin.Context) {
 	log := slog.With(

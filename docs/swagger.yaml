@@ -139,6 +139,15 @@ definitions:
           $ref: '#/definitions/responsebody.Workout'
         type: array
     type: object
+  responsebody.Statistics:
+    properties:
+      longest_activity:
+        type: integer
+      minutes_spent:
+        type: integer
+      user_id:
+        type: string
+    type: object
   responsebody.Token:
     properties:
       token:
@@ -166,7 +175,7 @@ paths:
     get:
       consumes:
       - application/json
-      description: reeturns user's workout history
+      description: returns user's workout history
       parameters:
       - description: Begin date
         in: query
@@ -187,6 +196,10 @@ paths:
             $ref: '#/definitions/responsebody.ActivityHistory'
         "400":
           description: Bad Request
+          schema:
+            $ref: '#/definitions/responsebody.Message'
+        "401":
+          description: Unauthorized
           schema:
             $ref: '#/definitions/responsebody.Message'
       security:
