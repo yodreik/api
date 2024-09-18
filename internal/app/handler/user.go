@@ -86,11 +86,11 @@ func (h *Handler) GetUserByUsername(c *gin.Context) {
 // @Summary      Get user's statistics
 // @Description  returns user's all-time statistics
 // @Security     AccessToken
-// @Tags         workout
+// @Tags         activity
 // @Produce      json
 // @Success      200 {object}  responsebody.Statistics
 // @Failure      401 {object}  responsebody.Message
-// @Router       /activity     [get]
+// @Router       /statistics   [get]
 func (h *Handler) GetStatistics(c *gin.Context) {
 	log := slog.With(
 		slog.String("op", "handler.GetStatistics"),

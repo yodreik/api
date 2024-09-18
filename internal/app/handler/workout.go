@@ -16,7 +16,7 @@ import (
 // @Summary      Create a record about past workout
 // @Description  creates a new record about workout session
 // @Security     AccessToken
-// @Tags         workout
+// @Tags         activity
 // @Accept       json
 // @Produce      json
 // @Param        input body    requestbody.CreateWorkout true "Information about workout session"
@@ -64,7 +64,7 @@ func (h *Handler) CreateWorkout(c *gin.Context) {
 // @Summary      Get user's activity history
 // @Description  returns user's workout history
 // @Security     AccessToken
-// @Tags         workout
+// @Tags         activity
 // @Accept       json
 // @Produce      json
 // @Param        begin query   string true "Begin date"

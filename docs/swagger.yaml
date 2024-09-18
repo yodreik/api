@@ -206,7 +206,7 @@ paths:
       - AccessToken: []
       summary: Get user's activity history
       tags:
-      - workout
+      - activity
   /auth/account:
     get:
       description: returns an user's information, that currently logged in
@@ -413,6 +413,25 @@ paths:
       summary: Ping a server
       tags:
       - status
+  /statistics:
+    get:
+      description: returns user's all-time statistics
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responsebody.Statistics'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/responsebody.Message'
+      security:
+      - AccessToken: []
+      summary: Get user's statistics
+      tags:
+      - activity
   /user/{username}:
     get:
       description: returns an user's information and week activity history
@@ -463,7 +482,7 @@ paths:
       - AccessToken: []
       summary: Create a record about past workout
       tags:
-      - workout
+      - activity
 securityDefinitions:
   AccessToken:
     in: header
