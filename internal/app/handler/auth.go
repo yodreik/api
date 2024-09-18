@@ -337,6 +337,17 @@ func (h *Handler) GetCurrentAccount(c *gin.Context) {
 	})
 }
 
+// @Summary      Update personal information
+// @Description  updates user entity in storage
+// @Security     AccessToken
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        input body             requestbody.UpdateAccount true "User Information"
+// @Success      200
+// @Failure      400 {object}   responsebody.Message
+// @Failure      401 {object}   responsebody.Message
+// @Router       /auth/account  [patch]
 func (h *Handler) UpdateAccount(c *gin.Context) {
 	log := slog.With(
 		slog.String("op", "handler.UpdateAccount"),

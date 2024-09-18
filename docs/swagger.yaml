@@ -10,10 +10,15 @@ definitions:
   requestbody.CreateAccount:
     properties:
       email:
+        maxLength: 254
         type: string
       password:
+        maxLength: 64
+        minLength: 8
         type: string
       username:
+        maxLength: 32
+        minLength: 5
         type: string
     required:
     - email
@@ -23,6 +28,7 @@ definitions:
   requestbody.CreateSession:
     properties:
       email:
+        maxLength: 254
         type: string
       password:
         type: string
@@ -46,13 +52,36 @@ definitions:
   requestbody.ResetPassword:
     properties:
       email:
+        maxLength: 254
         type: string
     required:
     - email
     type: object
+  requestbody.UpdateAccount:
+    properties:
+      avatar_url:
+        maxLength: 2048
+        type: string
+      display_name:
+        maxLength: 50
+        minLength: 1
+        type: string
+      is_private:
+        type: boolean
+      password:
+        maxLength: 64
+        minLength: 8
+        type: string
+      username:
+        maxLength: 32
+        minLength: 5
+        type: string
+    type: object
   requestbody.UpdatePassword:
     properties:
       password:
+        maxLength: 64
+        minLength: 8
         type: string
       token:
         type: string
@@ -182,6 +211,35 @@ paths:
       security:
       - AccessToken: []
       summary: Get information about current user
+      tags:
+      - auth
+    patch:
+      consumes:
+      - application/json
+      description: updates user entity in storage
+      parameters:
+      - description: User Information
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/requestbody.UpdateAccount'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responsebody.Message'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/responsebody.Message'
+      security:
+      - AccessToken: []
+      summary: Update personal information
       tags:
       - auth
     post:
