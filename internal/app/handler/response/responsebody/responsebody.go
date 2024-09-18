@@ -36,6 +36,12 @@ type ActivityHistory struct {
 	Workouts []Workout `json:"workouts"`
 }
 
+type Statistics struct {
+	UserID          string `json:"user_id"`
+	MinutesSpent    int    `json:"minutes_spent"`
+	LongestActivity int    `json:"longest_activity"`
+}
+
 type Token struct {
 	Token string `json:"token"`
 }

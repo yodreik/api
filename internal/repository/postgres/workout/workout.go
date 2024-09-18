@@ -72,3 +72,18 @@ func (p *Postgres) GetUserWorkouts(ctx context.Context, userID string, begin tim
 
 	return workouts, nil
 }
+
+func (p *Postgres) GetAllUserWorkouts(ctx context.Context, userID string) ([]Workout, error) {
+	query := "SELECT * FROM workouts WHERE user_id = $1 ORDER BY date ASC"
+
+	var workouts []Workout
+	err := p.db.SelectContext(ctx, &workouts, query, userID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return workouts, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return workouts, nil
+}

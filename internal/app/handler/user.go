@@ -82,3 +82,33 @@ func (h *Handler) GetUserByUsername(c *gin.Context) {
 		WeekActivity: activity,
 	})
 }
+
+func (h *Handler) GetStatistics(c *gin.Context) {
+	log := slog.With(
+		slog.String("op", "handler.GetStatistics"),
+		slog.String("request_id", requestid.Get(c)),
+	)
+
+	userID := c.GetString("UserID")
+	workouts, err := h.repository.Workout.GetAllUserWorkouts(c, userID)
+	if err != nil {
+		log.Error("could not get workouts", sl.Err(err))
+		response.InternalServerError(c)
+		return
+	}
+
+	minutesSpent := 0
+	longestActivity := 0
+	for _, workout := range workouts {
+		minutesSpent += workout.Duration
+		if workout.Duration > longestActivity {
+			longestActivity = workout.Duration
+		}
+	}
+
+	c.JSON(http.StatusOK, responsebody.Statistics{
+		UserID:          userID,
+		MinutesSpent:    minutesSpent,
+		LongestActivity: longestActivity,
+	})
+}
