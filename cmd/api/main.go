@@ -6,9 +6,9 @@ import (
 	"api/internal/pkg/app"
 )
 
-// @title       Welnex API
+// @title       yodreik API
 // @version     0.1
-// @description API server for Welnex application
+// @description API server for yodreik application
 // @host        localhost:6969
 // @BasePath    /api
 //

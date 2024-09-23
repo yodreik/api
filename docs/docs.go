@@ -38,15 +38,13 @@ const docTemplate = `{
                         "type": "string",
                         "description": "Begin date",
                         "name": "begin",
-                        "in": "query",
-                        "required": true
+                        "in": "query"
                     },
                     {
                         "type": "string",
                         "description": "End date",
                         "name": "end",
-                        "in": "query",
-                        "required": true
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -761,8 +759,8 @@ var SwaggerInfo = &swag.Spec{
 	Host:             "localhost:6969",
 	BasePath:         "/api",
 	Schemes:          []string{},
-	Title:            "Welnex API",
-	Description:      "API server for Welnex application",
+	Title:            "yodreik API",
+	Description:      "API server for yodreik application",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

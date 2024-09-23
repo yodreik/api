@@ -75,8 +75,8 @@ func (h *Handler) CreateWorkout(c *gin.Context) {
 // @Tags         activity
 // @Accept       json
 // @Produce      json
-// @Param        begin query   string true "Begin date"
-// @Param        end   query   string true "End date"
+// @Param        begin query   string false "Begin date"
+// @Param        end   query   string false "End date"
 // @Success      200 {object}  responsebody.ActivityHistory
 // @Failure      400 {object}  responsebody.Message
 // @Failure      401 {object}  responsebody.Message
@@ -87,18 +87,31 @@ func (h *Handler) GetActivityHistory(c *gin.Context) {
 		slog.String("request_id", requestid.Get(c)),
 	)
 
+	layout := "02-01-2006"
 	params := c.Request.URL.Query()
-	begin := params.Get("begin")
-	end := params.Get("end")
 
-	beginDate, err := time.Parse("02-01-2006", begin)
+	var begin string
+	if params.Has("begin") {
+		begin = params.Get("begin")
+	} else {
+		begin = "01-01-1970"
+	}
+
+	var end string
+	if params.Has("end") {
+		end = params.Get("end")
+	} else {
+		end = time.Now().Format(layout)
+	}
+
+	beginDate, err := time.Parse(layout, begin)
 	if err != nil {
 		log.Debug("incorrect date format", slog.String("date", begin), sl.Err(err))
 		response.WithMessage(c, http.StatusBadRequest, "date not provided or invalid date format")
 		return
 	}
 
-	endDate, err := time.Parse("02-01-2006", end)
+	endDate, err := time.Parse(layout, end)
 	if err != nil {
 		log.Debug("incorrect date format", slog.String("date", begin), sl.Err(err))
 		response.WithMessage(c, http.StatusBadRequest, "date not provided or invalid date format")
@@ -122,7 +135,7 @@ func (h *Handler) GetActivityHistory(c *gin.Context) {
 	for _, workout := range workouts {
 		res.Workouts = append(res.Workouts, responsebody.Workout{
 			ID:       workout.ID,
-			Date:     workout.Date.Format("02-01-2006"),
+			Date:     workout.Date.Format(layout),
 			Duration: workout.Duration,
 			Kind:     workout.Kind,
 		})

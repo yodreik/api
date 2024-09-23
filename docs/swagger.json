@@ -1,8 +1,8 @@
 {
     "swagger": "2.0",
     "info": {
-        "description": "API server for Welnex application",
-        "title": "Welnex API",
+        "description": "API server for yodreik application",
+        "title": "yodreik API",
         "contact": {},
         "version": "0.1"
     },
@@ -32,15 +32,13 @@
                         "type": "string",
                         "description": "Begin date",
                         "name": "begin",
-                        "in": "query",
-                        "required": true
+                        "in": "query"
                     },
                     {
                         "type": "string",
                         "description": "End date",
                         "name": "end",
-                        "in": "query",
-                        "required": true
+                        "in": "query"
                     }
                 ],
                 "responses": {

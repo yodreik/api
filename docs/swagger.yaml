@@ -167,8 +167,8 @@ definitions:
 host: localhost:6969
 info:
   contact: {}
-  description: API server for Welnex application
-  title: Welnex API
+  description: API server for yodreik application
+  title: yodreik API
   version: "0.1"
 paths:
   /activity:
@@ -180,12 +180,10 @@ paths:
       - description: Begin date
         in: query
         name: begin
-        required: true
         type: string
       - description: End date
         in: query
         name: end
-        required: true
         type: string
       produces:
       - application/json
