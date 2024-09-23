@@ -36,10 +36,18 @@ func (h *Handler) CreateWorkout(c *gin.Context) {
 		return
 	}
 
-	date, err := time.Parse("02-01-2006", body.Date)
+	layout := "02-01-2006"
+	date, err := time.Parse(layout, body.Date)
 	if err != nil {
 		log.Debug("invalid date format", sl.Err(err))
 		response.WithMessage(c, http.StatusBadRequest, "invalid date format")
+		return
+	}
+
+	today, _ := time.Parse(layout, time.Now().Format(layout))
+	if date.After(today) {
+		log.Debug("workout record should be today or before", slog.String("date", date.Format(layout)))
+		response.WithMessage(c, http.StatusBadRequest, "workout can't be in future")
 		return
 	}
 
@@ -55,7 +63,7 @@ func (h *Handler) CreateWorkout(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, responsebody.Workout{
 		ID:       workout.ID,
-		Date:     date.Format("02-01-2006"),
+		Date:     date.Format(layout),
 		Duration: workout.Duration,
 		Kind:     workout.Kind,
 	})
