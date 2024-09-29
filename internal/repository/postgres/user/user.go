@@ -1,6 +1,7 @@
 package user
 
 import (
+	"api/internal/repository/entity"
 	repoerr "api/internal/repository/errors"
 	"context"
 	"database/sql"
@@ -15,33 +16,11 @@ type Postgres struct {
 	db *sqlx.DB
 }
 
-type User struct {
-	ID                string    `db:"id"`
-	Email             string    `db:"email"`
-	Username          string    `db:"username"`
-	DisplayName       string    `db:"display_name"`
-	AvatarURL         string    `db:"avatar_url"`
-	PasswordHash      string    `db:"password_hash"`
-	IsPrivate         bool      `db:"is_private"`
-	IsConfirmed       bool      `db:"is_confirmed"`
-	ConfirmationToken string    `db:"confirmation_token"`
-	CreatedAt         time.Time `db:"created_at"`
-}
-
-type Request struct {
-	ID        string    `db:"id"`
-	Email     string    `db:"email"`
-	Token     string    `db:"token"`
-	IsUsed    bool      `db:"is_used"`
-	ExpiresAt time.Time `db:"expires_at"`
-	CreatedAt time.Time `db:"created_at"`
-}
-
 func New(db *sqlx.DB) *Postgres {
 	return &Postgres{db: db}
 }
 
-func (p *Postgres) Create(ctx context.Context, email string, username string, passwordHash string) (*User, error) {
+func (p *Postgres) Create(ctx context.Context, email string, username string, passwordHash string) (*entity.User, error) {
 	query := "INSERT INTO users (email, username, password_hash) VALUES ($1, $2, $3) RETURNING *"
 	row := p.db.QueryRowContext(ctx, query, email, username, passwordHash)
 	if pqErr, ok := row.Err().(*pq.Error); ok && pqErr.Code == "23505" {
@@ -51,7 +30,7 @@ func (p *Postgres) Create(ctx context.Context, email string, username string, pa
 		return nil, row.Err()
 	}
 
-	var user User
+	var user entity.User
 	err := row.Scan(&user.ID, &user.Email, &user.Username, &user.DisplayName, &user.AvatarURL, &user.PasswordHash, &user.IsPrivate, &user.IsConfirmed, &user.ConfirmationToken, &user.CreatedAt)
 	if err != nil {
 		return nil, err
@@ -67,10 +46,10 @@ func (p *Postgres) UpdateUser(ctx context.Context, userID string, email string, 
 	return err
 }
 
-func (p *Postgres) GetByID(ctx context.Context, id string) (*User, error) {
+func (p *Postgres) GetByID(ctx context.Context, id string) (*entity.User, error) {
 	query := "SELECT * FROM users WHERE id = $1"
 
-	var user User
+	var user entity.User
 	err := p.db.GetContext(ctx, &user, query, id)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, repoerr.ErrUserNotFound
@@ -82,10 +61,10 @@ func (p *Postgres) GetByID(ctx context.Context, id string) (*User, error) {
 	return &user, nil
 }
 
-func (p *Postgres) GetByCredentials(ctx context.Context, email string, passwordHash string) (*User, error) {
+func (p *Postgres) GetByCredentials(ctx context.Context, email string, passwordHash string) (*entity.User, error) {
 	query := "SELECT * FROM users WHERE email = $1 AND password_hash = $2"
 
-	var user User
+	var user entity.User
 	err := p.db.GetContext(ctx, &user, query, email, passwordHash)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, repoerr.ErrUserNotFound
@@ -97,10 +76,10 @@ func (p *Postgres) GetByCredentials(ctx context.Context, email string, passwordH
 	return &user, nil
 }
 
-func (p *Postgres) GetByEmail(ctx context.Context, email string) (*User, error) {
+func (p *Postgres) GetByEmail(ctx context.Context, email string) (*entity.User, error) {
 	query := "SELECT * FROM users WHERE email = $1"
 
-	var user User
+	var user entity.User
 	err := p.db.GetContext(ctx, &user, query, email)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, repoerr.ErrUserNotFound
@@ -112,10 +91,10 @@ func (p *Postgres) GetByEmail(ctx context.Context, email string) (*User, error) 
 	return &user, nil
 }
 
-func (p *Postgres) GetByUsername(ctx context.Context, username string) (*User, error) {
+func (p *Postgres) GetByUsername(ctx context.Context, username string) (*entity.User, error) {
 	query := "SELECT * FROM users WHERE username = $1"
 
-	var user User
+	var user entity.User
 	err := p.db.GetContext(ctx, &user, query, username)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, repoerr.ErrUserNotFound
@@ -127,10 +106,10 @@ func (p *Postgres) GetByUsername(ctx context.Context, username string) (*User, e
 	return &user, nil
 }
 
-func (p *Postgres) GetByConfirmationToken(ctx context.Context, token string) (*User, error) {
+func (p *Postgres) GetByConfirmationToken(ctx context.Context, token string) (*entity.User, error) {
 	query := "SELECT * FROM users WHERE confirmation_token = $1"
 
-	var user User
+	var user entity.User
 	err := p.db.GetContext(ctx, &user, query, token)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, repoerr.ErrUserNotFound
@@ -149,14 +128,14 @@ func (p *Postgres) UpdatePasswordByEmail(ctx context.Context, email string, pass
 	return err
 }
 
-func (p *Postgres) CreatePasswordResetRequest(ctx context.Context, token string, email string) (*Request, error) {
+func (p *Postgres) CreatePasswordResetRequest(ctx context.Context, token string, email string) (*entity.Request, error) {
 	query := "INSERT INTO reset_password_requests (email, token, expires_at) VALUES ($1, $2, $3) RETURNING *"
 	row := p.db.QueryRowContext(ctx, query, email, token, time.Now().Add(5*time.Minute).Truncate(time.Minute))
 	if row.Err() != nil {
 		return nil, row.Err()
 	}
 
-	var request Request
+	var request entity.Request
 	err := row.Scan(&request.ID, &request.Email, &request.Token, &request.IsUsed, &request.ExpiresAt, &request.CreatedAt)
 	if err != nil {
 		return nil, err
@@ -165,10 +144,10 @@ func (p *Postgres) CreatePasswordResetRequest(ctx context.Context, token string,
 	return &request, nil
 }
 
-func (p *Postgres) GetRequestByToken(ctx context.Context, token string) (*Request, error) {
+func (p *Postgres) GetRequestByToken(ctx context.Context, token string) (*entity.Request, error) {
 	query := "SELECT * FROM reset_password_requests WHERE token = $1"
 
-	var request Request
+	var request entity.Request
 	err := p.db.GetContext(ctx, &request, query, token)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, repoerr.ErrRequestNotFound
@@ -180,10 +159,10 @@ func (p *Postgres) GetRequestByToken(ctx context.Context, token string) (*Reques
 	return &request, nil
 }
 
-func (p *Postgres) GetRequestByEmail(ctx context.Context, email string) (*Request, error) {
+func (p *Postgres) GetRequestByEmail(ctx context.Context, email string) (*entity.Request, error) {
 	query := "SELECT * FROM reset_password_requests WHERE email = $1"
 
-	var request Request
+	var request entity.Request
 	err := p.db.GetContext(ctx, &request, query, email)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, repoerr.ErrRequestNotFound

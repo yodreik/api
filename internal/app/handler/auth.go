@@ -12,6 +12,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/mail"
+	"net/url"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -381,6 +382,13 @@ func (h *Handler) UpdateAccount(c *gin.Context) {
 		user.DisplayName = *body.DisplayName
 	}
 	if body.AvatarURL != nil {
+		_, err = url.ParseRequestURI(*body.AvatarURL)
+		if err != nil {
+			log.Debug("invalid avatar url link", slog.String("avatar_url", *body.AvatarURL))
+			response.WithMessage(c, http.StatusBadRequest, "avatar_url should be a valid link")
+			return
+		}
+
 		user.AvatarURL = *body.AvatarURL
 	}
 	if body.Password != nil {
