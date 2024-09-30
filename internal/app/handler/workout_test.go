@@ -34,7 +34,12 @@ func TestCreateWorkout(t *testing.T) {
 		t.Fatal("unexpected error while generating mock token")
 	}
 
-	expectedDate, err := time.Parse("02-01-2006", "21-08-2024")
+	layout := "02-01-2006"
+	now := time.Now().UTC()
+
+	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+
+	expectedDate, err := time.Parse(layout, "21-08-2024")
 	if err != nil {
 		t.Fatal("err no expected while parsing mock date")
 	}
@@ -45,22 +50,22 @@ func TestCreateWorkout(t *testing.T) {
 
 			Repo: func(mock sqlmock.Sqlmock) {
 				rows := sqlmock.NewRows([]string{"id", "user_id", "date", "duration", "kind", "created_at"}).
-					AddRow("WORKOUT_ID", "USER_ID", expectedDate, 69, "Calisthenics", time.Now())
+					AddRow("WORKOUT_ID", "USER_ID", today, 69, "Calisthenics", time.Now())
 
 				mock.ExpectQuery("INSERT INTO workouts (user_id, date, duration, kind) VALUES ($1, $2, $3, $4) RETURNING *").
-					WithArgs("USER_ID", expectedDate, 69, "Calisthenics").WillReturnRows(rows)
+					WithArgs("USER_ID", today, 69, "Calisthenics").WillReturnRows(rows)
 			},
 
 			Request: test.Request{
 				Headers: map[string]string{
 					"Authorization": fmt.Sprintf("Bearer %s", accessToken),
 				},
-				Body: `{"date":"21-08-2024","duration":69,"kind":"Calisthenics"}`,
+				Body: fmt.Sprintf(`{"date":"%s","duration":69,"kind":"Calisthenics"}`, today.Format(layout)),
 			},
 
 			Expect: test.Expect{
 				Status: http.StatusCreated,
-				Body:   `{"id":"WORKOUT_ID","date":"21-08-2024","duration":69,"kind":"Calisthenics"}`,
+				Body:   fmt.Sprintf(`{"id":"WORKOUT_ID","date":"%s","duration":69,"kind":"Calisthenics"}`, today.Format(layout)),
 			},
 		},
 		{
@@ -113,7 +118,7 @@ func TestCreateWorkout(t *testing.T) {
 				Headers: map[string]string{
 					"Authorization": fmt.Sprintf("Bearer %s", accessToken),
 				},
-				Body: `{"date":"21-08-2024","duration":69,"kind":"Calisthenics"}`,
+				Body: fmt.Sprintf(`{"date":"%s","duration":69,"kind":"Calisthenics"}`, today.Format(layout)),
 			},
 
 			Expect: test.Expect{

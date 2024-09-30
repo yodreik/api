@@ -44,12 +44,7 @@ func (h *Handler) CreateWorkout(c *gin.Context) {
 		return
 	}
 
-	today, _ := time.Parse(layout, time.Now().Format(layout))
-	if date.After(today) {
-		log.Debug("workout record should be today or before", slog.String("date", date.Format(layout)))
-		response.WithMessage(c, http.StatusBadRequest, "workout can't be in future")
-		return
-	}
+	// TODO: Add check if workout is in future
 
 	userID := c.GetString("UserID")
 	workout, err := h.repository.Workout.Create(c, userID, date, body.Duration, body.Kind)
