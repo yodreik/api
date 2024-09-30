@@ -15,6 +15,7 @@ docker-build:
 coverage:
 	go test -coverprofile=coverage.out ./...
 	go tool cover -html=coverage.out -o coverage.html
+	open coverage.html
 
 swag:
 	swag init -g ./cmd/api/main.go
