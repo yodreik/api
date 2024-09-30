@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"api/internal/app/handler/test"
 	"api/internal/config"
 	mockmailer "api/internal/mailer/mock"
 	"api/internal/repository"
@@ -38,11 +39,11 @@ func TestCreateWorkout(t *testing.T) {
 		t.Fatal("err no expected while parsing mock date")
 	}
 
-	tests := []table{
+	tests := []test.Case{
 		{
-			name: "ok",
+			Name: "ok",
 
-			repo: func(mock sqlmock.Sqlmock) {
+			Repo: func(mock sqlmock.Sqlmock) {
 				rows := sqlmock.NewRows([]string{"id", "user_id", "date", "duration", "kind", "created_at"}).
 					AddRow("WORKOUT_ID", "USER_ID", expectedDate, 69, "Calisthenics", time.Now())
 
@@ -50,79 +51,79 @@ func TestCreateWorkout(t *testing.T) {
 					WithArgs("USER_ID", expectedDate, 69, "Calisthenics").WillReturnRows(rows)
 			},
 
-			request: request{
-				headers: map[string]string{
+			Request: test.Request{
+				Headers: map[string]string{
 					"Authorization": fmt.Sprintf("Bearer %s", accessToken),
 				},
-				body: `{"date":"21-08-2024","duration":69,"kind":"Calisthenics"}`,
+				Body: `{"date":"21-08-2024","duration":69,"kind":"Calisthenics"}`,
 			},
 
-			expect: expect{
-				status: http.StatusCreated,
-				body:   `{"id":"WORKOUT_ID","date":"21-08-2024","duration":69,"kind":"Calisthenics"}`,
+			Expect: test.Expect{
+				Status: http.StatusCreated,
+				Body:   `{"id":"WORKOUT_ID","date":"21-08-2024","duration":69,"kind":"Calisthenics"}`,
 			},
 		},
 		{
-			name: "invalid request body",
+			Name: "invalid request body",
 
-			request: request{
-				headers: map[string]string{
+			Request: test.Request{
+				Headers: map[string]string{
 					"Authorization": fmt.Sprintf("Bearer %s", accessToken),
 				},
-				body: `{"invalid":"body"}`,
+				Body: `{"invalid":"body"}`,
 			},
 
-			expect: expect{
-				status: http.StatusBadRequest,
-				body:   `{"message":"invalid request body"}`,
+			Expect: test.Expect{
+				Status: http.StatusBadRequest,
+				Body:   `{"message":"invalid request body"}`,
 			},
 		},
 		{
-			name: "invalid date format",
+			Name: "invalid date format",
 
-			request: request{
-				headers: map[string]string{
+			Request: test.Request{
+				Headers: map[string]string{
 					"Authorization": fmt.Sprintf("Bearer %s", accessToken),
 				},
-				body: `{"date":"69-11-2024","duration":69,"kind":"Calisthenics"}`,
+				Body: `{"date":"69-11-2024","duration":69,"kind":"Calisthenics"}`,
 			},
 
-			expect: expect{
-				status: http.StatusBadRequest,
-				body:   `{"message":"invalid date format"}`,
-			},
-		},
-		{
-			name: "unauthorized",
-
-			expect: expect{
-				status: http.StatusUnauthorized,
-				body:   `{"message":"empty authorization header"}`,
+			Expect: test.Expect{
+				Status: http.StatusBadRequest,
+				Body:   `{"message":"invalid date format"}`,
 			},
 		},
 		{
-			name: "repository error",
+			Name: "unauthorized",
 
-			repo: func(mock sqlmock.Sqlmock) {
+			Expect: test.Expect{
+				Status: http.StatusUnauthorized,
+				Body:   `{"message":"empty authorization header"}`,
+			},
+		},
+		{
+			Name: "repository error",
+
+			Repo: func(mock sqlmock.Sqlmock) {
 				mock.ExpectQuery("INSERT INTO workouts (user_id, date, duration, kind) VALUES ($1, $2, $3, $4) RETURNING *").
 					WithArgs("USER_ID", expectedDate, 69, "Calisthenics").WillReturnError(errors.New("repo: Some repository error"))
 			},
 
-			request: request{
-				headers: map[string]string{
+			Request: test.Request{
+				Headers: map[string]string{
 					"Authorization": fmt.Sprintf("Bearer %s", accessToken),
 				},
-				body: `{"date":"21-08-2024","duration":69,"kind":"Calisthenics"}`,
+				Body: `{"date":"21-08-2024","duration":69,"kind":"Calisthenics"}`,
 			},
 
-			expect: expect{
-				status: http.StatusInternalServerError,
-				body:   `{"message":"internal server error"}`,
+			Expect: test.Expect{
+				Status: http.StatusInternalServerError,
+				Body:   `{"message":"internal server error"}`,
 			},
 		},
 	}
 
 	for _, tc := range tests {
-		t.Run(tc.name, TemplateTestHandler(tc, mock, http.MethodPost, "/api/workout", handler.UserIdentity, handler.CreateWorkout))
+		t.Run(tc.Name, test.Endpoint(tc, mock, http.MethodPost, "/api/workout", handler.UserIdentity, handler.CreateWorkout))
 	}
 }
