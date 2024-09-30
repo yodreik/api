@@ -30,8 +30,8 @@ type Expect struct {
 	BodyFields []string
 }
 
-func Endpoint(tc Case, mock sqlmock.Sqlmock, method string, path string, handlers ...gin.HandlerFunc) func(t *testing.T) {
-	return func(t *testing.T) {
+func Endpoint(t *testing.T, tc Case, mock sqlmock.Sqlmock, method string, path string, handlers ...gin.HandlerFunc) {
+	t.Run(tc.Name, func(t *testing.T) {
 		if tc.Repo != nil {
 			tc.Repo(mock)
 		}
@@ -84,5 +84,5 @@ func Endpoint(tc Case, mock sqlmock.Sqlmock, method string, path string, handler
 				}
 			}
 		}
-	}
+	})
 }

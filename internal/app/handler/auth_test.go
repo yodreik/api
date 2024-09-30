@@ -114,7 +114,7 @@ func TestCreateAccount(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		t.Run(tc.Name, test.Endpoint(tc, mock, http.MethodPost, "/api/auth/account", handler.CreateAccount))
+		test.Endpoint(t, tc, mock, http.MethodPost, "/api/auth/account", handler.CreateAccount)
 	}
 }
 
@@ -218,7 +218,7 @@ func TestCreateSession(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		t.Run(tc.Name, test.Endpoint(tc, mock, http.MethodPost, "/api/auth/session", handler.CreateSession))
+		test.Endpoint(t, tc, mock, http.MethodPost, "/api/auth/session", handler.CreateSession)
 	}
 }
 
@@ -321,7 +321,7 @@ func TestResetPassword(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		t.Run(tc.Name, test.Endpoint(tc, mock, http.MethodPost, "/api/auth/password/reset", handler.ResetPassword))
+		test.Endpoint(t, tc, mock, http.MethodPost, "/api/auth/password/reset", handler.ResetPassword)
 	}
 }
 
@@ -501,7 +501,7 @@ func TestUpdatePassword(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		t.Run(tc.Name, test.Endpoint(tc, mock, http.MethodPatch, "/api/auth/password", handler.UpdatePassword))
+		test.Endpoint(t, tc, mock, http.MethodPatch, "/api/auth/password", handler.UpdatePassword)
 	}
 }
 
@@ -612,7 +612,7 @@ func TestConfirmAccount(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		t.Run(tc.Name, test.Endpoint(tc, mock, http.MethodPost, "/api/auth/account/confirm", handler.ConfirmAccount))
+		test.Endpoint(t, tc, mock, http.MethodPost, "/api/auth/account/confirm", handler.ConfirmAccount)
 	}
 }
 
@@ -694,7 +694,7 @@ func TestGetCurrentAccount(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		t.Run(tc.Name, test.Endpoint(tc, mock, http.MethodGet, "/api/account", handler.UserIdentity, handler.GetCurrentAccount))
+		test.Endpoint(t, tc, mock, http.MethodGet, "/api/account", handler.UserIdentity, handler.GetCurrentAccount)
 	}
 }
 
@@ -958,6 +958,6 @@ func TestUpdateAccount(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		t.Run(tc.Name, test.Endpoint(tc, mock, http.MethodPatch, "/api/auth/account", handler.UserIdentity, handler.UpdateAccount))
+		test.Endpoint(t, tc, mock, http.MethodPatch, "/api/auth/account", handler.UserIdentity, handler.UpdateAccount)
 	}
 }

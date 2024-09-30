@@ -124,6 +124,6 @@ func TestCreateWorkout(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		t.Run(tc.Name, test.Endpoint(tc, mock, http.MethodPost, "/api/workout", handler.UserIdentity, handler.CreateWorkout))
+		test.Endpoint(t, tc, mock, http.MethodPost, "/api/workout", handler.UserIdentity, handler.CreateWorkout)
 	}
 }
