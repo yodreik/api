@@ -32,7 +32,7 @@ type Expect struct {
 	BodyFields []string
 }
 
-var InternalServerErrorResponse = Expect{
+var ResponseInternalServerError = Expect{
 	Status: http.StatusInternalServerError,
 	Body:   `{"message":"internal server error"}`,
 }

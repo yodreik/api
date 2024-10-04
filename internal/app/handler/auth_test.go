@@ -56,7 +56,7 @@ func TestCreateAccount(t *testing.T) {
 					AddRow(user.ID, user.Email, user.Username, user.DisplayName, user.AvatarURL, user.PasswordHash, user.IsPrivate, user.IsConfirmed, user.ConfirmationToken, user.CreatedAt)
 
 				mock.ExpectQuery("INSERT INTO users (email, username, password_hash) VALUES ($1, $2, $3) RETURNING *").
-					WithArgs("john.doe@example.com", "johndoe", sha256.String("testword")).WillReturnRows(rows)
+					WithArgs(user.Email, user.Username, user.PasswordHash).WillReturnRows(rows)
 			},
 
 			Request: test.Request{
@@ -69,14 +69,26 @@ func TestCreateAccount(t *testing.T) {
 
 			Expect: test.Expect{
 				Status: http.StatusCreated,
-				Body:   fmt.Sprintf(`{"id":"USER_ID","email":"john.doe@example.com","username":"johndoe","display_name":"","avatar_url":"","is_private":false,"is_confirmed":false,"created_at":"%s"}`, user.CreatedAt.Format(time.RFC3339)),
+				Body: responsebody.Account{
+					ID:          user.ID,
+					Email:       user.Email,
+					Username:    user.Username,
+					DisplayName: user.DisplayName,
+					AvatarURL:   user.AvatarURL,
+					IsPrivate:   user.IsPrivate,
+					IsConfirmed: user.IsConfirmed,
+					CreatedAt:   user.CreatedAt.Format(time.RFC3339),
+				},
 			},
 		},
 		{
 			Name: "invalid request body",
 
 			Request: test.Request{
-				Body: `{"some":"invalid","request":"structure"}`,
+				Body: map[string]string{
+					"some":    "invalid",
+					"request": "body",
+				},
 			},
 
 			Expect: test.Expect{
@@ -90,12 +102,18 @@ func TestCreateAccount(t *testing.T) {
 			Name: "invalid email format",
 
 			Request: test.Request{
-				Body: `{"email":"incorrect-email","username":"John Doe","password":"testword"}`,
+				Body: requestbody.CreateAccount{
+					Email:    "incorrect email",
+					Username: user.Username,
+					Password: "testword",
+				},
 			},
 
 			Expect: test.Expect{
 				Status: http.StatusBadRequest,
-				Body:   `{"message":"invalid email format"}`,
+				Body: responsebody.Message{
+					Message: "invalid email format",
+				},
 			},
 		},
 		{
@@ -103,16 +121,22 @@ func TestCreateAccount(t *testing.T) {
 
 			Repo: func(mock sqlmock.Sqlmock) {
 				mock.ExpectQuery("INSERT INTO users (email, username, password_hash) VALUES ($1, $2, $3) RETURNING *").
-					WithArgs("john.doe@example.com", "John Doe", sha256.String("testword")).WillReturnError(repoerr.ErrUserAlreadyExists)
+					WithArgs(user.Email, user.Username, user.PasswordHash).WillReturnError(repoerr.ErrUserAlreadyExists)
 			},
 
 			Request: test.Request{
-				Body: `{"email":"john.doe@example.com","username":"John Doe","password":"testword"}`,
+				Body: requestbody.CreateAccount{
+					Email:    user.Email,
+					Username: user.Username,
+					Password: "testword",
+				},
 			},
 
 			Expect: test.Expect{
 				Status: http.StatusConflict,
-				Body:   `{"message":"user already exists"}`,
+				Body: responsebody.Message{
+					Message: "user already exists",
+				},
 			},
 		},
 		{
@@ -120,17 +144,19 @@ func TestCreateAccount(t *testing.T) {
 
 			Repo: func(mock sqlmock.Sqlmock) {
 				mock.ExpectQuery("INSERT INTO users (email, username, password_hash) VALUES ($1, $2, $3) RETURNING *").
-					WithArgs("john.doe@example.com", "John Doe", sha256.String("testword")).WillReturnError(errors.New("repo: Some repository error"))
+					WithArgs(user.Email, user.Username, user.PasswordHash).
+					WillReturnError(errors.New("repo: Some repository error"))
 			},
 
 			Request: test.Request{
-				Body: `{"email":"john.doe@example.com","username":"John Doe","password":"testword"}`,
+				Body: requestbody.CreateAccount{
+					Email:    user.Email,
+					Username: user.Username,
+					Password: "testword",
+				},
 			},
 
-			Expect: test.Expect{
-				Status: http.StatusInternalServerError,
-				Body:   `{"message":"internal server error"}`,
-			},
+			Expect: test.ResponseInternalServerError,
 		},
 	}
 

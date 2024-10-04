@@ -198,7 +198,7 @@ func TestGetByUsername(t *testing.T) {
 					WillReturnError(errors.New("repo: Some repository error"))
 			},
 
-			Expect: test.InternalServerErrorResponse,
+			Expect: test.ResponseInternalServerError,
 		},
 	}
 
