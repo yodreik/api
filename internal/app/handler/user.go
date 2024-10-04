@@ -52,7 +52,7 @@ func (h *Handler) GetUserByUsername(c *gin.Context) {
 		return
 	}
 
-	workouts, err := h.repository.Workout.GetUserWorkouts(c, user.ID, time.Now().Add(-6*24*time.Hour).Truncate(24*time.Hour), time.Now().Add(time.Hour).Truncate(time.Hour))
+	workouts, err := h.repository.Workout.GetUserWorkouts(c, user.ID, time.Now().Add(-6*24*time.Hour).Truncate(time.Hour), time.Now().Add(time.Hour).Truncate(time.Hour))
 	if err != nil {
 		log.Error("could not get workouts", sl.Err(err))
 		response.InternalServerError(c)

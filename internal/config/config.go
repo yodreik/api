@@ -79,3 +79,7 @@ func MustLoad() *Config {
 
 	return &config
 }
+
+func Empty() *Config {
+	return &Config{}
+}

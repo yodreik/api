@@ -6,6 +6,7 @@ import (
 	mockmailer "api/internal/mailer/mock"
 	"api/internal/repository"
 	"api/internal/repository/entity"
+	repoerr "api/internal/repository/errors"
 	"api/internal/token"
 	mocktoken "api/internal/token/mock"
 	"api/pkg/sha256"
@@ -126,6 +127,82 @@ func TestGetStatistics(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		test.Endpoint(t, tc, mock, http.MethodGet, "/api/statistics", handler.UserIdentity, handler.GetStatistics)
+		test.Endpoint(t, tc, mock, http.MethodGet, "/api/statistics", "/api/statistics", handler.UserIdentity, handler.GetStatistics)
+	}
+}
+
+func TestGetByUsername(t *testing.T) {
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	if err != nil {
+		t.Fatalf("err not expected: %v\n", err)
+	}
+
+	c := config.Empty()
+	repo := repository.New(sqlx.NewDb(db, "sqlmock"))
+	handler := New(c, repo, mockmailer.New(), mocktoken.New(c.Token))
+
+	publicUser := entity.User{
+		ID:                "USER_ID",
+		Email:             "john.doe@example.com",
+		Username:          "johndoe",
+		DisplayName:       "John Doe",
+		AvatarURL:         "https://cdn.domain.com/avatar.jpeg",
+		PasswordHash:      sha256.String("testword"),
+		IsPrivate:         false,
+		IsConfirmed:       true,
+		ConfirmationToken: "CONFIRMATION_TOKEN",
+		CreatedAt:         time.Now(),
+	}
+
+	privateUser := publicUser
+	privateUser.IsPrivate = true
+
+	tests := []test.Case{
+		{
+			Name: "private: ok",
+
+			Repo: func(mock sqlmock.Sqlmock) {
+				rows := sqlmock.NewRows([]string{"id", "email", "username", "display_name", "avatar_url", "password_hash", "is_private", "is_confirmed", "confirmation_token", "created_at"}).
+					AddRow(privateUser.ID, privateUser.Email, privateUser.Username, privateUser.DisplayName, privateUser.AvatarURL, privateUser.PasswordHash, privateUser.IsPrivate, privateUser.IsConfirmed, privateUser.ConfirmationToken, privateUser.CreatedAt)
+
+				mock.ExpectQuery("SELECT * FROM users WHERE username = $1").
+					WithArgs(privateUser.Username).
+					WillReturnRows(rows)
+			},
+
+			Expect: test.Expect{
+				Status: http.StatusOK,
+				Body:   fmt.Sprintf(`{"id":"%s","username":"%s","display_name":"","avatar_url":"","is_private":%t,"week_activity":null}`, privateUser.ID, privateUser.Username, privateUser.IsPrivate),
+			},
+		},
+		{
+			Name: "private: user not found",
+
+			Repo: func(mock sqlmock.Sqlmock) {
+				mock.ExpectQuery("SELECT * FROM users WHERE username = $1").
+					WithArgs(privateUser.Username).
+					WillReturnError(repoerr.ErrUserNotFound)
+			},
+
+			Expect: test.Expect{
+				Status: http.StatusNotFound,
+				Body:   fmt.Sprintf(`{"message":"user not found"}`),
+			},
+		},
+		{
+			Name: "private: repository error",
+
+			Repo: func(mock sqlmock.Sqlmock) {
+				mock.ExpectQuery("SELECT * FROM users WHERE username = $1").
+					WithArgs(privateUser.Username).
+					WillReturnError(errors.New("repo: Some repository error"))
+			},
+
+			Expect: test.InternalServerErrorResponse,
+		},
+	}
+
+	for _, tc := range tests {
+		test.Endpoint(t, tc, mock, http.MethodGet, "/api/user/:username", fmt.Sprintf("/api/user/%s", publicUser.Username), handler.GetUserByUsername)
 	}
 }

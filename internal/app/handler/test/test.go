@@ -30,7 +30,12 @@ type Expect struct {
 	BodyFields []string
 }
 
-func Endpoint(t *testing.T, tc Case, mock sqlmock.Sqlmock, method string, path string, handlers ...gin.HandlerFunc) {
+var InternalServerErrorResponse = Expect{
+	Status: http.StatusInternalServerError,
+	Body:   `{"message":"internal server error"}`,
+}
+
+func Endpoint(t *testing.T, tc Case, mock sqlmock.Sqlmock, method string, handlerPath string, requestPath string, handlers ...gin.HandlerFunc) {
 	t.Run(tc.Name, func(t *testing.T) {
 		if tc.Repo != nil {
 			tc.Repo(mock)
@@ -39,9 +44,9 @@ func Endpoint(t *testing.T, tc Case, mock sqlmock.Sqlmock, method string, path s
 		gin.SetMode(gin.TestMode)
 		r := gin.Default()
 
-		r.Handle(method, path, handlers...)
+		r.Handle(method, handlerPath, handlers...)
 
-		req, err := http.NewRequest(method, path, strings.NewReader(tc.Request.Body))
+		req, err := http.NewRequest(method, requestPath, strings.NewReader(tc.Request.Body))
 		if err != nil {
 			t.Fatal(err)
 		}

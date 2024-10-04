@@ -61,6 +61,6 @@ func TestUserIdentity(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		test.Endpoint(t, tc, nil, http.MethodGet, "/api/me", handler.UserIdentity)
+		test.Endpoint(t, tc, nil, http.MethodGet, "/api/me", "/api/me", handler.UserIdentity)
 	}
 }
