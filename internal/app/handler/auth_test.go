@@ -91,12 +91,7 @@ func TestCreateAccount(t *testing.T) {
 				},
 			},
 
-			Expect: test.Expect{
-				Status: http.StatusBadRequest,
-				Body: responsebody.Message{
-					Message: "invalid request body",
-				},
-			},
+			Expect: test.ResponseInvalidRequestBody,
 		},
 		{
 			Name: "invalid email format",
@@ -176,20 +171,36 @@ func TestCreateSession(t *testing.T) {
 	repo := repository.New(sqlx.NewDb(db, "sqlmock"))
 	handler := New(&c, repo, mockmailer.New(), mocktoken.New(c.Token))
 
+	user := entity.User{
+		ID:                "USER_ID",
+		Email:             "john.doe@example.com",
+		Username:          "johndoe",
+		DisplayName:       "John Doe",
+		AvatarURL:         "https://cdn.content.com/avatar.jpeg",
+		PasswordHash:      sha256.String("testword"),
+		IsPrivate:         false,
+		IsConfirmed:       true,
+		ConfirmationToken: "CONFIRMATION_TOKEN",
+		CreatedAt:         time.Now(),
+	}
+
 	tests := []test.Case{
 		{
 			Name: "ok",
 
 			Repo: func(mock sqlmock.Sqlmock) {
 				rows := sqlmock.NewRows([]string{"id", "email", "username", "display_name", "avatar_url", "password_hash", "is_private", "is_confirmed", "confirmation_token", "created_at"}).
-					AddRow("USER_ID", "john.doe@example.com", "johndoe", "", "https://cdn.domain.com/avatar.jpeg", sha256.String("testword"), false, true, "CONFIRMATION_TOKEN", time.Now())
+					AddRow(user.ID, user.Email, user.Username, user.DisplayName, user.AvatarURL, user.PasswordHash, user.IsPrivate, user.IsConfirmed, user.ConfirmationToken, user.CreatedAt)
 
 				mock.ExpectQuery("SELECT * FROM users WHERE email = $1 AND password_hash = $2").
-					WithArgs("john.doe@example.com", sha256.String("testword")).WillReturnRows(rows)
+					WithArgs(user.Email, user.PasswordHash).WillReturnRows(rows)
 			},
 
 			Request: test.Request{
-				Body: `{"login":"john.doe@example.com","password":"testword"}`,
+				Body: requestbody.CreateSession{
+					Login:    user.Email,
+					Password: "testword",
+				},
 			},
 
 			Expect: test.Expect{
@@ -201,13 +212,13 @@ func TestCreateSession(t *testing.T) {
 			Name: "invalid request body",
 
 			Request: test.Request{
-				Body: `{"some":"invalid","body":"poo"}`,
+				Body: map[string]string{
+					"some":    "invalid",
+					"request": "body",
+				},
 			},
 
-			Expect: test.Expect{
-				Status: http.StatusBadRequest,
-				Body:   `{"message":"invalid request body"}`,
-			},
+			Expect: test.ResponseInvalidRequestBody,
 		},
 		{
 			Name: "user not found",
@@ -218,12 +229,17 @@ func TestCreateSession(t *testing.T) {
 			},
 
 			Request: test.Request{
-				Body: `{"login":"john.doe@example.com","password":"testword"}`,
+				Body: requestbody.CreateSession{
+					Login:    user.Email,
+					Password: "testword",
+				},
 			},
 
 			Expect: test.Expect{
 				Status: http.StatusUnauthorized,
-				Body:   `{"message":"user not found"}`,
+				Body: responsebody.Message{
+					Message: "user not found",
+				},
 			},
 		},
 		{
@@ -231,35 +247,43 @@ func TestCreateSession(t *testing.T) {
 
 			Repo: func(mock sqlmock.Sqlmock) {
 				mock.ExpectQuery("SELECT * FROM users WHERE email = $1 AND password_hash = $2").
-					WithArgs("john.doe@example.com", sha256.String("testword")).WillReturnError(errors.New("repo: Some repository error"))
+					WithArgs(user.Email, user.PasswordHash).
+					WillReturnError(errors.New("repo: Some repository error"))
 			},
 
 			Request: test.Request{
-				Body: `{"login":"john.doe@example.com","password":"testword"}`,
+				Body: requestbody.CreateSession{
+					Login:    user.Email,
+					Password: "testword",
+				},
 			},
 
-			Expect: test.Expect{
-				Status: http.StatusInternalServerError,
-				Body:   `{"message":"internal server error"}`,
-			},
+			Expect: test.ResponseInternalServerError,
 		},
 		{
 			Name: "user not confirmed",
 
 			Repo: func(mock sqlmock.Sqlmock) {
 				rows := sqlmock.NewRows([]string{"id", "email", "username", "display_name", "avatar_url", "password_hash", "is_private", "is_confirmed", "confirmation_token", "created_at"}).
-					AddRow("USER_ID", "john.doe@example.com", "johndoe", "", "https://cdn.domain.com/avatar.jpeg", sha256.String("testword"), false, false, "CONFIRMATION_TOKEN", time.Now())
+					AddRow(user.ID, user.Email, user.Username, user.DisplayName, user.AvatarURL, user.PasswordHash, user.IsPrivate, false, user.ConfirmationToken, user.CreatedAt)
 
-				mock.ExpectQuery("SELECT * FROM users WHERE email = $1 AND password_hash = $2").WithArgs("john.doe@example.com", sha256.String("testword")).WillReturnRows(rows)
+				mock.ExpectQuery("SELECT * FROM users WHERE email = $1 AND password_hash = $2").
+					WithArgs(user.Email, user.PasswordHash).
+					WillReturnRows(rows)
 			},
 
 			Request: test.Request{
-				Body: `{"login":"john.doe@example.com","password":"testword"}`,
+				Body: requestbody.CreateSession{
+					Login:    user.Email,
+					Password: "testword",
+				},
 			},
 
 			Expect: test.Expect{
 				Status: http.StatusForbidden,
-				Body:   `{"message":"email confirmation needed"}`,
+				Body: responsebody.Message{
+					Message: "email confirmation needed",
+				},
 			},
 		},
 	}

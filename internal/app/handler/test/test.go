@@ -37,6 +37,11 @@ var ResponseInternalServerError = Expect{
 	Body:   `{"message":"internal server error"}`,
 }
 
+var ResponseInvalidRequestBody = Expect{
+	Status: http.StatusBadRequest,
+	Body:   `{"message":"invalid request body"}`,
+}
+
 func Endpoint(t *testing.T, tc Case, mock sqlmock.Sqlmock, method string, handlerPath string, requestPath string, handlers ...gin.HandlerFunc) {
 	t.Run(tc.Name, func(t *testing.T) {
 		if tc.Repo != nil {
