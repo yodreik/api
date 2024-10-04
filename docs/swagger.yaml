@@ -27,13 +27,13 @@ definitions:
     type: object
   requestbody.CreateSession:
     properties:
-      email:
+      login:
         maxLength: 254
         type: string
       password:
         type: string
     required:
-    - email
+    - login
     - password
     type: object
   requestbody.CreateWorkout:

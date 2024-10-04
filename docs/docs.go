@@ -539,11 +539,11 @@ const docTemplate = `{
         "requestbody.CreateSession": {
             "type": "object",
             "required": [
-                "email",
+                "login",
                 "password"
             ],
             "properties": {
-                "email": {
+                "login": {
                     "type": "string",
                     "maxLength": 254
                 },

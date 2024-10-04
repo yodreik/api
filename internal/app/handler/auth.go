@@ -5,6 +5,7 @@ import (
 	"api/internal/app/handler/response"
 	"api/internal/app/handler/response/responsebody"
 	"api/internal/lib/logger/sl"
+	"api/internal/repository/entity"
 	repoerr "api/internal/repository/errors"
 	"api/pkg/requestid"
 	"api/pkg/sha256"
@@ -102,9 +103,16 @@ func (h *Handler) CreateSession(c *gin.Context) {
 		return
 	}
 
-	user, err := h.repository.User.GetByCredentials(c, body.Email, sha256.String(body.Password))
+	var err error
+	var user *entity.User
+	if _, mailErr := mail.ParseAddress(body.Login); mailErr == nil {
+		user, err = h.repository.User.GetByCredentialsWithEmail(c, body.Login, sha256.String(body.Password))
+	} else {
+		user, err = h.repository.User.GetByCredentialsWithUsername(c, body.Login, sha256.String(body.Password))
+	}
+
 	if errors.Is(err, repoerr.ErrUserNotFound) {
-		log.Debug("user not found", slog.String("email", body.Email))
+		log.Debug("user not found", slog.String("login", body.Login))
 		response.WithMessage(c, http.StatusUnauthorized, "user not found")
 		return
 	}
@@ -131,7 +139,7 @@ func (h *Handler) CreateSession(c *gin.Context) {
 	log.Debug("user's email not confirmed")
 
 	go func() {
-		err = h.mailer.SendConfirmationEmail(body.Email, user.ConfirmationToken)
+		err = h.mailer.SendConfirmationEmail(user.Email, user.ConfirmationToken)
 		if err != nil {
 			log.Error("can't send confirmation email", sl.Err(err))
 		}

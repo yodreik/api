@@ -7,7 +7,7 @@ type CreateAccount struct {
 }
 
 type CreateSession struct {
-	Email    string `json:"email" binding:"required,max=254"`
+	Login    string `json:"login" binding:"required,max=254"`
 	Password string `json:"password" binding:"required"`
 }
 

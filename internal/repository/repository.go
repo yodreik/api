@@ -15,7 +15,8 @@ type User interface {
 	SetUserConfirmed(ctx context.Context, email string, token string) error
 	UpdateUser(ctx context.Context, userID string, email string, username string, displayName string, avatarURL string, passwordHash string, isPrivate bool) error
 	GetByID(ctx context.Context, id string) (*entity.User, error)
-	GetByCredentials(ctx context.Context, email string, passwordHash string) (*entity.User, error)
+	GetByCredentialsWithEmail(ctx context.Context, email string, passwordHash string) (*entity.User, error)
+	GetByCredentialsWithUsername(ctx context.Context, email string, passwordHash string) (*entity.User, error)
 	GetByEmail(ctx context.Context, email string) (*entity.User, error)
 	GetByUsername(ctx context.Context, username string) (*entity.User, error)
 	GetByConfirmationToken(ctx context.Context, token string) (*entity.User, error)
