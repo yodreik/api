@@ -142,7 +142,7 @@ func TestCreateSession(t *testing.T) {
 			},
 
 			Request: test.Request{
-				Body: `{"email":"john.doe@example.com","password":"testword"}`,
+				Body: `{"login":"john.doe@example.com","password":"testword"}`,
 			},
 
 			Expect: test.Expect{
@@ -171,7 +171,7 @@ func TestCreateSession(t *testing.T) {
 			},
 
 			Request: test.Request{
-				Body: `{"email":"john.doe@example.com","password":"testword"}`,
+				Body: `{"login":"john.doe@example.com","password":"testword"}`,
 			},
 
 			Expect: test.Expect{
@@ -188,7 +188,7 @@ func TestCreateSession(t *testing.T) {
 			},
 
 			Request: test.Request{
-				Body: `{"email":"john.doe@example.com","password":"testword"}`,
+				Body: `{"login":"john.doe@example.com","password":"testword"}`,
 			},
 
 			Expect: test.Expect{
@@ -207,7 +207,7 @@ func TestCreateSession(t *testing.T) {
 			},
 
 			Request: test.Request{
-				Body: `{"email":"john.doe@example.com","password":"testword"}`,
+				Body: `{"login":"john.doe@example.com","password":"testword"}`,
 			},
 
 			Expect: test.Expect{
