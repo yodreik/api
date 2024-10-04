@@ -77,6 +77,7 @@ func (h *Handler) CreateAccount(c *gin.Context) {
 		DisplayName: user.DisplayName,
 		IsPrivate:   user.IsPrivate,
 		IsConfirmed: user.IsConfirmed,
+		CreatedAt:   user.CreatedAt.Format(time.RFC3339),
 	})
 }
 
@@ -343,6 +344,7 @@ func (h *Handler) GetCurrentAccount(c *gin.Context) {
 		AvatarURL:   user.AvatarURL,
 		IsPrivate:   user.IsPrivate,
 		IsConfirmed: user.IsConfirmed,
+		CreatedAt:   user.CreatedAt.Format(time.RFC3339),
 	})
 }
 

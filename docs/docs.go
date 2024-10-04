@@ -633,6 +633,9 @@ const docTemplate = `{
                 "avatar_url": {
                     "type": "string"
                 },
+                "created_at": {
+                    "type": "string"
+                },
                 "display_name": {
                     "type": "string"
                 },

@@ -12,6 +12,7 @@ type Account struct {
 	AvatarURL   string `json:"avatar_url"`
 	IsPrivate   bool   `json:"is_private"`
 	IsConfirmed bool   `json:"is_confirmed"`
+	CreatedAt   string `json:"created_at"`
 }
 
 type Profile struct {
