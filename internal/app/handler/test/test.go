@@ -1,7 +1,9 @@
 package test
 
 import (
+	"bytes"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
@@ -20,13 +22,13 @@ type Case struct {
 }
 
 type Request struct {
-	Body    string
+	Body    any
 	Headers map[string]string
 }
 
 type Expect struct {
 	Status     int
-	Body       string
+	Body       any
 	BodyFields []string
 }
 
@@ -46,7 +48,20 @@ func Endpoint(t *testing.T, tc Case, mock sqlmock.Sqlmock, method string, handle
 
 		r.Handle(method, handlerPath, handlers...)
 
-		req, err := http.NewRequest(method, requestPath, strings.NewReader(tc.Request.Body))
+		var requestBody io.Reader
+		data, ok := tc.Request.Body.(string)
+		if ok {
+			requestBody = strings.NewReader(data)
+		} else {
+			jsonData, err := json.Marshal(tc.Request.Body)
+			if err != nil {
+				t.Fatalf("unexpected error: %v\n", err)
+			}
+
+			requestBody = bytes.NewBuffer(jsonData)
+		}
+
+		req, err := http.NewRequest(method, requestPath, requestBody)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -63,8 +78,22 @@ func Endpoint(t *testing.T, tc Case, mock sqlmock.Sqlmock, method string, handle
 			t.Fatalf("unexpected status code returned: got %v, want %v\n", status, tc.Expect.Status)
 		}
 
-		if tc.Expect.Body != "" && w.Body.String() != tc.Expect.Body {
-			t.Fatalf("unexpected body returned: got %v, want %v\n", w.Body.String(), tc.Expect.Body)
+		if tc.Expect.Body == nil {
+			return
+		}
+
+		body, ok := tc.Expect.Body.(string)
+		if !ok {
+			data, err := json.Marshal(tc.Expect.Body)
+			if err != nil {
+				t.Fatalf("unexpected error: %v\n", err)
+			}
+
+			body = string(data)
+		}
+
+		if body != "" && w.Body.String() != body {
+			t.Fatalf("unexpected body returned: got %v, want %v\n", w.Body.String(), body)
 		}
 
 		if w.Body.String() == "" && len(tc.Expect.BodyFields) > 0 {

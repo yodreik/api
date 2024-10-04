@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"api/internal/app/handler/request/requestbody"
+	"api/internal/app/handler/response/responsebody"
 	"api/internal/app/handler/test"
 	"api/internal/config"
 	mockmailer "api/internal/mailer/mock"
@@ -58,7 +60,11 @@ func TestCreateAccount(t *testing.T) {
 			},
 
 			Request: test.Request{
-				Body: `{"email":"john.doe@example.com","username":"johndoe","password":"testword"}`,
+				Body: requestbody.CreateAccount{
+					Email:    user.Email,
+					Username: user.Username,
+					Password: "testword",
+				},
 			},
 
 			Expect: test.Expect{
@@ -75,7 +81,9 @@ func TestCreateAccount(t *testing.T) {
 
 			Expect: test.Expect{
 				Status: http.StatusBadRequest,
-				Body:   `{"message":"invalid request body"}`,
+				Body: responsebody.Message{
+					Message: "invalid request body",
+				},
 			},
 		},
 		{
