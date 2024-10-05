@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"api/internal/app/handler/response/responsebody"
 	"api/internal/app/handler/test"
 	"api/internal/config"
 	mockmailer "api/internal/mailer/mock"
@@ -19,15 +20,11 @@ func TestUserIdentity(t *testing.T) {
 		{
 			Name: "empty header",
 
-			Request: test.Request{
-				Headers: map[string]string{
-					"Authorization": "", // it can be totally removed, keep it just for the sake of the
-				},
-			},
-
 			Expect: test.Expect{
 				Status: http.StatusUnauthorized,
-				Body:   `{"message":"empty authorization header"}`,
+				Body: responsebody.Message{
+					Message: "empty authorization header",
+				},
 			},
 		},
 		{
@@ -41,7 +38,9 @@ func TestUserIdentity(t *testing.T) {
 
 			Expect: test.Expect{
 				Status: http.StatusUnauthorized,
-				Body:   `{"message":"invalid authorization token type"}`,
+				Body: responsebody.Message{
+					Message: "invalid authorization token type",
+				},
 			},
 		},
 		{
@@ -55,7 +54,9 @@ func TestUserIdentity(t *testing.T) {
 
 			Expect: test.Expect{
 				Status: http.StatusUnauthorized,
-				Body:   `{"message":"invalid authorization token"}`,
+				Body: responsebody.Message{
+					Message: "invalid authorization token",
+				},
 			},
 		},
 	}
