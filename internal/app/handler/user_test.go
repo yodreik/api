@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"api/internal/app/handler/response/responsebody"
 	"api/internal/app/handler/test"
 	"api/internal/config"
 	mockmailer "api/internal/mailer/mock"
@@ -72,10 +73,22 @@ func TestGetStatistics(t *testing.T) {
 		},
 	}
 
+	var minutesSpent int
+	var longestActivity int
+	for _, workout := range workouts {
+		minutesSpent += workout.Duration
+
+		if workout.Duration > longestActivity {
+			longestActivity = workout.Duration
+		}
+	}
+
 	accessToken, err := tokenManager.GenerateJWT(user.ID)
 	if err != nil {
 		t.Fatal("unexpected error while generating mock token")
 	}
+
+	headerAuthorization := fmt.Sprintf("Bearer %s", accessToken)
 
 	tests := []test.Case{
 		{
@@ -95,13 +108,17 @@ func TestGetStatistics(t *testing.T) {
 
 			Request: test.Request{
 				Headers: map[string]string{
-					"Authorization": fmt.Sprintf("Bearer %s", accessToken),
+					"Authorization": headerAuthorization,
 				},
 			},
 
 			Expect: test.Expect{
 				Status: http.StatusOK,
-				Body:   `{"user_id":"USER_ID","minutes_spent":211,"longest_activity":121}`,
+				Body: responsebody.Statistics{
+					UserID:          user.ID,
+					MinutesSpent:    minutesSpent,
+					LongestActivity: longestActivity,
+				},
 			},
 		},
 		{
@@ -115,14 +132,11 @@ func TestGetStatistics(t *testing.T) {
 
 			Request: test.Request{
 				Headers: map[string]string{
-					"Authorization": fmt.Sprintf("Bearer %s", accessToken),
+					"Authorization": headerAuthorization,
 				},
 			},
 
-			Expect: test.Expect{
-				Status: http.StatusInternalServerError,
-				Body:   `{"message":"internal server error"}`,
-			},
+			Expect: test.ResponseInternalServerError,
 		},
 	}
 
@@ -172,7 +186,11 @@ func TestGetByUsername(t *testing.T) {
 
 			Expect: test.Expect{
 				Status: http.StatusOK,
-				Body:   fmt.Sprintf(`{"id":"%s","username":"%s","display_name":"","avatar_url":"","is_private":%t,"week_activity":null}`, privateUser.ID, privateUser.Username, privateUser.IsPrivate),
+				Body: responsebody.Profile{
+					ID:        privateUser.ID,
+					Username:  privateUser.Username,
+					IsPrivate: privateUser.IsPrivate,
+				},
 			},
 		},
 		{
@@ -186,7 +204,9 @@ func TestGetByUsername(t *testing.T) {
 
 			Expect: test.Expect{
 				Status: http.StatusNotFound,
-				Body:   fmt.Sprintf(`{"message":"user not found"}`),
+				Body: responsebody.Message{
+					Message: "user not found",
+				},
 			},
 		},
 		{
