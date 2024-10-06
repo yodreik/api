@@ -56,5 +56,5 @@ func (c *Config) ParseJWT(token string) (id string, err error) {
 }
 
 func (c *Config) Long() string {
-	return "LONGTOKEN"
+	return "LONG_PASSWORD_RESET_REQUEST_TOKEN"
 }

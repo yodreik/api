@@ -320,7 +320,7 @@ func TestResetPassword(t *testing.T) {
 	request := entity.Request{
 		ID:        "REQUEST_ID",
 		Email:     user.Email,
-		Token:     "LONG_REQUEST_TOKEN",
+		Token:     "LONG_PASSWORD_RESET_REQUEST_TOKEN",
 		IsUsed:    false,
 		ExpiresAt: time.Now().Add(5 * time.Minute).Truncate(time.Minute),
 		CreatedAt: time.Now(),
