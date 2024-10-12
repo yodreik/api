@@ -1,4 +1,7 @@
 {
+    "schemes": [
+        "https"
+    ],
     "swagger": "2.0",
     "info": {
         "description": "API server for yodreik application",
@@ -6,7 +9,7 @@
         "contact": {},
         "version": "0.1"
     },
-    "host": "localhost:6969",
+    "host": "dreik.d.qarwe.online",
     "basePath": "/api",
     "paths": {
         "/activity": {

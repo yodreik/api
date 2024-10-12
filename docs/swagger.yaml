@@ -166,7 +166,7 @@ definitions:
       kind:
         type: string
     type: object
-host: localhost:6969
+host: dreik.d.qarwe.online
 info:
   contact: {}
   description: API server for yodreik application
@@ -483,6 +483,8 @@ paths:
       summary: Create a record about past workout
       tags:
       - activity
+schemes:
+- https
 securityDefinitions:
   AccessToken:
     in: header
