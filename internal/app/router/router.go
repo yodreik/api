@@ -35,8 +35,11 @@ func (r *Router) InitRoutes() *gin.Engine {
 	router.Use(requestid.New)
 	router.Use(requestlog.Completed)
 
-	if r.config.Env == config.EnvLocal || r.config.Env == config.EnvDevelopment {
-		router.Use(func(c *gin.Context) {
+	api := router.Group("/api")
+
+	switch r.config.Env {
+	case config.EnvLocal, config.EnvDevelopment:
+		api.Use(func(c *gin.Context) {
 			c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 			c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
 			c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
@@ -49,40 +52,32 @@ func (r *Router) InitRoutes() *gin.Engine {
 
 			c.Next()
 		})
+
+		api.GET("/coverage", func(c *gin.Context) {
+			c.File("./coverage.html")
+		})
+
+		api.GET("/docs/*any", swaggin.WrapHandler(files.Handler))
 	}
 
-	api := router.Group("/api")
-	{
-		if r.config.Env == config.EnvLocal || r.config.Env == config.EnvDevelopment {
-			switch r.config.Env {
-			case config.EnvLocal, config.EnvDevelopment:
-				api.GET("/coverage", func(c *gin.Context) {
-					c.File("./coverage.html")
-				})
+	api.GET("/healthcheck", r.handler.Healthcheck)
 
-				api.GET("/docs/*any", swaggin.WrapHandler(files.Handler))
-			}
-		}
+	api.POST("/auth/session", r.handler.CreateSession)
 
-		api.GET("/healthcheck", r.handler.Healthcheck)
+	api.POST("/auth/account", r.handler.CreateAccount)
+	api.GET("/auth/account", r.handler.UserIdentity, r.handler.GetCurrentAccount)
+	api.PATCH("/auth/account", r.handler.UserIdentity, r.handler.UpdateAccount)
+	api.POST("/auth/account/confirm", r.handler.ConfirmAccount)
 
-		api.POST("/auth/session", r.handler.CreateSession)
+	api.POST("/auth/password/reset", r.handler.ResetPassword)
+	api.PATCH("/auth/password", r.handler.UpdatePassword)
 
-		api.POST("/auth/account", r.handler.CreateAccount)
-		api.GET("/auth/account", r.handler.UserIdentity, r.handler.GetCurrentAccount)
-		api.PATCH("/auth/account", r.handler.UserIdentity, r.handler.UpdateAccount)
-		api.POST("/auth/account/confirm", r.handler.ConfirmAccount)
+	api.POST("/workout", r.handler.UserIdentity, r.handler.CreateWorkout)
 
-		api.POST("/auth/password/reset", r.handler.ResetPassword)
-		api.PATCH("/auth/password", r.handler.UpdatePassword)
+	api.GET("/activity", r.handler.UserIdentity, r.handler.GetActivityHistory)
+	api.GET("/statistics", r.handler.UserIdentity, r.handler.GetStatistics)
 
-		api.POST("/workout", r.handler.UserIdentity, r.handler.CreateWorkout)
-
-		api.GET("/activity", r.handler.UserIdentity, r.handler.GetActivityHistory)
-		api.GET("/statistics", r.handler.UserIdentity, r.handler.GetStatistics)
-
-		api.GET("/user/:username", r.handler.GetUserByUsername)
-	}
+	api.GET("/user/:username", r.handler.GetUserByUsername)
 
 	return router
 }
