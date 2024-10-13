@@ -42,7 +42,7 @@ jobs:
           user: ${{ secrets.SSH_USER }}
           private_key: ${{ secrets.SSH_PRIVATE_KEY }}
           command: |
-            docker rmi jus1d/dreik-api
-            cd ${{ secrets.PROJECT_DIR }}
-            docker compose down
-            docker compose up -d
+            docker rmi jus1d/dreik-api;
+            cd ${{ secrets.PROJECT_DIR }};
+            docker compose down;
+            docker compose up -d;
