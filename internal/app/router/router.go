@@ -35,29 +35,33 @@ func (r *Router) InitRoutes() *gin.Engine {
 	router.Use(requestid.New)
 	router.Use(requestlog.Completed)
 
+	if r.config.Env == config.EnvLocal || r.config.Env == config.EnvDevelopment {
+		router.Use(func(c *gin.Context) {
+			c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+			c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+			c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
+			c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT, PATCH")
+
+			if c.Request.Method == "OPTIONS" {
+				c.AbortWithStatus(204)
+				return
+			}
+
+			c.Next()
+		})
+	}
+
 	api := router.Group("/api")
 	{
-		switch r.config.Env {
-		case config.EnvLocal, config.EnvDevelopment:
-			router.Use(func(c *gin.Context) {
-				c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
-				c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
-				c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
-				c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT, PATCH")
+		if r.config.Env == config.EnvLocal || r.config.Env == config.EnvDevelopment {
+			switch r.config.Env {
+			case config.EnvLocal, config.EnvDevelopment:
+				api.GET("/coverage", func(c *gin.Context) {
+					c.File("./coverage.html")
+				})
 
-				if c.Request.Method == "OPTIONS" {
-					c.AbortWithStatus(204)
-					return
-				}
-
-				c.Next()
-			})
-
-			api.GET("/coverage", func(c *gin.Context) {
-				c.File("./coverage.html")
-			})
-
-			api.GET("/docs/*any", swaggin.WrapHandler(files.Handler))
+				api.GET("/docs/*any", swaggin.WrapHandler(files.Handler))
+			}
 		}
 
 		api.GET("/healthcheck", r.handler.Healthcheck)
