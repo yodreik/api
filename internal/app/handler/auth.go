@@ -456,7 +456,7 @@ func (h *Handler) UploadAvatar(c *gin.Context) {
 
 	filename := fmt.Sprintf("%s%s", uuid.NewString(), extension)
 
-	dst := fmt.Sprintf("./.avatars/%s", filename)
+	dst := fmt.Sprintf("./.database/avatars/%s", filename)
 
 	c.SaveUploadedFile(file, dst)
 
