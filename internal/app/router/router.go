@@ -67,6 +67,7 @@ func (r *Router) InitRoutes() *gin.Engine {
 
 		api.POST("/auth/session", r.handler.CreateSession)
 
+		api.Static("/avatar", ".database/avatars")
 		api.PATCH("/auth/account/avatar", r.handler.UserIdentity, r.handler.UploadAvatar)
 
 		api.POST("/auth/account", r.handler.CreateAccount)
