@@ -421,6 +421,17 @@ func (h *Handler) UpdateAccount(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
+// @Summary      Upload User Avatar
+// @Description  uploads a new avatar image for the user. Only PNG, JPG, and JPEG formats are allowed
+// @Security     AccessToken
+// @Tags         auth
+// @Accept       multipart/form-data
+// @Produce      json
+// @Param        avatar formData       file true "Avatar Image"
+// @Success      200 {object}          responsebody.Account
+// @Failure      400 {object}          responsebody.Message
+// @Failure      404 {object}          responsebody.Message
+// @Router       /auth/account/avatar  [patch]
 func (h *Handler) UploadAvatar(c *gin.Context) {
 	log := slog.With(
 		slog.String("op", "handler.UploadAvatar"),
