@@ -10,13 +10,16 @@ import (
 	"api/pkg/requestid"
 	"api/pkg/sha256"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"net/mail"
 	"net/url"
+	"path/filepath"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 // @Summary      Create new account
@@ -416,4 +419,64 @@ func (h *Handler) UpdateAccount(c *gin.Context) {
 	}
 
 	c.Status(http.StatusOK)
+}
+
+func (h *Handler) UploadAvatar(c *gin.Context) {
+	log := slog.With(
+		slog.String("op", "handler.UploadAvatar"),
+		slog.String("request_id", requestid.Get(c)),
+	)
+
+	userID := c.GetString("UserID")
+	user, err := h.repository.User.GetByID(c, userID)
+	if errors.Is(err, repoerr.ErrUserNotFound) {
+		log.Debug("user does not exists")
+		response.WithMessage(c, http.StatusNotFound, "user not found")
+		return
+	}
+	if err != nil {
+		log.Error("can't find user", sl.Err(err))
+		response.InternalServerError(c)
+		return
+	}
+
+	file, err := c.FormFile("avatar")
+	if err != nil {
+		log.Error("can't get file form", sl.Err(err))
+		response.WithMessage(c, http.StatusBadRequest, "no avatar image provided")
+		return
+	}
+
+	extension := filepath.Ext(file.Filename)
+	if extension != ".png" && extension != ".jpg" && extension != ".jpeg" {
+		log.Debug("invalid extension", slog.String("extension", extension))
+		response.WithMessage(c, http.StatusBadRequest, "only png, jpg and jpeg files are available")
+		return
+	}
+
+	filename := fmt.Sprintf("%s%s", uuid.NewString(), extension)
+
+	dst := fmt.Sprintf("./.avatars/%s", filename)
+
+	c.SaveUploadedFile(file, dst)
+
+	user.AvatarURL = fmt.Sprintf("https://dreik.d.qarwe.online/api/avatar/%s", filename)
+
+	err = h.repository.User.UpdateUser(c, user.ID, user.Email, user.Username, user.DisplayName, user.AvatarURL, user.PasswordHash, user.IsPrivate)
+	if err != nil {
+		log.Error("could not update user", sl.Err(err))
+		response.InternalServerError(c)
+		return
+	}
+
+	c.JSON(http.StatusOK, responsebody.Account{
+		ID:          user.ID,
+		Email:       user.Email,
+		Username:    user.Username,
+		DisplayName: user.DisplayName,
+		AvatarURL:   user.AvatarURL,
+		IsPrivate:   user.IsPrivate,
+		IsConfirmed: user.IsConfirmed,
+		CreatedAt:   user.CreatedAt.Format(time.RFC3339),
+	})
 }
