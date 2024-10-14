@@ -5,6 +5,7 @@ services:
     restart: unless-stopped
     volumes:
       - ./.database/postgres/data:/var/lib/postgresql/data
+      - ./.database/avatars:./.database/avatars
     environment:
       - POSTGRES_PASSWORD
     ports:
