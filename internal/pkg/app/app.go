@@ -63,7 +63,7 @@ func (a *App) Run() {
 	slog.Info("successfully connected to PostgreSQL")
 
 	repo := repository.New(db)
-	m := mailer.New(a.config.Mail)
+	m := mailer.New(a.config)
 	tokenManager := token.New(a.config.Token)
 
 	r := router.New(a.config, repo, m, tokenManager)
