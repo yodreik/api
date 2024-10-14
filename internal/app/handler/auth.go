@@ -458,7 +458,12 @@ func (h *Handler) UploadAvatar(c *gin.Context) {
 
 	dst := fmt.Sprintf("./.database/avatars/%s", filename)
 
-	c.SaveUploadedFile(file, dst)
+	err = c.SaveUploadedFile(file, dst)
+	if err != nil {
+		log.Error("could not save file", sl.Err(err))
+		response.InternalServerError(c)
+		return
+	}
 
 	user.AvatarURL = fmt.Sprintf("https://dreik.d.qarwe.online/api/avatar/%s", filename)
 
