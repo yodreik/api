@@ -15,7 +15,9 @@ import (
 	"net/http"
 	"net/mail"
 	"net/url"
+	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -459,7 +461,7 @@ func (h *Handler) UploadAvatar(c *gin.Context) {
 		return
 	}
 
-	maxFileSize := int64(1024 * 1024 * 2)
+	maxFileSize := int64(1024 * 1024 * 2) // 2Mb
 	if file.Size > maxFileSize {
 		log.Debug("file too big", slog.Int64("size", file.Size))
 		response.WithMessage(c, http.StatusBadRequest, "file should be smaller than 2Mb")
@@ -483,6 +485,15 @@ func (h *Handler) UploadAvatar(c *gin.Context) {
 		log.Error("could not save file", sl.Err(err))
 		response.InternalServerError(c)
 		return
+	}
+
+	avatarParts := strings.Split(user.AvatarURL, "/")
+	if len(avatarParts) > 0 {
+		prevAvatarPath := avatarParts[len(avatarParts)-1]
+		err := os.Remove(fmt.Sprintf("./.database/avatars/%s", prevAvatarPath))
+		if err != nil {
+			log.Debug("can't remove old avatar file", sl.Err(err))
+		}
 	}
 
 	user.AvatarURL = fmt.Sprintf("%s/api/avatar/%s", h.config.BasePath, filename)
