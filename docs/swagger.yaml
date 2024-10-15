@@ -59,9 +59,6 @@ definitions:
     type: object
   requestbody.UpdateAccount:
     properties:
-      avatar_url:
-        maxLength: 2048
-        type: string
       display_name:
         maxLength: 50
         minLength: 1

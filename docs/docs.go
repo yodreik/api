@@ -635,10 +635,6 @@ const docTemplate = `{
         "requestbody.UpdateAccount": {
             "type": "object",
             "properties": {
-                "avatar_url": {
-                    "type": "string",
-                    "maxLength": 2048
-                },
                 "display_name": {
                     "type": "string",
                     "maxLength": 50,
