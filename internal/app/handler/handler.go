@@ -11,6 +11,7 @@ import (
 )
 
 type Handler struct {
+	config     *config.Config
 	repository *repository.Repository
 	mailer     mailer.Mailer
 	token      token.Manager
@@ -18,6 +19,7 @@ type Handler struct {
 
 func New(c *config.Config, r *repository.Repository, m mailer.Mailer, t token.Manager) *Handler {
 	return &Handler{
+		config:     c,
 		repository: r,
 		mailer:     m,
 		token:      t,

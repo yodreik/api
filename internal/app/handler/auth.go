@@ -459,14 +459,19 @@ func (h *Handler) UploadAvatar(c *gin.Context) {
 		return
 	}
 
+	maxFileSize := int64(1024 * 1024 * 2)
+	if file.Size > maxFileSize {
+		log.Debug("file too big", slog.Int64("size", file.Size))
+		response.WithMessage(c, http.StatusBadRequest, "file should be smaller than 5Mb")
+		return
+	}
+
 	extension := filepath.Ext(file.Filename)
 	if extension != ".png" && extension != ".jpg" && extension != ".jpeg" {
 		log.Debug("invalid extension", slog.String("extension", extension))
 		response.WithMessage(c, http.StatusBadRequest, "only png, jpg and jpeg files are available")
 		return
 	}
-
-	// TODO: Check if file is too big
 
 	filename := fmt.Sprintf("%s%s", uuid.NewString(), extension)
 
@@ -480,8 +485,7 @@ func (h *Handler) UploadAvatar(c *gin.Context) {
 		return
 	}
 
-	// TODO: Take basepath for avatar from config
-	user.AvatarURL = fmt.Sprintf("https://dreik.d.qarwe.online/api/avatar/%s", filename)
+	user.AvatarURL = fmt.Sprintf("%s/api/avatar/%s", h.config.BasePath, filename)
 
 	err = h.repository.User.UpdateUser(c, user.ID, user.Email, user.Username, user.DisplayName, user.AvatarURL, user.PasswordHash, user.IsPrivate)
 	if err != nil {
