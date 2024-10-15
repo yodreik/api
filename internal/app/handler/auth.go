@@ -462,7 +462,7 @@ func (h *Handler) UploadAvatar(c *gin.Context) {
 	maxFileSize := int64(1024 * 1024 * 2)
 	if file.Size > maxFileSize {
 		log.Debug("file too big", slog.Int64("size", file.Size))
-		response.WithMessage(c, http.StatusBadRequest, "file should be smaller than 5Mb")
+		response.WithMessage(c, http.StatusBadRequest, "file should be smaller than 2Mb")
 		return
 	}
 
