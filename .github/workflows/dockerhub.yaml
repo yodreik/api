@@ -43,6 +43,7 @@ jobs:
           private_key: ${{ secrets.SSH_PRIVATE_KEY }}
           command: |
             cd ${{ secrets.PROJECT_DIR }};
+            git checkout master;
             docker compose down;
             docker rmi jus1d/dreik-api;
             docker compose up -d;
