@@ -438,6 +438,7 @@ func (h *Handler) UploadAvatar(c *gin.Context) {
 		slog.String("request_id", requestid.Get(c)),
 	)
 
+	// TODO: Return error if userID is empty
 	userID := c.GetString("UserID")
 	user, err := h.repository.User.GetByID(c, userID)
 	if errors.Is(err, repoerr.ErrUserNotFound) {
@@ -465,10 +466,13 @@ func (h *Handler) UploadAvatar(c *gin.Context) {
 		return
 	}
 
+	// TODO: Check if file is too big
+
 	filename := fmt.Sprintf("%s%s", uuid.NewString(), extension)
 
 	dst := fmt.Sprintf("./.database/avatars/%s", filename)
 
+	// TODO: Check if file with this name already exists
 	err = c.SaveUploadedFile(file, dst)
 	if err != nil {
 		log.Error("could not save file", sl.Err(err))
@@ -476,6 +480,7 @@ func (h *Handler) UploadAvatar(c *gin.Context) {
 		return
 	}
 
+	// TODO: Take basepath for avatar from config
 	user.AvatarURL = fmt.Sprintf("https://dreik.d.qarwe.online/api/avatar/%s", filename)
 
 	err = h.repository.User.UpdateUser(c, user.ID, user.Email, user.Username, user.DisplayName, user.AvatarURL, user.PasswordHash, user.IsPrivate)
