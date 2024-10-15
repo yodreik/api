@@ -1,9 +1,13 @@
 package handler
 
 import (
+	"api/internal/app/handler/request/requestbody"
+	"api/internal/app/handler/response/responsebody"
+	"api/internal/app/handler/test"
 	"api/internal/config"
 	mockmailer "api/internal/mailer/mock"
 	"api/internal/repository"
+	"api/internal/repository/entity"
 	"api/internal/token"
 	mocktoken "api/internal/token/mock"
 	"errors"
@@ -28,101 +32,129 @@ func TestCreateWorkout(t *testing.T) {
 	tokenManager := token.New(c.Token)
 	handler := New(&c, repo, mockmailer.New(), mocktoken.New(c.Token))
 
-	tokenWithID69, err := tokenManager.GenerateJWT("69")
+	accessToken, err := tokenManager.GenerateJWT("USER_ID")
 	if err != nil {
 		t.Fatal("unexpected error while generating mock token")
 	}
 
-	expectedDate, err := time.Parse("02.01.2006", "11.11.2024")
-	if err != nil {
-		t.Fatal("err no expected while parsing mock date")
+	headerAuthorization := fmt.Sprintf("Bearer %s", accessToken)
+
+	layout := "02-01-2006"
+	now := time.Now().UTC()
+
+	workout := entity.Workout{
+		ID:        "WORKOUT_ID",
+		UserID:    "USER_ID",
+		Date:      time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location()),
+		Duration:  69,
+		Kind:      "Calisthenics",
+		CreatedAt: time.Now(),
 	}
 
-	tests := []table{
+	tests := []test.Case{
 		{
-			name: "ok",
+			Name: "ok",
 
-			repo: func(mock sqlmock.Sqlmock) {
+			Repo: func(mock sqlmock.Sqlmock) {
 				rows := sqlmock.NewRows([]string{"id", "user_id", "date", "duration", "kind", "created_at"}).
-					AddRow("96", "69", expectedDate, 71, "Calisthenics", time.Now())
+					AddRow(workout.ID, workout.UserID, workout.Date, workout.Duration, workout.Kind, workout.CreatedAt)
 
 				mock.ExpectQuery("INSERT INTO workouts (user_id, date, duration, kind) VALUES ($1, $2, $3, $4) RETURNING *").
-					WithArgs("69", expectedDate, 71, "Calisthenics").WillReturnRows(rows)
+					WithArgs(workout.UserID, workout.Date, workout.Duration, workout.Kind).
+					WillReturnRows(rows)
 			},
 
-			request: request{
-				headers: map[string]string{
-					"Authorization": fmt.Sprintf("Bearer %s", tokenWithID69),
+			Request: test.Request{
+				Headers: map[string]string{
+					"Authorization": headerAuthorization,
 				},
-				body: `{"date":"11.11.2024","duration":71,"kind":"Calisthenics"}`,
-			},
-
-			expect: expect{
-				status: http.StatusCreated,
-				body:   `{"id":"96","date":"11.11.2024","duration":71,"kind":"Calisthenics"}`,
-			},
-		},
-		{
-			name: "invalid request body",
-
-			request: request{
-				headers: map[string]string{
-					"Authorization": fmt.Sprintf("Bearer %s", tokenWithID69),
+				Body: requestbody.CreateWorkout{
+					Date:     workout.Date.Format(layout),
+					Duration: workout.Duration,
+					Kind:     workout.Kind,
 				},
-				body: `{"invalid":"body"}`,
 			},
 
-			expect: expect{
-				status: http.StatusBadRequest,
-				body:   `{"message":"invalid request body"}`,
-			},
-		},
-		{
-			name: "invalid date format",
-
-			request: request{
-				headers: map[string]string{
-					"Authorization": fmt.Sprintf("Bearer %s", tokenWithID69),
+			Expect: test.Expect{
+				Status: http.StatusCreated,
+				Body: responsebody.Workout{
+					ID:       workout.ID,
+					Date:     workout.Date.Format(layout),
+					Duration: workout.Duration,
+					Kind:     workout.Kind,
 				},
-				body: `{"date":"69.11.2024","duration":71,"kind":"Calisthenics"}`,
-			},
-
-			expect: expect{
-				status: http.StatusBadRequest,
-				body:   `{"message":"invalid date format"}`,
 			},
 		},
 		{
-			name: "unauthorized",
+			Name: "invalid request body",
 
-			expect: expect{
-				status: http.StatusUnauthorized,
-				body:   `{"message":"empty authorization header"}`,
+			Request: test.Request{
+				Headers: map[string]string{
+					"Authorization": headerAuthorization,
+				},
+				Body: map[string]string{
+					"invalid": "body",
+				},
+			},
+
+			Expect: test.ResponseInvalidRequestBody,
+		},
+		{
+			Name: "invalid date format",
+
+			Request: test.Request{
+				Headers: map[string]string{
+					"Authorization": headerAuthorization,
+				},
+				Body: requestbody.CreateWorkout{
+					Date:     "69--01-2024",
+					Duration: workout.Duration,
+					Kind:     workout.Kind,
+				},
+			},
+
+			Expect: test.Expect{
+				Status: http.StatusBadRequest,
+				Body: responsebody.Message{
+					Message: "invalid date format",
+				},
 			},
 		},
 		{
-			name: "repository error",
+			Name: "unauthorized",
 
-			repo: func(mock sqlmock.Sqlmock) {
+			Expect: test.Expect{
+				Status: http.StatusUnauthorized,
+				Body: responsebody.Message{
+					Message: "empty authorization header",
+				},
+			},
+		},
+		{
+			Name: "repository error",
+
+			Repo: func(mock sqlmock.Sqlmock) {
 				mock.ExpectQuery("INSERT INTO workouts (user_id, date, duration, kind) VALUES ($1, $2, $3, $4) RETURNING *").
-					WithArgs("69", expectedDate, 71, "Calisthenics").WillReturnError(errors.New("repo: Some repository error"))
+					WithArgs(workout.UserID, workout.Date, workout.Duration, workout.Kind).
+					WillReturnError(errors.New("repo: Some repository error"))
 			},
 
-			request: request{
-				headers: map[string]string{
-					"Authorization": fmt.Sprintf("Bearer %s", tokenWithID69),
+			Request: test.Request{
+				Headers: map[string]string{
+					"Authorization": headerAuthorization,
 				},
-				body: `{"date":"11.11.2024","duration":71,"kind":"Calisthenics"}`,
+				Body: requestbody.CreateWorkout{
+					Date:     workout.Date.Format(layout),
+					Duration: workout.Duration,
+					Kind:     workout.Kind,
+				},
 			},
 
-			expect: expect{
-				status: http.StatusInternalServerError,
-				body:   `{"message":"internal server error"}`,
-			},
+			Expect: test.ResponseInternalServerError,
 		},
 	}
 
 	for _, tc := range tests {
-		t.Run(tc.name, TemplateTestHandler(tc, mock, http.MethodPost, "/api/workout", handler.UserIdentity, handler.CreateWorkout))
+		test.Endpoint(t, tc, mock, http.MethodPost, "/api/workout", "/api/workout", handler.UserIdentity, handler.CreateWorkout)
 	}
 }

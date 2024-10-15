@@ -18,6 +18,7 @@ const (
 
 type Config struct {
 	Env      string   `yaml:"env" env-required:"true"`
+	BasePath string   `yaml:"basepath" env-required:"true"`
 	Server   Server   `yaml:"server" env-required:"true"`
 	Mail     Mail     `yaml:"mail" env-required:"true"`
 	Token    Token    `yaml:"token" env-required:"true"`
@@ -78,4 +79,8 @@ func MustLoad() *Config {
 	}
 
 	return &config
+}
+
+func Empty() *Config {
+	return &Config{}
 }

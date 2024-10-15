@@ -5,36 +5,42 @@ import (
 	"api/internal/app/handler/response"
 	"api/internal/app/handler/response/responsebody"
 	"api/internal/lib/logger/sl"
+	"api/internal/repository/entity"
 	repoerr "api/internal/repository/errors"
 	"api/pkg/requestid"
 	"api/pkg/sha256"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"net/mail"
+	"net/url"
+	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
-// @Summary      Register user
+// @Summary      Create new account
 // @Description  create user in database
 // @Tags         auth
 // @Accept       json
 // @Produce      json
-// @Param        input body      requestbody.Register true "User information"
-// @Success      201 {object}    responsebody.User
-// @Failure      400 {object}    responsebody.Message
-// @Failure      403 {object}    responsebody.Message
-// @Failure      409 {object}    responsebody.Message
-// @Router       /auth/register  [post]
-func (h *Handler) Register(c *gin.Context) {
+// @Param        input body     requestbody.CreateAccount true "User information"
+// @Success      201 {object}   responsebody.Account
+// @Failure      400 {object}   responsebody.Message
+// @Failure      409 {object}   responsebody.Message
+// @Router       /auth/account  [post]
+func (h *Handler) CreateAccount(c *gin.Context) {
 	log := slog.With(
-		slog.String("op", "handler.Register"),
+		slog.String("op", "handler.CreateAccount"),
 		slog.String("request_id", requestid.Get(c)),
 	)
 
-	var body requestbody.Register
+	var body requestbody.CreateAccount
 	if err := c.BindJSON(&body); err != nil {
 		log.Debug("can't decode request body", sl.Err(err))
 		response.InvalidRequestBody(c)
@@ -48,20 +54,7 @@ func (h *Handler) Register(c *gin.Context) {
 		return
 	}
 
-	if len(body.Name) > 50 {
-		log.Debug("name is too long")
-		response.WithMessage(c, http.StatusBadRequest, "name is too long")
-		return
-	}
-
-	if len(body.Password) > 50 {
-		log.Debug("password is too long")
-		response.WithMessage(c, http.StatusBadRequest, "password is too long")
-		return
-	}
-
-	token := h.token.Long()
-	user, err := h.repository.User.CreateWithEmailConfirmationRequest(c, body.Email, body.Name, sha256.String(body.Password), token)
+	user, err := h.repository.User.Create(c, body.Email, body.Username, sha256.String(body.Password))
 	if errors.Is(err, repoerr.ErrUserAlreadyExists) {
 		log.Info("user already exists", sl.Err(err))
 		response.WithMessage(c, http.StatusConflict, "user already exists")
@@ -73,50 +66,60 @@ func (h *Handler) Register(c *gin.Context) {
 		return
 	}
 
-	log.Info("created a user", slog.String("id", user.ID), slog.String("email", user.Email), slog.String("name", user.Name))
+	log.Info("created a user", slog.String("id", user.ID), slog.String("email", user.Email), slog.String("username", user.Username))
 
 	go func() {
-		err = h.mailer.SendConfirmationEmail(body.Email, token)
+		err = h.mailer.SendConfirmationEmail(body.Email, user.ConfirmationToken)
 		if err != nil {
 			log.Error("can't send an email", sl.Err(err))
 		}
 	}()
 
-	// TOTHINK: Maybe additionally return an access token
-	c.JSON(http.StatusCreated, responsebody.User{
-		ID:    user.ID,
-		Email: body.Email,
-		Name:  body.Name,
+	c.JSON(http.StatusCreated, responsebody.Account{
+		ID:          user.ID,
+		Email:       user.Email,
+		Username:    user.Username,
+		DisplayName: user.DisplayName,
+		IsPrivate:   user.IsPrivate,
+		IsConfirmed: user.IsConfirmed,
+		CreatedAt:   user.CreatedAt.Format(time.RFC3339),
 	})
 }
 
-// @Summary      Log into user's account
+// @Summary      Create a session for existing account
 // @Description  check if user exists, and return an access token
 // @Tags         auth
 // @Accept       json
 // @Produce      json
-// @Param        input body    requestbody.Login true "User information"
-// @Success      200 {object}  responsebody.Token
-// @Failure      400 {object}  responsebody.Message
-// @Failure      404 {object}  responsebody.Message
-// @Router       /auth/login   [post]
-func (h *Handler) Login(c *gin.Context) {
+// @Param        input body     requestbody.CreateSession true "User information"
+// @Success      200 {object}   responsebody.Token
+// @Failure      400 {object}   responsebody.Message
+// @Failure      401 {object}   responsebody.Message
+// @Router       /auth/session  [post]
+func (h *Handler) CreateSession(c *gin.Context) {
 	log := slog.With(
-		slog.String("op", "handler.Login"),
+		slog.String("op", "handler.CreateSession"),
 		slog.String("request_id", requestid.Get(c)),
 	)
 
-	var body requestbody.Login
+	var body requestbody.CreateSession
 	if err := c.BindJSON(&body); err != nil {
 		log.Debug("can't decode request body", sl.Err(err))
 		response.InvalidRequestBody(c)
 		return
 	}
 
-	user, err := h.repository.User.GetByCredentials(c, body.Email, sha256.String(body.Password))
+	var err error
+	var user *entity.User
+	if _, mailErr := mail.ParseAddress(body.Login); mailErr == nil {
+		user, err = h.repository.User.GetByCredentialsWithEmail(c, body.Login, sha256.String(body.Password))
+	} else {
+		user, err = h.repository.User.GetByCredentialsWithUsername(c, body.Login, sha256.String(body.Password))
+	}
+
 	if errors.Is(err, repoerr.ErrUserNotFound) {
-		log.Debug("user not found", slog.String("email", body.Email))
-		response.WithMessage(c, http.StatusNotFound, "user not found")
+		log.Debug("user not found", slog.String("login", body.Login))
+		response.WithMessage(c, http.StatusUnauthorized, "user not found")
 		return
 	}
 	if err != nil {
@@ -125,7 +128,7 @@ func (h *Handler) Login(c *gin.Context) {
 		return
 	}
 
-	if user.IsEmailConfirmed {
+	if user.IsConfirmed {
 		token, err := h.token.GenerateJWT(user.ID)
 		if err != nil {
 			log.Error("can't generate JWT", sl.Err(err))
@@ -141,33 +144,12 @@ func (h *Handler) Login(c *gin.Context) {
 
 	log.Debug("user's email not confirmed")
 
-	request, err := h.repository.User.GetRequestByEmail(c, body.Email)
-	if errors.Is(err, repoerr.ErrRequestNotFound) || time.Now().After(request.ExpiresAt) {
-		log.Debug("confirmation request not found")
-		token := h.token.Long()
-		request, err := h.repository.User.CreateEmailConfirmationRequest(c, token, body.Email)
+	go func() {
+		err = h.mailer.SendConfirmationEmail(user.Email, user.ConfirmationToken)
 		if err != nil {
-			log.Error("can't save new email confirmation request", sl.Err(err))
-			response.InternalServerError(c)
-			return
+			log.Error("can't send confirmation email", sl.Err(err))
 		}
-
-		go func() {
-			err = h.mailer.SendConfirmationEmail(body.Email, request.Token)
-			if err != nil {
-				log.Error("can't send confirmation email", sl.Err(err))
-			}
-		}()
-
-		log.Debug("new confirmation email sent")
-		response.WithMessage(c, http.StatusForbidden, "email confirmation needed")
-		return
-	}
-	if err != nil {
-		log.Error("can't get confirmation request", sl.Err(err))
-		response.InternalServerError(c)
-		return
-	}
+	}()
 
 	response.WithMessage(c, http.StatusForbidden, "email confirmation needed")
 }
@@ -230,11 +212,11 @@ func (h *Handler) ResetPassword(c *gin.Context) {
 // @Tags         auth
 // @Accept       json
 // @Produce      json
-// @Param        input body             requestbody.UpdatePassword true "User information"
+// @Param        input body      requestbody.UpdatePassword true "User information"
 // @Success      200
-// @Failure      400 {object}           responsebody.Message
-// @Failure      404 {object}           responsebody.Message
-// @Router       /auth/password/update  [patch]
+// @Failure      400 {object}    responsebody.Message
+// @Failure      404 {object}    responsebody.Message
+// @Router       /auth/password  [patch]
 func (h *Handler) UpdatePassword(c *gin.Context) {
 	log := slog.With(
 		slog.String("op", "handler.UpdatePassword"),
@@ -287,33 +269,33 @@ func (h *Handler) UpdatePassword(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
-// @Summary      Confirm email
+// @Summary      Confirm account's email
 // @Description  confirms user's email
 // @Tags         auth
 // @Accept       json
 // @Produce      json
-// @Param        input body             requestbody.ConfirmEmail true "Token"
+// @Param        input body             requestbody.ConfirmAccount true "Token"
 // @Success      200
 // @Failure      400 {object}           responsebody.Message
 // @Failure      404 {object}           responsebody.Message
-// @Router       /auth/confirm          [post]
-func (h *Handler) ConfirmEmail(c *gin.Context) {
+// @Router       /auth/account/confirm  [post]
+func (h *Handler) ConfirmAccount(c *gin.Context) {
 	log := slog.With(
-		slog.String("op", "handler.ConfirmEmail"),
+		slog.String("op", "handler.ConfirmAccount"),
 		slog.String("request_id", requestid.Get(c)),
 	)
 
-	var body requestbody.ConfirmEmail
+	var body requestbody.ConfirmAccount
 	if err := c.BindJSON(&body); err != nil {
 		log.Debug("can't decode request body", sl.Err(err))
 		response.InvalidRequestBody(c)
 		return
 	}
 
-	request, err := h.repository.User.GetRequestByToken(c, body.Token)
-	if errors.Is(err, repoerr.ErrRequestNotFound) {
-		log.Error("request not found")
-		response.WithMessage(c, http.StatusNotFound, "confirmation request not found")
+	user, err := h.repository.User.GetByConfirmationToken(c, body.Token)
+	if errors.Is(err, repoerr.ErrUserNotFound) {
+		log.Error("user not found")
+		response.WithMessage(c, http.StatusNotFound, "user not found")
 		return
 	}
 	if err != nil {
@@ -322,21 +304,7 @@ func (h *Handler) ConfirmEmail(c *gin.Context) {
 		return
 	}
 
-	if time.Now().After(request.ExpiresAt) {
-		log.Debug("confirmation token expired", slog.String("id", request.ID))
-
-		go func() {
-			err := h.mailer.SendConfirmationEmail(request.Email, request.Token)
-			if err != nil {
-				log.Error("can't send confirmation email", sl.Err(err))
-			}
-		}()
-
-		response.WithMessage(c, http.StatusForbidden, "confirmation link expired. we will send you new confirmation email")
-		return
-	}
-
-	err = h.repository.User.ConfirmEmail(c, request.Email, request.Token)
+	err = h.repository.User.SetUserConfirmed(c, user.Email, user.ConfirmationToken)
 	if err != nil {
 		log.Error("can't mark user as confirmed", sl.Err(err))
 		response.InternalServerError(c)
@@ -344,4 +312,207 @@ func (h *Handler) ConfirmEmail(c *gin.Context) {
 	}
 
 	c.Status(http.StatusOK)
+}
+
+// @Summary      Get information about current user
+// @Description  returns an user's information, that currently logged in
+// @Security     AccessToken
+// @Tags         auth
+// @Produce      json
+// @Success      200 {object}   responsebody.Account
+// @Failure      401 {object}   responsebody.Message
+// @Router       /auth/account  [get]
+func (h *Handler) GetCurrentAccount(c *gin.Context) {
+	log := slog.With(
+		slog.String("op", "handler.GetCurrentAccount"),
+		slog.String("request_id", requestid.Get(c)),
+	)
+
+	userID := c.GetString("UserID")
+	user, err := h.repository.User.GetByID(c, userID)
+	if errors.Is(err, repoerr.ErrUserNotFound) {
+		log.Debug("user not found", slog.String("id", userID))
+		response.WithMessage(c, http.StatusUnauthorized, "invalid authorization token")
+		return
+	}
+	if err != nil {
+		log.Error("can't find user", sl.Err(err))
+		response.InternalServerError(c)
+		return
+	}
+
+	c.JSON(http.StatusOK, responsebody.Account{
+		ID:          user.ID,
+		Email:       user.Email,
+		Username:    user.Username,
+		DisplayName: user.DisplayName,
+		AvatarURL:   user.AvatarURL,
+		IsPrivate:   user.IsPrivate,
+		IsConfirmed: user.IsConfirmed,
+		CreatedAt:   user.CreatedAt.Format(time.RFC3339),
+	})
+}
+
+// @Summary      Update personal information
+// @Description  updates user entity in storage
+// @Security     AccessToken
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        input body             requestbody.UpdateAccount true "User Information"
+// @Success      200
+// @Failure      400 {object}   responsebody.Message
+// @Failure      401 {object}   responsebody.Message
+// @Router       /auth/account  [patch]
+func (h *Handler) UpdateAccount(c *gin.Context) {
+	log := slog.With(
+		slog.String("op", "handler.UpdateAccount"),
+		slog.String("request_id", requestid.Get(c)),
+	)
+
+	var body requestbody.UpdateAccount
+	if err := c.BindJSON(&body); err != nil {
+		log.Debug("can't decode request body", sl.Err(err))
+		response.InvalidRequestBody(c)
+		return
+	}
+
+	userID := c.GetString("UserID")
+	user, err := h.repository.User.GetByID(c, userID)
+	if errors.Is(err, repoerr.ErrUserNotFound) {
+		log.Debug("user does not exists")
+		response.WithMessage(c, http.StatusNotFound, "user not found")
+		return
+	}
+	if err != nil {
+		log.Error("can't find user", sl.Err(err))
+		response.InternalServerError(c)
+		return
+	}
+
+	if body.Username != nil {
+		user.Username = *body.Username
+	}
+	if body.DisplayName != nil {
+		user.DisplayName = *body.DisplayName
+	}
+	if body.AvatarURL != nil {
+		_, err = url.ParseRequestURI(*body.AvatarURL)
+		if err != nil {
+			log.Debug("invalid avatar url link", slog.String("avatar_url", *body.AvatarURL))
+			response.WithMessage(c, http.StatusBadRequest, "avatar_url should be a valid link")
+			return
+		}
+
+		user.AvatarURL = *body.AvatarURL
+	}
+	if body.Password != nil {
+		user.PasswordHash = sha256.String(*body.Password)
+	}
+	if body.IsPrivate != nil {
+		user.IsPrivate = *body.IsPrivate
+	}
+
+	err = h.repository.User.UpdateUser(c, userID, user.Email, user.Username, user.DisplayName, user.AvatarURL, user.PasswordHash, user.IsPrivate)
+	if err != nil {
+		log.Error("can't update user", sl.Err(err))
+		response.InternalServerError(c)
+		return
+	}
+
+	c.Status(http.StatusOK)
+}
+
+// @Summary      Upload User Avatar
+// @Description  uploads a new avatar image for the user. Only PNG, JPG, and JPEG formats are allowed
+// @Security     AccessToken
+// @Tags         auth
+// @Accept       multipart/form-data
+// @Produce      json
+// @Param        avatar formData       file true "Avatar Image"
+// @Success      200 {object}          responsebody.Account
+// @Failure      400 {object}          responsebody.Message
+// @Failure      404 {object}          responsebody.Message
+// @Router       /auth/account/avatar  [patch]
+func (h *Handler) UploadAvatar(c *gin.Context) {
+	log := slog.With(
+		slog.String("op", "handler.UploadAvatar"),
+		slog.String("request_id", requestid.Get(c)),
+	)
+
+	// TODO: Return error if userID is empty
+	userID := c.GetString("UserID")
+	user, err := h.repository.User.GetByID(c, userID)
+	if errors.Is(err, repoerr.ErrUserNotFound) {
+		log.Debug("user does not exists")
+		response.WithMessage(c, http.StatusNotFound, "user not found")
+		return
+	}
+	if err != nil {
+		log.Error("can't find user", sl.Err(err))
+		response.InternalServerError(c)
+		return
+	}
+
+	file, err := c.FormFile("avatar")
+	if err != nil {
+		log.Error("can't get file form", sl.Err(err))
+		response.WithMessage(c, http.StatusBadRequest, "no avatar image provided")
+		return
+	}
+
+	maxFileSize := int64(1024 * 1024 * 2) // 2Mb
+	if file.Size > maxFileSize {
+		log.Debug("file too big", slog.Int64("size", file.Size))
+		response.WithMessage(c, http.StatusBadRequest, "file should be smaller than 2Mb")
+		return
+	}
+
+	extension := filepath.Ext(file.Filename)
+	if extension != ".png" && extension != ".jpg" && extension != ".jpeg" {
+		log.Debug("invalid extension", slog.String("extension", extension))
+		response.WithMessage(c, http.StatusBadRequest, "only png, jpg and jpeg files are available")
+		return
+	}
+
+	filename := fmt.Sprintf("%s%s", uuid.NewString(), extension)
+
+	dst := fmt.Sprintf("./.database/avatars/%s", filename)
+
+	// TODO: Check if file with this name already exists
+	err = c.SaveUploadedFile(file, dst)
+	if err != nil {
+		log.Error("could not save file", sl.Err(err))
+		response.InternalServerError(c)
+		return
+	}
+
+	avatarParts := strings.Split(user.AvatarURL, "/")
+	if len(avatarParts) > 0 {
+		prevAvatarPath := avatarParts[len(avatarParts)-1]
+		err := os.Remove(fmt.Sprintf("./.database/avatars/%s", prevAvatarPath))
+		if err != nil {
+			log.Debug("can't remove old avatar file", sl.Err(err))
+		}
+	}
+
+	user.AvatarURL = fmt.Sprintf("%s/api/avatar/%s", h.config.BasePath, filename)
+
+	err = h.repository.User.UpdateUser(c, user.ID, user.Email, user.Username, user.DisplayName, user.AvatarURL, user.PasswordHash, user.IsPrivate)
+	if err != nil {
+		log.Error("could not update user", sl.Err(err))
+		response.InternalServerError(c)
+		return
+	}
+
+	c.JSON(http.StatusOK, responsebody.Account{
+		ID:          user.ID,
+		Email:       user.Email,
+		Username:    user.Username,
+		DisplayName: user.DisplayName,
+		AvatarURL:   user.AvatarURL,
+		IsPrivate:   user.IsPrivate,
+		IsConfirmed: user.IsConfirmed,
+		CreatedAt:   user.CreatedAt.Format(time.RFC3339),
+	})
 }

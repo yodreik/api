@@ -18,6 +18,7 @@ services:
     restart: unless-stopped
     volumes:
       - ./config:/app/config
+      - ./.database/avatars:/app/.database/avatars
     environment:
       - CONFIG_PATH=./config/dev.yaml
     ports:

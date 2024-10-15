@@ -4,5 +4,12 @@ import "log/slog"
 
 // Err returns an error attribute for slog.Record
 func Err(err error) slog.Attr {
-	return slog.Attr{Key: "error", Value: slog.StringValue(err.Error())}
+	var msg string
+	if err == nil {
+		msg = "nil"
+	} else {
+		msg = err.Error()
+	}
+
+	return slog.Attr{Key: "error", Value: slog.StringValue(msg)}
 }

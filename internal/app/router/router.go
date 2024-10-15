@@ -50,32 +50,40 @@ func (r *Router) InitRoutes() *gin.Engine {
 
 			c.Next()
 		})
-
-		router.GET("/coverage", func(c *gin.Context) {
-			c.File("./coverage.html")
-		})
-
-		router.GET("/docs/*any", swaggin.WrapHandler(files.Handler))
 	}
 
 	api := router.Group("/api")
 	{
-		api.GET("/healthcheck", r.handler.Healthcheck)
+		switch r.config.Env {
+		case config.EnvLocal, config.EnvDevelopment:
+			api.GET("/coverage", func(c *gin.Context) {
+				c.File("./coverage.html")
+			})
 
-		auth := api.Group("/auth")
-		{
-			auth.POST("/register", r.handler.Register)
-			auth.POST("/login", r.handler.Login)
-
-			auth.POST("/password/reset", r.handler.ResetPassword)
-			auth.PATCH("/password/update", r.handler.UpdatePassword)
-
-			auth.POST("/confirm", r.handler.ConfirmEmail)
+			api.GET("/docs/*any", swaggin.WrapHandler(files.Handler))
 		}
 
-		api.GET("/me", r.handler.UserIdentity, r.handler.Me)
+		api.GET("/healthcheck", r.handler.Healthcheck)
+
+		api.POST("/auth/session", r.handler.CreateSession)
+
+		api.Static("/avatar", ".database/avatars")
+		api.PATCH("/auth/account/avatar", r.handler.UserIdentity, r.handler.UploadAvatar)
+
+		api.POST("/auth/account", r.handler.CreateAccount)
+		api.GET("/auth/account", r.handler.UserIdentity, r.handler.GetCurrentAccount)
+		api.PATCH("/auth/account", r.handler.UserIdentity, r.handler.UpdateAccount)
+		api.POST("/auth/account/confirm", r.handler.ConfirmAccount)
+
+		api.POST("/auth/password/reset", r.handler.ResetPassword)
+		api.PATCH("/auth/password", r.handler.UpdatePassword)
 
 		api.POST("/workout", r.handler.UserIdentity, r.handler.CreateWorkout)
+
+		api.GET("/activity", r.handler.UserIdentity, r.handler.GetActivityHistory)
+		api.GET("/statistics", r.handler.UserIdentity, r.handler.GetStatistics)
+
+		api.GET("/user/:username", r.handler.GetUserByUsername)
 	}
 
 	return router

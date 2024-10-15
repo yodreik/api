@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"api/internal/app/handler/response/responsebody"
+	"api/internal/app/handler/test"
 	"api/internal/config"
 	mockmailer "api/internal/mailer/mock"
 	"api/internal/repository"
@@ -14,52 +16,52 @@ func TestUserIdentity(t *testing.T) {
 	repo := repository.Repository{}
 	handler := New(&c, &repo, mockmailer.New(), mocktoken.New(c.Token))
 
-	tests := []table{
+	tests := []test.Case{
 		{
-			name: "empty header",
+			Name: "empty header",
 
-			request: request{
-				headers: map[string]string{
-					"Authorization": "", // it can be totally removed, keep it just for the sake of the
+			Expect: test.Expect{
+				Status: http.StatusUnauthorized,
+				Body: responsebody.Message{
+					Message: "empty authorization header",
 				},
-			},
-
-			expect: expect{
-				status: http.StatusUnauthorized,
-				body:   `{"message":"empty authorization header"}`,
 			},
 		},
 		{
-			name: "invalid token type",
+			Name: "invalid token type",
 
-			request: request{
-				headers: map[string]string{
+			Request: test.Request{
+				Headers: map[string]string{
 					"Authorization": "Bot <token>",
 				},
 			},
 
-			expect: expect{
-				status: http.StatusUnauthorized,
-				body:   `{"message":"invalid authorization token type"}`,
+			Expect: test.Expect{
+				Status: http.StatusUnauthorized,
+				Body: responsebody.Message{
+					Message: "invalid authorization token type",
+				},
 			},
 		},
 		{
-			name: "incorrect token format",
+			Name: "incorrect token format",
 
-			request: request{
-				headers: map[string]string{
+			Request: test.Request{
+				Headers: map[string]string{
 					"Authorization": "Bearer some.incorrect.jwonwebtoken",
 				},
 			},
 
-			expect: expect{
-				status: http.StatusUnauthorized,
-				body:   `{"message":"invalid authorization token"}`,
+			Expect: test.Expect{
+				Status: http.StatusUnauthorized,
+				Body: responsebody.Message{
+					Message: "invalid authorization token",
+				},
 			},
 		},
 	}
 
 	for _, tc := range tests {
-		t.Run(tc.name, TemplateTestHandler(tc, nil, http.MethodGet, "/api/me", handler.UserIdentity))
+		test.Endpoint(t, tc, nil, http.MethodGet, "/api/me", "/api/me", handler.UserIdentity)
 	}
 }

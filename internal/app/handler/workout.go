@@ -16,11 +16,10 @@ import (
 // @Summary      Create a record about past workout
 // @Description  creates a new record about workout session
 // @Security     AccessToken
-// @Tags         workout
+// @Tags         activity
 // @Accept       json
 // @Produce      json
 // @Param        input body    requestbody.CreateWorkout true "Information about workout session"
-//
 // @Success      201 {object}  responsebody.Workout
 // @Failure      400 {object}  responsebody.Message
 // @Router       /workout      [post]
@@ -37,12 +36,15 @@ func (h *Handler) CreateWorkout(c *gin.Context) {
 		return
 	}
 
-	date, err := time.Parse("02.01.2006", body.Date)
+	layout := "02-01-2006"
+	date, err := time.Parse(layout, body.Date)
 	if err != nil {
 		log.Debug("invalid date format", sl.Err(err))
 		response.WithMessage(c, http.StatusBadRequest, "invalid date format")
 		return
 	}
+
+	// TODO: Add check if workout is in future
 
 	userID := c.GetString("UserID")
 	workout, err := h.repository.Workout.Create(c, userID, date, body.Duration, body.Kind)
@@ -56,8 +58,83 @@ func (h *Handler) CreateWorkout(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, responsebody.Workout{
 		ID:       workout.ID,
-		Date:     date.Format("02.01.2006"),
+		Date:     date.Format(layout),
 		Duration: workout.Duration,
 		Kind:     workout.Kind,
 	})
+}
+
+// @Summary      Get user's activity history
+// @Description  returns user's workout history
+// @Security     AccessToken
+// @Tags         activity
+// @Accept       json
+// @Produce      json
+// @Param        begin query   string false "Begin date"
+// @Param        end   query   string false "End date"
+// @Success      200 {object}  responsebody.ActivityHistory
+// @Failure      400 {object}  responsebody.Message
+// @Failure      401 {object}  responsebody.Message
+// @Router       /activity     [get]
+func (h *Handler) GetActivityHistory(c *gin.Context) {
+	log := slog.With(
+		slog.String("op", "handler.GetActivityHistory"),
+		slog.String("request_id", requestid.Get(c)),
+	)
+
+	layout := "02-01-2006"
+	params := c.Request.URL.Query()
+
+	var begin string
+	if params.Has("begin") {
+		begin = params.Get("begin")
+	} else {
+		begin = "01-01-1970"
+	}
+
+	var end string
+	if params.Has("end") {
+		end = params.Get("end")
+	} else {
+		end = time.Now().Format(layout)
+	}
+
+	beginDate, err := time.Parse(layout, begin)
+	if err != nil {
+		log.Debug("incorrect date format", slog.String("date", begin), sl.Err(err))
+		response.WithMessage(c, http.StatusBadRequest, "date not provided or invalid date format")
+		return
+	}
+
+	endDate, err := time.Parse(layout, end)
+	if err != nil {
+		log.Debug("incorrect date format", slog.String("date", begin), sl.Err(err))
+		response.WithMessage(c, http.StatusBadRequest, "date not provided or invalid date format")
+		return
+	}
+
+	userID := c.GetString("UserID")
+	workouts, err := h.repository.Workout.GetUserWorkouts(c, userID, beginDate, endDate)
+	if err != nil {
+		log.Error("can't get workouts", sl.Err(err))
+		response.InternalServerError(c)
+		return
+	}
+
+	res := responsebody.ActivityHistory{
+		UserID:   userID,
+		Count:    len(workouts),
+		Workouts: make([]responsebody.Workout, 0),
+	}
+
+	for _, workout := range workouts {
+		res.Workouts = append(res.Workouts, responsebody.Workout{
+			ID:       workout.ID,
+			Date:     workout.Date.Format(layout),
+			Duration: workout.Duration,
+			Kind:     workout.Kind,
+		})
+	}
+
+	c.JSON(http.StatusOK, res)
 }

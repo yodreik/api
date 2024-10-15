@@ -2,9 +2,10 @@
 .env
 config/*.yaml
 
-# Ignore binary files
+# Ignore binary and temporary files
 bin/*
 *.exe
+tmp
 
 # Ignore system files
 .DS_Store

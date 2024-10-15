@@ -1,16 +1,20 @@
 package handler
 
 import (
+	"api/internal/app/handler/request/requestbody"
+	"api/internal/app/handler/response/responsebody"
+	"api/internal/app/handler/test"
 	"api/internal/config"
 	mockmailer "api/internal/mailer/mock"
 	"api/internal/repository"
+	"api/internal/repository/entity"
 	repoerr "api/internal/repository/errors"
-	"api/internal/repository/postgres/user"
+	"api/internal/token"
 	mocktoken "api/internal/token/mock"
-	"api/pkg/random"
 	"api/pkg/sha256"
 	"database/sql/driver"
 	"errors"
+	"fmt"
 	"net/http"
 	"testing"
 	"time"
@@ -19,7 +23,7 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-func TestRegister(t *testing.T) {
+func TestCreateAccount(t *testing.T) {
 	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
 	if err != nil {
 		t.Fatalf("err not expected: %v\n", err)
@@ -30,132 +34,133 @@ func TestRegister(t *testing.T) {
 	repo := repository.New(sqlx.NewDb(db, "sqlmock"))
 	handler := New(&c, repo, mockmailer.New(), mocktoken.New(c.Token))
 
-	tests := []table{
+	user := entity.User{
+		ID:                "USER_ID",
+		Email:             "john.doe@example.com",
+		Username:          "johndoe",
+		DisplayName:       "",
+		AvatarURL:         "",
+		PasswordHash:      sha256.String("testword"),
+		IsPrivate:         false,
+		IsConfirmed:       false,
+		ConfirmationToken: "CONFIRMATION_TOKEN",
+		CreatedAt:         time.Now(),
+	}
+
+	tests := []test.Case{
 		{
-			name: "ok",
+			Name: "ok",
 
-			repo: func(mock sqlmock.Sqlmock) {
-				mock.ExpectBegin()
+			Repo: func(mock sqlmock.Sqlmock) {
+				rows := sqlmock.NewRows([]string{"id", "email", "username", "display_name", "avatar_url", "password_hash", "is_private", "is_confirmed", "confirmation_token", "created_at"}).
+					AddRow(user.ID, user.Email, user.Username, user.DisplayName, user.AvatarURL, user.PasswordHash, user.IsPrivate, user.IsConfirmed, user.ConfirmationToken, user.CreatedAt)
 
-				rows := sqlmock.NewRows([]string{"id", "email", "name", "password_hash", "is_email_confirmed", "created_at"}).
-					AddRow("69", "john.doe@example.com", "John Doe", sha256.String("testword"), false, time.Now())
-
-				mock.ExpectQuery("INSERT INTO users (email, name, password_hash) VALUES ($1, $2, $3) RETURNING *").
-					WithArgs("john.doe@example.com", "John Doe", sha256.String("testword")).WillReturnRows(rows)
-
-				mock.ExpectExec("INSERT INTO requests (kind, email, token, expires_at) VALUES ($1, $2, $3, $4)").
-					WithArgs("email_confirmation", "john.doe@example.com", "LONGTOKEN", time.Now().Add(48*time.Hour).Truncate(time.Hour)).WillReturnResult(driver.RowsAffected(1))
-
-				mock.ExpectCommit()
+				mock.ExpectQuery("INSERT INTO users (email, username, password_hash) VALUES ($1, $2, $3) RETURNING *").
+					WithArgs(user.Email, user.Username, user.PasswordHash).WillReturnRows(rows)
 			},
 
-			request: request{
-				body: `{"email":"john.doe@example.com","name":"John Doe","password":"testword"}`,
+			Request: test.Request{
+				Body: requestbody.CreateAccount{
+					Email:    user.Email,
+					Username: user.Username,
+					Password: "testword",
+				},
 			},
 
-			expect: expect{
-				status: http.StatusCreated,
-				body:   `{"id":"69","email":"john.doe@example.com","name":"John Doe"}`,
+			Expect: test.Expect{
+				Status: http.StatusCreated,
+				Body: responsebody.Account{
+					ID:          user.ID,
+					Email:       user.Email,
+					Username:    user.Username,
+					DisplayName: user.DisplayName,
+					AvatarURL:   user.AvatarURL,
+					IsPrivate:   user.IsPrivate,
+					IsConfirmed: user.IsConfirmed,
+					CreatedAt:   user.CreatedAt.Format(time.RFC3339),
+				},
 			},
 		},
 		{
-			name: "invalid request body",
+			Name: "invalid request body",
 
-			request: request{
-				body: `{"some":"invalid","request":"structure"}`,
+			Request: test.Request{
+				Body: map[string]string{
+					"some":    "invalid",
+					"request": "body",
+				},
 			},
 
-			expect: expect{
-				status: http.StatusBadRequest,
-				body:   `{"message":"invalid request body"}`,
+			Expect: test.ResponseInvalidRequestBody,
+		},
+		{
+			Name: "invalid email format",
+
+			Request: test.Request{
+				Body: requestbody.CreateAccount{
+					Email:    "incorrect email",
+					Username: user.Username,
+					Password: "testword",
+				},
+			},
+
+			Expect: test.Expect{
+				Status: http.StatusBadRequest,
+				Body: responsebody.Message{
+					Message: "invalid email format",
+				},
 			},
 		},
 		{
-			name: "invalid email format",
+			Name: "user already exists",
 
-			request: request{
-				body: `{"email":"incorrect-email","name":"John Doe","password":"testword"}`,
+			Repo: func(mock sqlmock.Sqlmock) {
+				mock.ExpectQuery("INSERT INTO users (email, username, password_hash) VALUES ($1, $2, $3) RETURNING *").
+					WithArgs(user.Email, user.Username, user.PasswordHash).WillReturnError(repoerr.ErrUserAlreadyExists)
 			},
 
-			expect: expect{
-				status: http.StatusBadRequest,
-				body:   `{"message":"invalid email format"}`,
-			},
-		},
-		{
-			name: "name is too long",
-
-			request: request{
-				body: `{"email":"john.doe@example.com","name":"very-looooooooooooooooooooooooooooooooooooooooooong-name","password":"testword"}`,
+			Request: test.Request{
+				Body: requestbody.CreateAccount{
+					Email:    user.Email,
+					Username: user.Username,
+					Password: "testword",
+				},
 			},
 
-			expect: expect{
-				status: http.StatusBadRequest,
-				body:   `{"message":"name is too long"}`,
-			},
-		},
-		{
-			name: "password is too long",
-
-			request: request{
-				body: `{"email":"john.doe@example.com","name":"John Doe","password":"very-looooooooooooooooooooooooooooooooooooooooooong-password"}`,
-			},
-
-			expect: expect{
-				status: http.StatusBadRequest,
-				body:   `{"message":"password is too long"}`,
+			Expect: test.Expect{
+				Status: http.StatusConflict,
+				Body: responsebody.Message{
+					Message: "user already exists",
+				},
 			},
 		},
 		{
-			name: "user already exists",
+			Name: "repository error",
 
-			repo: func(mock sqlmock.Sqlmock) {
-				mock.ExpectBegin()
-
-				mock.ExpectQuery("INSERT INTO users (email, name, password_hash) VALUES ($1, $2, $3) RETURNING *").
-					WithArgs("john.doe@example.com", "John Doe", sha256.String("testword")).WillReturnError(repoerr.ErrUserAlreadyExists)
-
-				mock.ExpectRollback()
+			Repo: func(mock sqlmock.Sqlmock) {
+				mock.ExpectQuery("INSERT INTO users (email, username, password_hash) VALUES ($1, $2, $3) RETURNING *").
+					WithArgs(user.Email, user.Username, user.PasswordHash).
+					WillReturnError(errors.New("repo: Some repository error"))
 			},
 
-			request: request{
-				body: `{"email":"john.doe@example.com","name":"John Doe","password":"testword"}`,
+			Request: test.Request{
+				Body: requestbody.CreateAccount{
+					Email:    user.Email,
+					Username: user.Username,
+					Password: "testword",
+				},
 			},
 
-			expect: expect{
-				status: http.StatusConflict,
-				body:   `{"message":"user already exists"}`,
-			},
-		},
-		{
-			name: "repository error",
-
-			repo: func(mock sqlmock.Sqlmock) {
-				mock.ExpectBegin()
-
-				mock.ExpectQuery("INSERT INTO users (email, name, password_hash) VALUES ($1, $2, $3) RETURNING *").
-					WithArgs("john.doe@example.com", "John Doe", sha256.String("testword")).WillReturnError(errors.New("repo: Some repository error"))
-
-				mock.ExpectRollback()
-			},
-
-			request: request{
-				body: `{"email":"john.doe@example.com","name":"John Doe","password":"testword"}`,
-			},
-
-			expect: expect{
-				status: http.StatusInternalServerError,
-				body:   `{"message":"internal server error"}`,
-			},
+			Expect: test.ResponseInternalServerError,
 		},
 	}
 
 	for _, tc := range tests {
-		t.Run(tc.name, TemplateTestHandler(tc, mock, http.MethodPost, "/api/auth/register", handler.Register))
+		test.Endpoint(t, tc, mock, http.MethodPost, "/api/auth/account", "/api/auth/account", handler.CreateAccount)
 	}
 }
 
-func TestLogin(t *testing.T) {
+func TestCreateSession(t *testing.T) {
 	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
 	if err != nil {
 		t.Fatalf("err not expected: %v\n", err)
@@ -166,159 +171,125 @@ func TestLogin(t *testing.T) {
 	repo := repository.New(sqlx.NewDb(db, "sqlmock"))
 	handler := New(&c, repo, mockmailer.New(), mocktoken.New(c.Token))
 
-	tests := []table{
-		{
-			name: "ok",
+	user := entity.User{
+		ID:                "USER_ID",
+		Email:             "john.doe@example.com",
+		Username:          "johndoe",
+		DisplayName:       "John Doe",
+		AvatarURL:         "https://cdn.content.com/avatar.jpeg",
+		PasswordHash:      sha256.String("testword"),
+		IsPrivate:         false,
+		IsConfirmed:       true,
+		ConfirmationToken: "CONFIRMATION_TOKEN",
+		CreatedAt:         time.Now(),
+	}
 
-			repo: func(mock sqlmock.Sqlmock) {
-				rows := sqlmock.NewRows([]string{"id", "email", "name", "password_hash", "is_email_confirmed", "created_at"}).
-					AddRow("69", "john.doe@example.com", "John Doe", sha256.String("testword"), true, time.Now())
+	tests := []test.Case{
+		{
+			Name: "ok",
+
+			Repo: func(mock sqlmock.Sqlmock) {
+				rows := sqlmock.NewRows([]string{"id", "email", "username", "display_name", "avatar_url", "password_hash", "is_private", "is_confirmed", "confirmation_token", "created_at"}).
+					AddRow(user.ID, user.Email, user.Username, user.DisplayName, user.AvatarURL, user.PasswordHash, user.IsPrivate, user.IsConfirmed, user.ConfirmationToken, user.CreatedAt)
 
 				mock.ExpectQuery("SELECT * FROM users WHERE email = $1 AND password_hash = $2").
-					WithArgs("john.doe@example.com", sha256.String("testword")).WillReturnRows(rows)
+					WithArgs(user.Email, user.PasswordHash).WillReturnRows(rows)
 			},
 
-			request: request{
-				body: `{"email":"john.doe@example.com","password":"testword"}`,
+			Request: test.Request{
+				Body: requestbody.CreateSession{
+					Login:    user.Email,
+					Password: "testword",
+				},
 			},
 
-			expect: expect{
-				status:     http.StatusOK,
-				bodyFields: []string{"token"},
-			},
-		},
-		{
-			name: "invalid request body",
-
-			request: request{
-				body: `{"some":"invalid","body":"poo"}`,
-			},
-
-			expect: expect{
-				status: http.StatusBadRequest,
-				body:   `{"message":"invalid request body"}`,
+			Expect: test.Expect{
+				Status:     http.StatusOK,
+				BodyFields: []string{"token"},
 			},
 		},
 		{
-			name: "user not found",
+			Name: "invalid request body",
 
-			repo: func(mock sqlmock.Sqlmock) {
+			Request: test.Request{
+				Body: map[string]string{
+					"some":    "invalid",
+					"request": "body",
+				},
+			},
+
+			Expect: test.ResponseInvalidRequestBody,
+		},
+		{
+			Name: "user not found",
+
+			Repo: func(mock sqlmock.Sqlmock) {
 				mock.ExpectQuery("SELECT * FROM users WHERE email = $1 AND password_hash = $2").
 					WithArgs("john.doe@example.com", sha256.String("testword")).WillReturnError(repoerr.ErrUserNotFound)
 			},
 
-			request: request{
-				body: `{"email":"john.doe@example.com","password":"testword"}`,
+			Request: test.Request{
+				Body: requestbody.CreateSession{
+					Login:    user.Email,
+					Password: "testword",
+				},
 			},
 
-			expect: expect{
-				status: http.StatusNotFound,
-				body:   `{"message":"user not found"}`,
+			Expect: test.Expect{
+				Status: http.StatusUnauthorized,
+				Body: responsebody.Message{
+					Message: "user not found",
+				},
 			},
 		},
 		{
-			name: "repository error",
+			Name: "repository error",
 
-			repo: func(mock sqlmock.Sqlmock) {
+			Repo: func(mock sqlmock.Sqlmock) {
 				mock.ExpectQuery("SELECT * FROM users WHERE email = $1 AND password_hash = $2").
-					WithArgs("john.doe@example.com", sha256.String("testword")).WillReturnError(errors.New("repo: Some repository error"))
-			},
-
-			request: request{
-				body: `{"email":"john.doe@example.com","password":"testword"}`,
-			},
-
-			expect: expect{
-				status: http.StatusInternalServerError,
-				body:   `{"message":"internal server error"}`,
-			},
-		},
-		{
-			name: "user not confirmed",
-
-			repo: func(mock sqlmock.Sqlmock) {
-				rows := sqlmock.NewRows([]string{"id", "email", "name", "password_hash", "is_email_confirmed", "created_at"}).
-					AddRow("69", "john.doe@example.com", "John Doe", sha256.String("testword"), false, time.Now())
-
-				mock.ExpectQuery("SELECT * FROM users WHERE email = $1 AND password_hash = $2").WithArgs("john.doe@example.com", sha256.String("testword")).WillReturnRows(rows)
-
-				rows = sqlmock.NewRows([]string{"id", "kind", "email", "token", "is_used", "expires_at", "created_at"}).
-					AddRow("69", user.RequestKindEmailConfirmation, "john.doe@example.com", random.String(64), false, time.Now().Add(48*time.Hour), time.Now())
-
-				mock.ExpectQuery("SELECT * FROM requests WHERE email = $1").WithArgs("john.doe@example.com").WillReturnRows(rows)
-			},
-
-			request: request{
-				body: `{"email":"john.doe@example.com","password":"testword"}`,
-			},
-
-			expect: expect{
-				status: http.StatusForbidden,
-				body:   `{"message":"email confirmation needed"}`,
-			},
-		},
-		// {
-		// 	name: "user not confirmed + request not found", // TODO: How to mock tokenizer
-
-		// 	repo: &repoArgs{
-		// 		queries: []queryArgs{
-		// 			{
-		// 				query: "SELECT * FROM users WHERE email = $1 AND password_hash = $2",
-		// 				args:  []driver.Value{"john.doe@example.com", sha256.String("testword")},
-		// 				rows: sqlmock.NewRows([]string{"id", "email", "name", "password_hash", "is_email_confirmed", "created_at"}).
-		// 					AddRow("69", "john.doe@example.com", "John Doe", sha256.String("testword"), false, time.Now()),
-		// 			},
-		// 			{
-		// 				query: "SELECT * FROM requests WHERE email = $1",
-		// 				args:  []driver.Value{"john.doe@example.com"},
-		// 				err:   repoerr.ErrRequestNotFound,
-		// 			},
-		// 			{
-		// 				query: "INSERT INTO requests (kind, email, token, expires_at) VALUES ($1, $2, $3, $4) RETURNING *",
-		// 				args:  []driver.Value{user.RequestKindEmailConfirmation, "john.doe@example.com", random.String(64), time.Now().Add(48 * time.Hour)},
-		// 				err:   errors.New("repo: Some repository error"),
-		// 			},
-		// 		},
-		// 	},
-
-		// 	request: request{
-		// 		body: `{"email":"john.doe@example.com","password":"testword"}`,
-		// 	},
-
-		// 	expect: expect{
-		// 		status: http.StatusInternalServerError,
-		// 		body:   `{"message":"internal server error"}`,
-		// 	},
-		// },
-		{
-			name: "user not confirmed + repo error",
-
-			repo: func(mock sqlmock.Sqlmock) {
-				rows := sqlmock.NewRows([]string{"id", "email", "name", "password_hash", "is_email_confirmed", "created_at"}).
-					AddRow("69", "john.doe@example.com", "John Doe", sha256.String("testword"), false, time.Now())
-
-				mock.ExpectQuery("SELECT * FROM users WHERE email = $1 AND password_hash = $2").WithArgs("john.doe@example.com", sha256.String("testword")).WillReturnRows(rows)
-
-				mock.ExpectQuery("SELECT * FROM requests WHERE email = $1").WithArgs("john.doe@example.com").WillReturnError(repoerr.ErrRequestNotFound)
-
-				mock.ExpectQuery("INSERT INTO requests (kind, email, token, expires_at) VALUES ($1, $2, $3, $4) RETURNING *").
-					WithArgs(user.RequestKindEmailConfirmation, "john.doe@example.com", random.String(64), time.Now().Add(48*time.Hour)).
+					WithArgs(user.Email, user.PasswordHash).
 					WillReturnError(errors.New("repo: Some repository error"))
 			},
 
-			request: request{
-				body: `{"email":"john.doe@example.com","password":"testword"}`,
+			Request: test.Request{
+				Body: requestbody.CreateSession{
+					Login:    user.Email,
+					Password: "testword",
+				},
 			},
 
-			expect: expect{
-				status: http.StatusInternalServerError,
-				body:   `{"message":"internal server error"}`,
+			Expect: test.ResponseInternalServerError,
+		},
+		{
+			Name: "user not confirmed",
+
+			Repo: func(mock sqlmock.Sqlmock) {
+				rows := sqlmock.NewRows([]string{"id", "email", "username", "display_name", "avatar_url", "password_hash", "is_private", "is_confirmed", "confirmation_token", "created_at"}).
+					AddRow(user.ID, user.Email, user.Username, user.DisplayName, user.AvatarURL, user.PasswordHash, user.IsPrivate, false, user.ConfirmationToken, user.CreatedAt)
+
+				mock.ExpectQuery("SELECT * FROM users WHERE email = $1 AND password_hash = $2").
+					WithArgs(user.Email, user.PasswordHash).
+					WillReturnRows(rows)
+			},
+
+			Request: test.Request{
+				Body: requestbody.CreateSession{
+					Login:    user.Email,
+					Password: "testword",
+				},
+			},
+
+			Expect: test.Expect{
+				Status: http.StatusForbidden,
+				Body: responsebody.Message{
+					Message: "email confirmation needed",
+				},
 			},
 		},
 	}
 
 	for _, tc := range tests {
-		t.Run(tc.name, TemplateTestHandler(tc, mock, http.MethodPost, "/api/auth/login", handler.Login))
+		test.Endpoint(t, tc, mock, http.MethodPost, "/api/auth/session", "/api/auth/session", handler.CreateSession)
 	}
 }
 
@@ -333,95 +304,130 @@ func TestResetPassword(t *testing.T) {
 	repo := repository.New(sqlx.NewDb(db, "sqlmock"))
 	handler := New(&c, repo, mockmailer.New(), mocktoken.New(c.Token))
 
-	tests := []table{
+	user := entity.User{
+		ID:                "USER_ID",
+		Email:             "john.doe@example.com",
+		Username:          "johndoe",
+		DisplayName:       "John Doe",
+		AvatarURL:         "https://cdn.content.com/avatar.jpeg",
+		PasswordHash:      sha256.String("testword"),
+		IsPrivate:         false,
+		IsConfirmed:       true,
+		ConfirmationToken: "CONFIRMATION_TOKEN",
+		CreatedAt:         time.Now(),
+	}
+
+	request := entity.Request{
+		ID:        "REQUEST_ID",
+		Email:     user.Email,
+		Token:     "LONG_PASSWORD_RESET_REQUEST_TOKEN",
+		IsUsed:    false,
+		ExpiresAt: time.Now().Add(5 * time.Minute).Truncate(time.Minute),
+		CreatedAt: time.Now(),
+	}
+
+	tests := []test.Case{
 		{
-			name: "ok",
+			Name: "ok",
 
-			repo: func(mock sqlmock.Sqlmock) {
-				rows := sqlmock.NewRows([]string{"id", "email", "name", "password_hash", "is_email_confirmed", "created_at"}).
-					AddRow("69", "john.doe@example.com", "John Doe", sha256.String("testword"), true, time.Now())
+			Repo: func(mock sqlmock.Sqlmock) {
+				rows := sqlmock.NewRows([]string{"id", "email", "username", "display_name", "avatar_url", "password_hash", "is_private", "is_confirmed", "confirmation_token", "created_at"}).
+					AddRow(user.ID, user.Email, user.Username, user.DisplayName, user.AvatarURL, user.PasswordHash, user.IsPrivate, user.IsConfirmed, user.ConfirmationToken, user.CreatedAt)
 
-				mock.ExpectQuery("SELECT * FROM users WHERE email = $1").WithArgs("john.doe@example.com").WillReturnRows(rows)
+				mock.ExpectQuery("SELECT * FROM users WHERE email = $1").
+					WithArgs(user.Email).
+					WillReturnRows(rows)
 
-				rows = sqlmock.NewRows([]string{"id", "kind", "email", "token", "is_used", "expires_at", "created_at"}).
-					AddRow("69", "password_reset", "john.doe@example.com", "LONGTOKEN", false, time.Now().Add(15*time.Minute).Truncate(time.Minute), time.Now())
+				rows = sqlmock.NewRows([]string{"id", "email", "token", "is_used", "expires_at", "created_at"}).
+					AddRow(request.ID, request.Email, request.Token, request.IsUsed, request.ExpiresAt, request.CreatedAt)
 
-				mock.ExpectQuery("INSERT INTO requests (kind, email, token, expires_at) VALUES ($1, $2, $3, $4) RETURNING *").WithArgs("password_reset", "john.doe@example.com", "LONGTOKEN", time.Now().Add(15*time.Minute).Truncate(time.Minute)).WillReturnRows(rows)
+				mock.ExpectQuery("INSERT INTO reset_password_requests (email, token, expires_at) VALUES ($1, $2, $3) RETURNING *").
+					WithArgs(request.Email, request.Token, request.ExpiresAt).
+					WillReturnRows(rows)
 			},
 
-			request: request{
-				body: `{"email":"john.doe@example.com"}`,
+			Request: test.Request{
+				Body: requestbody.ResetPassword{
+					Email: request.Email,
+				},
 			},
 
-			expect: expect{
-				status: http.StatusOK,
+			Expect: test.Expect{
+				Status: http.StatusOK,
 			},
 		},
 		{
-			name: "invalid request body",
+			Name: "invalid request body",
 
-			expect: expect{
-				status: http.StatusBadRequest,
-				body:   `{"message":"invalid request body"}`,
+			Expect: test.ResponseInvalidRequestBody,
+		},
+		{
+			Name: "user not found",
+
+			Repo: func(mock sqlmock.Sqlmock) {
+				mock.ExpectQuery("SELECT * FROM users WHERE email = $1").
+					WithArgs(user.Email).
+					WillReturnError(repoerr.ErrUserNotFound)
+			},
+
+			Request: test.Request{
+				Body: requestbody.ResetPassword{
+					Email: user.Email,
+				},
+			},
+
+			Expect: test.Expect{
+				Status: http.StatusNotFound,
+				Body: responsebody.Message{
+					Message: "user not found",
+				},
 			},
 		},
 		{
-			name: "user not found",
+			Name: "repository error",
 
-			repo: func(mock sqlmock.Sqlmock) {
-				mock.ExpectQuery("SELECT * FROM users WHERE email = $1").WithArgs("john.doe@example.com").WillReturnError(repoerr.ErrUserNotFound)
+			Repo: func(mock sqlmock.Sqlmock) {
+				mock.ExpectQuery("SELECT * FROM users WHERE email = $1").
+					WithArgs(user.Email).
+					WillReturnError(errors.New("repo: Some repository error"))
 			},
 
-			request: request{
-				body: `{"email":"john.doe@example.com"}`,
+			Request: test.Request{
+				Body: requestbody.ResetPassword{
+					Email: user.Email,
+				},
 			},
 
-			expect: expect{
-				status: http.StatusNotFound,
-				body:   `{"message":"user not found"}`,
-			},
+			Expect: test.ResponseInternalServerError,
 		},
 		{
-			name: "repository error",
+			Name: "repository error",
 
-			repo: func(mock sqlmock.Sqlmock) {
-				mock.ExpectQuery("SELECT * FROM users WHERE email = $1").WithArgs("john.doe@example.com").WillReturnError(errors.New("repo: Some repository error"))
+			Repo: func(mock sqlmock.Sqlmock) {
+				rows := sqlmock.NewRows([]string{"id", "email", "username", "display_name", "avatar_url", "password_hash", "is_private", "is_confirmed", "confirmation_token", "created_at"}).
+					AddRow(user.ID, user.Email, user.Username, user.DisplayName, user.AvatarURL, user.PasswordHash, user.IsPrivate, user.IsConfirmed, user.ConfirmationToken, user.CreatedAt)
+
+				mock.ExpectQuery("SELECT * FROM users WHERE email = $1").
+					WithArgs(user.Email).
+					WillReturnRows(rows)
+
+				mock.ExpectQuery("INSERT INTO reset_password_requests (email, token, expires_at) VALUES ($1, $2, $3) RETURNING *").
+					WithArgs(request.Email, request.Token, request.ExpiresAt).
+					WillReturnError(errors.New("repo: Some repository error"))
 			},
 
-			request: request{
-				body: `{"email":"john.doe@example.com"}`,
+			Request: test.Request{
+				Body: requestbody.ResetPassword{
+					Email: user.Email,
+				},
 			},
 
-			expect: expect{
-				status: http.StatusInternalServerError,
-				body:   `{"message":"internal server error"}`,
-			},
-		},
-		{
-			name: "ok",
-
-			repo: func(mock sqlmock.Sqlmock) {
-				rows := sqlmock.NewRows([]string{"id", "email", "name", "password_hash", "is_email_confirmed", "created_at"}).
-					AddRow("69", "john.doe@example.com", "John Doe", sha256.String("testword"), true, time.Now())
-
-				mock.ExpectQuery("SELECT * FROM users WHERE email = $1").WithArgs("john.doe@example.com").WillReturnRows(rows)
-
-				mock.ExpectQuery("INSERT INTO requests (kind, email, token, expires_at) VALUES ($1, $2, $3, $4) RETURNING *").WithArgs("password_reset", "john.doe@example.com", "LONGTOKEN", time.Now().Add(15*time.Minute).Truncate(time.Minute)).WillReturnError(errors.New("repo: Some repository error"))
-			},
-
-			request: request{
-				body: `{"email":"john.doe@example.com"}`,
-			},
-
-			expect: expect{
-				status: http.StatusInternalServerError,
-				body:   `{"message":"internal server error"}`,
-			},
+			Expect: test.ResponseInternalServerError,
 		},
 	}
 
 	for _, tc := range tests {
-		t.Run(tc.name, TemplateTestHandler(tc, mock, http.MethodPost, "/api/auth/password/reset", handler.ResetPassword))
+		test.Endpoint(t, tc, mock, http.MethodPost, "/api/auth/password/reset", "/api/auth/password/reset", handler.ResetPassword)
 	}
 }
 
@@ -435,177 +441,227 @@ func TestUpdatePassword(t *testing.T) {
 	repo := repository.New(sqlx.NewDb(db, "sqlmock"))
 	handler := New(&c, repo, mockmailer.New(), mocktoken.New(c.Token))
 
-	tests := []table{
+	user := entity.User{
+		ID:                "USER_ID",
+		Email:             "john.doe@example.com",
+		Username:          "johndoe",
+		DisplayName:       "John Doe",
+		AvatarURL:         "https://cdn.content.com/avatar.jpeg",
+		PasswordHash:      sha256.String("testword"),
+		IsPrivate:         false,
+		IsConfirmed:       true,
+		ConfirmationToken: "CONFIRMATION_TOKEN",
+		CreatedAt:         time.Now(),
+	}
+
+	request := entity.Request{
+		ID:        "REQUEST_ID",
+		Email:     user.Email,
+		Token:     "LONG_PASSWORD_RESET_REQUEST_TOKEN",
+		IsUsed:    false,
+		ExpiresAt: time.Now().Add(5 * time.Minute).Truncate(time.Minute),
+		CreatedAt: time.Now(),
+	}
+
+	tests := []test.Case{
 		{
-			name: "ok",
+			Name: "ok",
 
-			repo: func(mock sqlmock.Sqlmock) {
-				rows := sqlmock.NewRows([]string{"id", "kind", "email", "token", "is_used", "expires_at", "created_at"}).
-					AddRow("69", "password_reset", "john.doe@example.com", "LONGTOKEN", false, time.Now().Add(15*time.Minute), time.Now())
+			Repo: func(mock sqlmock.Sqlmock) {
+				rows := sqlmock.NewRows([]string{"id", "email", "token", "is_used", "expires_at", "created_at"}).
+					AddRow(request.ID, request.Email, request.Token, request.IsUsed, request.ExpiresAt, request.CreatedAt)
 
-				mock.ExpectQuery("SELECT * FROM requests WHERE token = $1").
-					WithArgs("LONGTOKEN").WillReturnRows(rows)
+				mock.ExpectQuery("SELECT * FROM reset_password_requests WHERE token = $1").
+					WithArgs(request.Token).
+					WillReturnRows(rows)
 
 				mock.ExpectExec("UPDATE users SET password_hash = $1 WHERE email = $2").
-					WithArgs(sha256.String("testword"), "john.doe@example.com").WillReturnResult(sqlmock.NewResult(1, 1))
-
-				mock.ExpectExec("UPDATE requests SET is_used = true WHERE token = $1").
-					WithArgs("LONGTOKEN").WillReturnResult(sqlmock.NewResult(1, 1))
-			},
-
-			request: request{
-				body: `{"token":"LONGTOKEN","password":"testword"}`,
-			},
-
-			expect: expect{
-				status: http.StatusOK,
-			},
-		},
-		{
-			name: "invalid request body",
-
-			request: request{
-				body: `{"some":"invalid","request":"body"}`,
-			},
-
-			expect: expect{
-				status: http.StatusBadRequest,
-				body:   `{"message":"invalid request body"}`,
-			},
-		},
-		{
-			name: "token doesn't exists",
-
-			repo: func(mock sqlmock.Sqlmock) {
-				mock.ExpectQuery("SELECT * FROM requests WHERE token = $1").
-					WithArgs("LONGTOKEN").WillReturnError(repoerr.ErrRequestNotFound)
-			},
-
-			request: request{
-				body: `{"token":"LONGTOKEN","password":"testword"}`,
-			},
-
-			expect: expect{
-				status: http.StatusNotFound,
-				body:   `{"message":"password reset request not found"}`,
-			},
-		},
-		{
-			name: "repository error on getting token",
-
-			repo: func(mock sqlmock.Sqlmock) {
-				mock.ExpectQuery("SELECT * FROM requests WHERE token = $1").
-					WithArgs("LONGTOKEN").WillReturnError(errors.New("repo: Some repository error"))
-			},
-
-			request: request{
-				body: `{"token":"LONGTOKEN","password":"testword"}`,
-			},
-
-			expect: expect{
-				status: http.StatusInternalServerError,
-				body:   `{"message":"internal server error"}`,
-			},
-		},
-		{
-			name: "reset password request expired",
-
-			repo: func(mock sqlmock.Sqlmock) {
-				rows := sqlmock.NewRows([]string{"id", "kind", "email", "token", "is_used", "expires_at", "created_at"}).
-					AddRow("69", "password_reset", "john.doe@example.com", "LONGTOKEN", false, time.Now().Add(-15*time.Minute), time.Now())
-
-				mock.ExpectQuery("SELECT * FROM requests WHERE token = $1").
-					WithArgs("LONGTOKEN").WillReturnRows(rows)
-			},
-
-			request: request{
-				body: `{"token":"LONGTOKEN","password":"testword"}`,
-			},
-
-			expect: expect{
-				status: http.StatusForbidden,
-				body:   `{"message":"recovery token expired"}`,
-			},
-		},
-		{
-			name: "reset password request already used",
-
-			repo: func(mock sqlmock.Sqlmock) {
-				rows := sqlmock.NewRows([]string{"id", "kind", "email", "token", "is_used", "expires_at", "created_at"}).
-					AddRow("69", "password_reset", "john.doe@example.com", "LONGTOKEN", true, time.Now().Add(15*time.Minute), time.Now())
-
-				mock.ExpectQuery("SELECT * FROM requests WHERE token = $1").
-					WithArgs("LONGTOKEN").WillReturnRows(rows)
-			},
-
-			request: request{
-				body: `{"token":"LONGTOKEN","password":"testword"}`,
-			},
-
-			expect: expect{
-				status: http.StatusForbidden,
-				body:   `{"message":"this recovery token has been used"}`,
-			},
-		},
-		{
-			name: "repository error on updating password",
-
-			repo: func(mock sqlmock.Sqlmock) {
-				rows := sqlmock.NewRows([]string{"id", "kind", "email", "token", "is_used", "expires_at", "created_at"}).
-					AddRow("69", "password_reset", "john.doe@example.com", "LONGTOKEN", false, time.Now().Add(15*time.Minute), time.Now())
-
-				mock.ExpectQuery("SELECT * FROM requests WHERE token = $1").
-					WithArgs("LONGTOKEN").WillReturnRows(rows)
-
-				mock.ExpectExec("UPDATE users SET password_hash = $1 WHERE email = $2").
-					WithArgs(sha256.String("testword"), "john.doe@example.com").
-					WillReturnError(errors.New("repo: Some repository error"))
-			},
-
-			request: request{
-				body: `{"token":"LONGTOKEN","password":"testword"}`,
-			},
-
-			expect: expect{
-				status: http.StatusInternalServerError,
-				body:   `{"message":"internal server error"}`,
-			},
-		},
-		{
-			name: "can't mark request as used",
-
-			repo: func(mock sqlmock.Sqlmock) {
-				rows := sqlmock.NewRows([]string{"id", "kind", "email", "token", "is_used", "expires_at", "created_at"}).
-					AddRow("69", "password_reset", "john.doe@example.com", "LONGTOKEN", false, time.Now().Add(15*time.Minute), time.Now())
-
-				mock.ExpectQuery("SELECT * FROM requests WHERE token = $1").
-					WithArgs("LONGTOKEN").WillReturnRows(rows)
-
-				mock.ExpectExec("UPDATE users SET password_hash = $1 WHERE email = $2").
-					WithArgs(sha256.String("testword"), "john.doe@example.com").
+					WithArgs(sha256.String("new-password"), user.Email).
 					WillReturnResult(sqlmock.NewResult(1, 1))
 
-				mock.ExpectExec("UPDATE requests SET is_used = true WHERE token = $1").
-					WithArgs("LONGTOKEN").
+				mock.ExpectExec("UPDATE reset_password_requests SET is_used = true WHERE token = $1").
+					WithArgs(request.Token).
+					WillReturnResult(sqlmock.NewResult(1, 1))
+			},
+
+			Request: test.Request{
+				Body: requestbody.UpdatePassword{
+					Token:    request.Token,
+					Password: "new-password",
+				},
+			},
+
+			Expect: test.Expect{
+				Status: http.StatusOK,
+			},
+		},
+		{
+			Name: "invalid request body",
+
+			Request: test.Request{
+				Body: map[string]string{
+					"some":    "invalid",
+					"request": "body",
+				},
+			},
+
+			Expect: test.ResponseInvalidRequestBody,
+		},
+		{
+			Name: "token doesn't exists",
+
+			Repo: func(mock sqlmock.Sqlmock) {
+				mock.ExpectQuery("SELECT * FROM reset_password_requests WHERE token = $1").
+					WithArgs(request.Token).
+					WillReturnError(repoerr.ErrRequestNotFound)
+			},
+
+			Request: test.Request{
+				Body: requestbody.UpdatePassword{
+					Token:    request.Token,
+					Password: "new-password",
+				},
+			},
+
+			Expect: test.Expect{
+				Status: http.StatusNotFound,
+				Body: responsebody.Message{
+					Message: "password reset request not found",
+				},
+			},
+		},
+		{
+			Name: "repository error on getting token",
+
+			Repo: func(mock sqlmock.Sqlmock) {
+				mock.ExpectQuery("SELECT * FROM reset_password_requests WHERE token = $1").
+					WithArgs(request.Token).
 					WillReturnError(errors.New("repo: Some repository error"))
 			},
 
-			request: request{
-				body: `{"token":"LONGTOKEN","password":"testword"}`,
+			Request: test.Request{
+				Body: requestbody.UpdatePassword{
+					Token:    request.Token,
+					Password: "new-password",
+				},
 			},
 
-			expect: expect{
-				status: http.StatusOK,
+			Expect: test.ResponseInternalServerError,
+		},
+		{
+			Name: "reset password request expired",
+
+			Repo: func(mock sqlmock.Sqlmock) {
+				rows := sqlmock.NewRows([]string{"id", "email", "token", "is_used", "expires_at", "created_at"}).
+					AddRow(request.ID, request.Email, request.Token, request.IsUsed, time.Now().Add(-5*time.Minute), request.CreatedAt)
+
+				mock.ExpectQuery("SELECT * FROM reset_password_requests WHERE token = $1").
+					WithArgs(request.Token).
+					WillReturnRows(rows)
 			},
+
+			Request: test.Request{
+				Body: requestbody.UpdatePassword{
+					Token:    request.Token,
+					Password: "new-password",
+				},
+			},
+
+			Expect: test.Expect{
+				Status: http.StatusForbidden,
+				Body: responsebody.Message{
+					Message: "recovery token expired",
+				},
+			},
+		},
+		{
+			Name: "reset password request already used",
+
+			Repo: func(mock sqlmock.Sqlmock) {
+				rows := sqlmock.NewRows([]string{"id", "email", "token", "is_used", "expires_at", "created_at"}).
+					AddRow(request.ID, request.Email, request.Token, true, request.ExpiresAt, request.CreatedAt)
+
+				mock.ExpectQuery("SELECT * FROM reset_password_requests WHERE token = $1").
+					WithArgs(request.Token).
+					WillReturnRows(rows)
+			},
+
+			Request: test.Request{
+				Body: requestbody.UpdatePassword{
+					Token:    request.Token,
+					Password: "new-password",
+				},
+			},
+
+			Expect: test.Expect{
+				Status: http.StatusForbidden,
+				Body: responsebody.Message{
+					Message: "this recovery token has been used",
+				},
+			},
+		},
+		{
+			Name: "repository error on updating password",
+
+			Repo: func(mock sqlmock.Sqlmock) {
+				rows := sqlmock.NewRows([]string{"id", "email", "token", "is_used", "expires_at", "created_at"}).
+					AddRow(request.ID, request.Email, request.Token, request.IsUsed, request.ExpiresAt, request.CreatedAt)
+
+				mock.ExpectQuery("SELECT * FROM reset_password_requests WHERE token = $1").
+					WithArgs(request.Token).
+					WillReturnRows(rows)
+
+				mock.ExpectExec("UPDATE users SET password_hash = $1 WHERE email = $2").
+					WithArgs(user.PasswordHash, user.Email).
+					WillReturnError(errors.New("repo: Some repository error"))
+			},
+
+			Request: test.Request{
+				Body: requestbody.UpdatePassword{
+					Token:    request.Token,
+					Password: "new-password",
+				},
+			},
+
+			Expect: test.ResponseInternalServerError,
+		},
+		{
+			Name: "can't mark request as used",
+
+			Repo: func(mock sqlmock.Sqlmock) {
+				rows := sqlmock.NewRows([]string{"id", "email", "token", "is_used", "expires_at", "created_at"}).
+					AddRow(request.ID, request.Email, request.Token, request.IsUsed, request.ExpiresAt, request.CreatedAt)
+
+				mock.ExpectQuery("SELECT * FROM reset_password_requests WHERE token = $1").
+					WithArgs(request.Token).
+					WillReturnRows(rows)
+
+				mock.ExpectExec("UPDATE users SET password_hash = $1 WHERE email = $2").
+					WithArgs(sha256.String("new-password"), user.Email).
+					WillReturnResult(sqlmock.NewResult(1, 1))
+
+				mock.ExpectExec("UPDATE reset_password_requests SET is_used = true WHERE token = $1").
+					WithArgs(request.Token).
+					WillReturnError(errors.New("repo: Some repository error"))
+			},
+
+			Request: test.Request{
+				Body: requestbody.UpdatePassword{
+					Token:    request.Token,
+					Password: "new-password",
+				},
+			},
+
+			Expect: test.ResponseInternalServerError,
 		},
 	}
 
 	for _, tc := range tests {
-		t.Run(tc.name, TemplateTestHandler(tc, mock, http.MethodPatch, "/api/auth/password/update", handler.UpdatePassword))
+		test.Endpoint(t, tc, mock, http.MethodPatch, "/api/auth/password", "/api/auth/password", handler.UpdatePassword)
 	}
 }
 
-func TestConfirmEmail(t *testing.T) {
+func TestConfirmAccount(t *testing.T) {
 	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
 	if err != nil {
 		t.Fatalf("err not expected: %v\n", err)
@@ -615,157 +671,462 @@ func TestConfirmEmail(t *testing.T) {
 	repo := repository.New(sqlx.NewDb(db, "sqlmock"))
 	handler := New(&c, repo, mockmailer.New(), mocktoken.New(c.Token))
 
-	tests := []table{
+	tests := []test.Case{
 		{
-			name: "ok",
+			Name: "ok",
 
-			repo: func(mock sqlmock.Sqlmock) {
-				rows := sqlmock.NewRows([]string{"id", "kind", "email", "token", "is_used", "expires_at", "created_at"}).
-					AddRow("69", "email_confirmation", "john.doe@example.com", "LONGTOKEN", false, time.Now().Add(48*time.Hour).Truncate(time.Hour), time.Now())
+			Repo: func(mock sqlmock.Sqlmock) {
+				rows := sqlmock.NewRows([]string{"id", "email", "username", "display_name", "avatar_url", "password_hash", "is_private", "is_confirmed", "confirmation_token", "created_at"}).
+					AddRow("USER_ID", "john.doe@example.com", "johndoe", "John Doe", "https://cdn.domain.com/avatar.jpeg", sha256.String("testword"), false, true, "CONFIRMATION_TOKEN", time.Now())
 
-				mock.ExpectQuery("SELECT * FROM requests WHERE token = $1").WithArgs("LONGTOKEN").WillReturnRows(rows)
+				mock.ExpectQuery("SELECT * FROM users WHERE confirmation_token = $1").
+					WithArgs("CONFIRMATION_TOKEN").
+					WillReturnRows(rows)
 
-				mock.ExpectBegin()
-
-				mock.ExpectExec("UPDATE users SET is_email_confirmed=true WHERE email = $1").
-					WithArgs("john.doe@example.com").
+				mock.ExpectExec("UPDATE users SET is_confirmed = true WHERE email = $1 AND confirmation_token = $2").
+					WithArgs("john.doe@example.com", "CONFIRMATION_TOKEN").
 					WillReturnResult(driver.RowsAffected(1))
-
-				mock.ExpectExec("UPDATE requests SET is_used=true WHERE token = $1").
-					WithArgs("LONGTOKEN").
-					WillReturnResult(driver.RowsAffected(1))
-
-				mock.ExpectCommit()
 			},
 
-			request: request{
-				body: `{"token":"LONGTOKEN"}`,
+			Request: test.Request{
+				Body: `{"token":"CONFIRMATION_TOKEN"}`,
 			},
 
-			expect: expect{
-				status: http.StatusOK,
+			Expect: test.Expect{
+				Status: http.StatusOK,
 			},
 		},
 		{
-			name: "invalid request body",
+			Name: "invalid request body",
 
-			expect: expect{
-				status: http.StatusBadRequest,
-				body:   `{"message":"invalid request body"}`,
+			Expect: test.Expect{
+				Status: http.StatusBadRequest,
+				Body:   `{"message":"invalid request body"}`,
 			},
 		},
 		{
-			name: "request bot found",
+			Name: "request not found",
 
-			repo: func(mock sqlmock.Sqlmock) {
-				mock.ExpectQuery("SELECT * FROM requests WHERE token = $1").WithArgs("LONGTOKEN").WillReturnError(repoerr.ErrRequestNotFound)
+			Repo: func(mock sqlmock.Sqlmock) {
+				mock.ExpectQuery("SELECT * FROM users WHERE confirmation_token = $1").
+					WithArgs("CONFIRMATION_TOKEN").
+					WillReturnError(repoerr.ErrUserNotFound)
 			},
 
-			request: request{
-				body: `{"token":"LONGTOKEN"}`,
+			Request: test.Request{
+				Body: `{"token":"CONFIRMATION_TOKEN"}`,
 			},
 
-			expect: expect{
-				status: http.StatusNotFound,
-				body:   `{"message":"confirmation request not found"}`,
-			},
-		},
-		{
-			name: "repository error",
-
-			repo: func(mock sqlmock.Sqlmock) {
-				mock.ExpectQuery("SELECT * FROM requests WHERE token = $1").WithArgs("LONGTOKEN").WillReturnError(errors.New("repo: Some repository error"))
-			},
-
-			request: request{
-				body: `{"token":"LONGTOKEN"}`,
-			},
-
-			expect: expect{
-				status: http.StatusInternalServerError,
-				body:   `{"message":"internal server error"}`,
+			Expect: test.Expect{
+				Status: http.StatusNotFound,
+				Body:   `{"message":"user not found"}`,
 			},
 		},
 		{
-			name: "request expired",
+			Name: "repository error",
 
-			repo: func(mock sqlmock.Sqlmock) {
-				rows := sqlmock.NewRows([]string{"id", "kind", "email", "token", "is_used", "expires_at", "created_at"}).
-					AddRow("69", "email_confirmation", "john.doe@example.com", "LONGTOKEN", false, time.Now().Add(-48*time.Hour).Truncate(time.Hour), time.Now())
-
-				mock.ExpectQuery("SELECT * FROM requests WHERE token = $1").WithArgs("LONGTOKEN").WillReturnRows(rows)
-			},
-
-			request: request{
-				body: `{"token":"LONGTOKEN"}`,
-			},
-
-			expect: expect{
-				status: http.StatusForbidden,
-				body:   `{"message":"confirmation link expired. we will send you new confirmation email"}`,
-			},
-		},
-		{
-			name: "transaction error 1",
-
-			repo: func(mock sqlmock.Sqlmock) {
-				rows := sqlmock.NewRows([]string{"id", "kind", "email", "token", "is_used", "expires_at", "created_at"}).
-					AddRow("69", "email_confirmation", "john.doe@example.com", "LONGTOKEN", false, time.Now().Add(48*time.Hour).Truncate(time.Hour), time.Now())
-
-				mock.ExpectQuery("SELECT * FROM requests WHERE token = $1").WithArgs("LONGTOKEN").WillReturnRows(rows)
-
-				mock.ExpectBegin()
-
-				mock.ExpectExec("UPDATE users SET is_email_confirmed=true WHERE email = $1").
-					WithArgs("john.doe@example.com").
-					WillReturnError(errors.New("repo: Some repo/tx error"))
-
-				mock.ExpectRollback()
-			},
-
-			request: request{
-				body: `{"token":"LONGTOKEN"}`,
-			},
-
-			expect: expect{
-				status: http.StatusInternalServerError,
-				body:   `{"message":"internal server error"}`,
-			},
-		},
-		{
-			name: "transaction error 2",
-
-			repo: func(mock sqlmock.Sqlmock) {
-				rows := sqlmock.NewRows([]string{"id", "kind", "email", "token", "is_used", "expires_at", "created_at"}).
-					AddRow("69", "email_confirmation", "john.doe@example.com", "LONGTOKEN", false, time.Now().Add(48*time.Hour).Truncate(time.Hour), time.Now())
-
-				mock.ExpectQuery("SELECT * FROM requests WHERE token = $1").WithArgs("LONGTOKEN").WillReturnRows(rows)
-
-				mock.ExpectBegin()
-
-				mock.ExpectExec("UPDATE users SET is_email_confirmed=true WHERE email = $1").
-					WithArgs("john.doe@example.com").
-					WillReturnResult(driver.RowsAffected(1))
-
-				mock.ExpectExec("UPDATE requests SET is_used=true WHERE token = $1").
-					WithArgs("LONGTOKEN").
+			Repo: func(mock sqlmock.Sqlmock) {
+				mock.ExpectQuery("SELECT * FROM users WHERE confirmation_token = $1").
+					WithArgs("CONFIRMATION_TOKEN").
 					WillReturnError(errors.New("repo: Some repository error"))
-
-				mock.ExpectRollback()
 			},
 
-			request: request{
-				body: `{"token":"LONGTOKEN"}`,
+			Request: test.Request{
+				Body: `{"token":"CONFIRMATION_TOKEN"}`,
 			},
 
-			expect: expect{
-				status: http.StatusInternalServerError,
-				body:   `{"message":"internal server error"}`,
+			Expect: test.Expect{
+				Status: http.StatusInternalServerError,
+				Body:   `{"message":"internal server error"}`,
+			},
+		},
+		{
+			Name: "repository error on confirming",
+
+			Repo: func(mock sqlmock.Sqlmock) {
+				rows := sqlmock.NewRows([]string{"id", "email", "username", "display_name", "avatar_url", "password_hash", "is_private", "is_confirmed", "confirmation_token", "created_at"}).
+					AddRow("USER_ID", "john.doe@example.com", "johndoe", "John Doe", "https://cdn.domain.com/avatar.jpeg", sha256.String("testword"), false, true, "CONFIRMATION_TOKEN", time.Now())
+
+				mock.ExpectQuery("SELECT * FROM users WHERE confirmation_token = $1").
+					WithArgs("CONFIRMATION_TOKEN").
+					WillReturnRows(rows)
+
+				mock.ExpectExec("UPDATE users SET is_confirmed = true WHERE email = $1 AND confirmation_token = $2").
+					WithArgs("john.doe@example.com", "CONFIRMATION_TOKEN").
+					WillReturnError(errors.New("repo: Some repository error"))
+			},
+
+			Request: test.Request{
+				Body: `{"token":"CONFIRMATION_TOKEN"}`,
+			},
+
+			Expect: test.Expect{
+				Status: http.StatusInternalServerError,
+				Body:   `{"message":"internal server error"}`,
 			},
 		},
 	}
 
 	for _, tc := range tests {
-		t.Run(tc.name, TemplateTestHandler(tc, mock, http.MethodPost, "/api/auth/confirm", handler.ConfirmEmail))
+		test.Endpoint(t, tc, mock, http.MethodPost, "/api/auth/account/confirm", "/api/auth/account/confirm", handler.ConfirmAccount)
+	}
+}
+
+func TestGetCurrentAccount(t *testing.T) {
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	if err != nil {
+		t.Fatalf("err not expected: %v\n", err)
+	}
+
+	tokenSecret := "some-supa-secret-characters"
+	c := config.Config{Token: config.Token{Secret: tokenSecret}}
+	repo := repository.New(sqlx.NewDb(db, "sqlmock"))
+	tokenManager := token.New(c.Token)
+	handler := New(&c, repo, mockmailer.New(), mocktoken.New(c.Token))
+
+	accessToken, err := tokenManager.GenerateJWT("USER_ID")
+	if err != nil {
+		t.Fatal("unexpected error while generating mock token")
+	}
+
+	user := entity.User{
+		ID:                "USER_ID",
+		Email:             "john.doe@example.com",
+		Username:          "johndoe",
+		DisplayName:       "John Doe",
+		AvatarURL:         "https://cdn.domain.com/avatar.jpeg",
+		PasswordHash:      sha256.String("testword"),
+		IsPrivate:         false,
+		IsConfirmed:       true,
+		ConfirmationToken: "CONFIRMATION_TOKEN",
+		CreatedAt:         time.Now(),
+	}
+
+	tests := []test.Case{
+		{
+			Name: "ok",
+
+			Repo: func(mock sqlmock.Sqlmock) {
+				rows := sqlmock.NewRows([]string{"id", "email", "username", "display_name", "avatar_url", "password_hash", "is_private", "is_confirmed", "confirmation_token", "created_at"}).
+					AddRow(user.ID, user.Email, user.Username, user.DisplayName, user.AvatarURL, user.PasswordHash, user.IsPrivate, user.IsConfirmed, user.ConfirmationToken, user.CreatedAt)
+
+				mock.ExpectQuery("SELECT * FROM users WHERE id = $1").WithArgs("USER_ID").WillReturnRows(rows)
+			},
+
+			Request: test.Request{
+				Headers: map[string]string{
+					"Authorization": fmt.Sprintf("Bearer %s", accessToken),
+				},
+			},
+
+			Expect: test.Expect{
+				Status: http.StatusOK,
+				Body:   fmt.Sprintf(`{"id":"USER_ID","email":"john.doe@example.com","username":"johndoe","display_name":"John Doe","avatar_url":"https://cdn.domain.com/avatar.jpeg","is_private":false,"is_confirmed":true,"created_at":"%s"}`, user.CreatedAt.Format(time.RFC3339)),
+			},
+		},
+		{
+			Name: "user not found",
+
+			Repo: func(mock sqlmock.Sqlmock) {
+				mock.ExpectQuery("SELECT * FROM users WHERE id = $1").WithArgs("USER_ID").WillReturnError(repoerr.ErrUserNotFound)
+			},
+
+			Request: test.Request{
+				Headers: map[string]string{
+					"Authorization": fmt.Sprintf("Bearer %s", accessToken),
+				},
+			},
+
+			Expect: test.Expect{
+				Status: http.StatusUnauthorized,
+				Body:   `{"message":"invalid authorization token"}`,
+			},
+		},
+		{
+			Name: "repository error",
+
+			Repo: func(mock sqlmock.Sqlmock) {
+				mock.ExpectQuery("SELECT * FROM users WHERE id = $1").WithArgs("USER_ID").WillReturnError(errors.New("repo: Some repository error"))
+			},
+
+			Request: test.Request{
+				Headers: map[string]string{
+					"Authorization": fmt.Sprintf("Bearer %s", accessToken),
+				},
+			},
+
+			Expect: test.Expect{
+				Status: http.StatusInternalServerError,
+				Body:   `{"message":"internal server error"}`,
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		test.Endpoint(t, tc, mock, http.MethodGet, "/api/account", "/api/account", handler.UserIdentity, handler.GetCurrentAccount)
+	}
+}
+
+func TestUpdateAccount(t *testing.T) {
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	if err != nil {
+		t.Fatalf("err not expected: %v\n", err)
+	}
+
+	tokenSecret := "some-supa-secret-characters"
+	c := config.Config{Token: config.Token{Secret: tokenSecret}}
+	repo := repository.New(sqlx.NewDb(db, "sqlmock"))
+	tokenManager := token.New(c.Token)
+	handler := New(&c, repo, mockmailer.New(), mocktoken.New(c.Token))
+
+	user := entity.User{
+		ID:                "USER_ID",
+		Email:             "john.doe@example.com",
+		Username:          "johndoe",
+		DisplayName:       "John Doe",
+		AvatarURL:         "https://cdn.domain.com/avatar.jpeg",
+		PasswordHash:      sha256.String("testword"),
+		IsPrivate:         false,
+		IsConfirmed:       true,
+		ConfirmationToken: "CONFIRMATION_TOKEN",
+		CreatedAt:         time.Now(),
+	}
+
+	accessToken, err := tokenManager.GenerateJWT(user.ID)
+	if err != nil {
+		t.Fatal("unexpected error while generating mock token")
+	}
+
+	tests := []test.Case{
+		{
+			Name: "ok: username",
+
+			Repo: func(mock sqlmock.Sqlmock) {
+				rows := sqlmock.NewRows([]string{"id", "email", "username", "display_name", "avatar_url", "password_hash", "is_private", "is_confirmed", "confirmation_token", "created_at"}).
+					AddRow(user.ID, user.Email, user.Username, user.DisplayName, user.AvatarURL, user.PasswordHash, user.IsPrivate, user.IsConfirmed, user.ConfirmationToken, user.CreatedAt)
+
+				mock.ExpectQuery("SELECT * FROM users WHERE id = $1").WithArgs(user.ID).WillReturnRows(rows)
+
+				mock.ExpectExec("UPDATE users SET email = $1, username = $2, display_name = $3, avatar_url = $4, password_hash = $5, is_private = $6 WHERE id = $7").
+					WithArgs(user.Email, "johndoe2", user.DisplayName, user.AvatarURL, user.PasswordHash, false, user.ID).
+					WillReturnResult(driver.RowsAffected(1))
+			},
+
+			Request: test.Request{
+				Body: `{"username":"johndoe2"}`,
+				Headers: map[string]string{
+					"Authorization": fmt.Sprintf("Bearer %s", accessToken),
+				},
+			},
+
+			Expect: test.Expect{
+				Status: http.StatusOK,
+			},
+		},
+		{
+			Name: "ok: display_name",
+
+			Repo: func(mock sqlmock.Sqlmock) {
+				rows := sqlmock.NewRows([]string{"id", "email", "username", "display_name", "avatar_url", "password_hash", "is_private", "is_confirmed", "confirmation_token", "created_at"}).
+					AddRow(user.ID, user.Email, user.Username, user.DisplayName, user.AvatarURL, user.PasswordHash, user.IsPrivate, user.IsConfirmed, user.ConfirmationToken, user.CreatedAt)
+
+				mock.ExpectQuery("SELECT * FROM users WHERE id = $1").WithArgs(user.ID).WillReturnRows(rows)
+
+				mock.ExpectExec("UPDATE users SET email = $1, username = $2, display_name = $3, avatar_url = $4, password_hash = $5, is_private = $6 WHERE id = $7").
+					WithArgs(user.Email, user.Username, "John Doe Ver2", user.AvatarURL, user.PasswordHash, false, user.ID).
+					WillReturnResult(driver.RowsAffected(1))
+			},
+
+			Request: test.Request{
+				Body: `{"display_name":"John Doe Ver2"}`,
+				Headers: map[string]string{
+					"Authorization": fmt.Sprintf("Bearer %s", accessToken),
+				},
+			},
+
+			Expect: test.Expect{
+				Status: http.StatusOK,
+			},
+		},
+		{
+			Name: "ok: avatar_url",
+
+			Repo: func(mock sqlmock.Sqlmock) {
+				rows := sqlmock.NewRows([]string{"id", "email", "username", "display_name", "avatar_url", "password_hash", "is_private", "is_confirmed", "confirmation_token", "created_at"}).
+					AddRow(user.ID, user.Email, user.Username, user.DisplayName, user.AvatarURL, user.PasswordHash, user.IsPrivate, user.IsConfirmed, user.ConfirmationToken, user.CreatedAt)
+
+				mock.ExpectQuery("SELECT * FROM users WHERE id = $1").WithArgs(user.ID).WillReturnRows(rows)
+
+				mock.ExpectExec("UPDATE users SET email = $1, username = $2, display_name = $3, avatar_url = $4, password_hash = $5, is_private = $6 WHERE id = $7").
+					WithArgs(user.Email, user.Username, user.DisplayName, "https://cdn.avatar.com/picture.image", user.PasswordHash, false, user.ID).
+					WillReturnResult(driver.RowsAffected(1))
+			},
+
+			Request: test.Request{
+				Body: `{"avatar_url":"https://cdn.avatar.com/picture.image"}`,
+				Headers: map[string]string{
+					"Authorization": fmt.Sprintf("Bearer %s", accessToken),
+				},
+			},
+
+			Expect: test.Expect{
+				Status: http.StatusOK,
+			},
+		},
+		{
+			Name: "invalid avatar_url",
+
+			Repo: func(mock sqlmock.Sqlmock) {
+				rows := sqlmock.NewRows([]string{"id", "email", "username", "display_name", "avatar_url", "password_hash", "is_private", "is_confirmed", "confirmation_token", "created_at"}).
+					AddRow(user.ID, user.Email, user.Username, user.DisplayName, user.AvatarURL, user.PasswordHash, user.IsPrivate, user.IsConfirmed, user.ConfirmationToken, user.CreatedAt)
+
+				mock.ExpectQuery("SELECT * FROM users WHERE id = $1").WithArgs(user.ID).WillReturnRows(rows)
+			},
+
+			Request: test.Request{
+				Body: `{"avatar_url":"invalid link"}`,
+				Headers: map[string]string{
+					"Authorization": fmt.Sprintf("Bearer %s", accessToken),
+				},
+			},
+
+			Expect: test.Expect{
+				Status: http.StatusBadRequest,
+				Body:   `{"message":"avatar_url should be a valid link"}`,
+			},
+		},
+		{
+			Name: "ok: password",
+
+			Repo: func(mock sqlmock.Sqlmock) {
+				rows := sqlmock.NewRows([]string{"id", "email", "username", "display_name", "avatar_url", "password_hash", "is_private", "is_confirmed", "confirmation_token", "created_at"}).
+					AddRow(user.ID, user.Email, user.Username, user.DisplayName, user.AvatarURL, user.PasswordHash, user.IsPrivate, user.IsConfirmed, user.ConfirmationToken, user.CreatedAt)
+
+				mock.ExpectQuery("SELECT * FROM users WHERE id = $1").WithArgs(user.ID).WillReturnRows(rows)
+
+				mock.ExpectExec("UPDATE users SET email = $1, username = $2, display_name = $3, avatar_url = $4, password_hash = $5, is_private = $6 WHERE id = $7").
+					WithArgs(user.Email, user.Username, user.DisplayName, user.AvatarURL, sha256.String("newpassword"), false, user.ID).
+					WillReturnResult(driver.RowsAffected(1))
+			},
+
+			Request: test.Request{
+				Body: `{"password":"newpassword"}`,
+				Headers: map[string]string{
+					"Authorization": fmt.Sprintf("Bearer %s", accessToken),
+				},
+			},
+
+			Expect: test.Expect{
+				Status: http.StatusOK,
+			},
+		},
+		{
+			Name: "ok: is_private",
+
+			Repo: func(mock sqlmock.Sqlmock) {
+				rows := sqlmock.NewRows([]string{"id", "email", "username", "display_name", "avatar_url", "password_hash", "is_private", "is_confirmed", "confirmation_token", "created_at"}).
+					AddRow(user.ID, user.Email, user.Username, user.DisplayName, user.AvatarURL, user.PasswordHash, user.IsPrivate, user.IsConfirmed, user.ConfirmationToken, user.CreatedAt)
+
+				mock.ExpectQuery("SELECT * FROM users WHERE id = $1").WithArgs(user.ID).WillReturnRows(rows)
+
+				mock.ExpectExec("UPDATE users SET email = $1, username = $2, display_name = $3, avatar_url = $4, password_hash = $5, is_private = $6 WHERE id = $7").
+					WithArgs(user.Email, user.Username, user.DisplayName, user.AvatarURL, user.PasswordHash, true, user.ID).
+					WillReturnResult(driver.RowsAffected(1))
+			},
+
+			Request: test.Request{
+				Body: `{"is_private":true}`,
+				Headers: map[string]string{
+					"Authorization": fmt.Sprintf("Bearer %s", accessToken),
+				},
+			},
+
+			Expect: test.Expect{
+				Status: http.StatusOK,
+			},
+		},
+		{
+			Name: "invalid request body",
+
+			Request: test.Request{
+				Body: `{"invalid":"request, "body}`,
+				Headers: map[string]string{
+					"Authorization": fmt.Sprintf("Bearer %s", accessToken),
+				},
+			},
+
+			Expect: test.Expect{
+				Status: http.StatusBadRequest,
+				Body:   `{"message":"invalid request body"}`,
+			},
+		},
+		{
+			Name: "user not found",
+
+			Repo: func(mock sqlmock.Sqlmock) {
+				mock.ExpectQuery("SELECT * FROM users WHERE id = $1").WithArgs(user.ID).WillReturnError(repoerr.ErrUserNotFound)
+			},
+
+			Request: test.Request{
+				Body: `{"is_private":true}`,
+				Headers: map[string]string{
+					"Authorization": fmt.Sprintf("Bearer %s", accessToken),
+				},
+			},
+
+			Expect: test.Expect{
+				Status: http.StatusNotFound,
+				Body:   `{"message":"user not found"}`,
+			},
+		},
+		{
+			Name: "get: repository error",
+
+			Repo: func(mock sqlmock.Sqlmock) {
+				mock.ExpectQuery("SELECT * FROM users WHERE id = $1").WithArgs(user.ID).WillReturnError(errors.New("repo: Some repository error"))
+			},
+
+			Request: test.Request{
+				Body: `{"is_private":true}`,
+				Headers: map[string]string{
+					"Authorization": fmt.Sprintf("Bearer %s", accessToken),
+				},
+			},
+
+			Expect: test.Expect{
+				Status: http.StatusInternalServerError,
+				Body:   `{"message":"internal server error"}`,
+			},
+		},
+		{
+			Name: "update: repository error",
+
+			Repo: func(mock sqlmock.Sqlmock) {
+				rows := sqlmock.NewRows([]string{"id", "email", "username", "display_name", "avatar_url", "password_hash", "is_private", "is_confirmed", "confirmation_token", "created_at"}).
+					AddRow(user.ID, user.Email, user.Username, user.DisplayName, user.AvatarURL, user.PasswordHash, user.IsPrivate, user.IsConfirmed, user.ConfirmationToken, user.CreatedAt)
+
+				mock.ExpectQuery("SELECT * FROM users WHERE id = $1").WithArgs(user.ID).WillReturnRows(rows)
+
+				mock.ExpectExec("UPDATE users SET email = $1, username = $2, display_name = $3, avatar_url = $4, password_hash = $5, is_private = $6 WHERE id = $7").
+					WithArgs(user.Email, user.Username, user.DisplayName, user.AvatarURL, user.PasswordHash, true, user.ID).
+					WillReturnError(errors.New("repo: Some repository error"))
+			},
+
+			Request: test.Request{
+				Body: `{"is_private":true}`,
+				Headers: map[string]string{
+					"Authorization": fmt.Sprintf("Bearer %s", accessToken),
+				},
+			},
+
+			Expect: test.Expect{
+				Status: http.StatusInternalServerError,
+				Body:   `{"message":"internal server error"}`,
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		test.Endpoint(t, tc, mock, http.MethodPatch, "/api/auth/account", "/api/auth/account", handler.UserIdentity, handler.UpdateAccount)
 	}
 }

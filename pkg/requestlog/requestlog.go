@@ -22,7 +22,7 @@ func Completed(c *gin.Context) {
 		return
 	}
 
-	slog.Info("Request completed",
+	slog.Info("request completed",
 		slog.String("id", requestid.Get(c)),
 		slog.String("method", c.Request.Method),
 		slog.String("uri", c.Request.URL.Path),

@@ -6,11 +6,12 @@ import (
 	"api/internal/pkg/app"
 )
 
-// @title       Welnex API
+// @title       yodreik API
 // @version     0.1
-// @description API server for Welnex application
-// @host        localhost:6969
+// @description API server for yodreik application
+// @host        dreik.d.qarwe.online
 // @BasePath    /api
+// @schemes     https
 //
 // @securityDefinitions.apikey AccessToken
 // @in                         header

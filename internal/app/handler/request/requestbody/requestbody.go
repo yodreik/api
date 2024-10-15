@@ -1,14 +1,22 @@
 package requestbody
 
-type Register struct {
-	Email    string `json:"email" binding:"required"`
-	Name     string `json:"name" binding:"required"`
+type CreateAccount struct {
+	Email    string `json:"email" binding:"required,max=254"`
+	Username string `json:"username" binding:"required,min=5,max=32"`
+	Password string `json:"password" binding:"required,min=8,max=64"`
+}
+
+type CreateSession struct {
+	Login    string `json:"login" binding:"required,max=254"`
 	Password string `json:"password" binding:"required"`
 }
 
-type Login struct {
-	Email    string `json:"email" binding:"required"`
-	Password string `json:"password" binding:"required"`
+type UpdateAccount struct {
+	Username    *string `json:"username" binding:"omitempty,min=5,max=32"`
+	DisplayName *string `json:"display_name" binding:"omitempty,min=1,max=50"`
+	AvatarURL   *string `json:"avatar_url" binding:"omitempty,max=2048"`
+	Password    *string `json:"password" binding:"omitempty,min=8,max=64"`
+	IsPrivate   *bool   `json:"is_private" binding:"omitempty"`
 }
 
 type CreateWorkout struct {
@@ -18,14 +26,14 @@ type CreateWorkout struct {
 }
 
 type ResetPassword struct {
-	Email string `json:"email" binding:"required"`
+	Email string `json:"email" binding:"required,max=254"`
 }
 
 type UpdatePassword struct {
 	Token    string `json:"token" binding:"required"`
-	Password string `json:"password" binding:"required"`
+	Password string `json:"password" binding:"required,min=8,max=64"`
 }
 
-type ConfirmEmail struct {
+type ConfirmAccount struct {
 	Token string `json:"token" binding:"required"`
 }
