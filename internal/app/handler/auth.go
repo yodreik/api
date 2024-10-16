@@ -513,7 +513,7 @@ func (h *Handler) UploadAvatar(c *gin.Context) {
 // @Produce      json
 // @Success      200 {object}          responsebody.Account
 // @Failure      404 {object}          responsebody.Message
-// @Router       /auth/account/avatar  [patch]
+// @Router       /auth/account/avatar  [delete]
 func (h *Handler) DeleteAvatar(c *gin.Context) {
 	log := slog.With(
 		slog.String("op", "handler.DeleteAvatar"),
