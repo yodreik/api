@@ -155,7 +155,7 @@ func (h *Handler) CreateSession(c *gin.Context) {
 
 // @Summary      Request password reset
 // @Description  sends an email with recovery link
-// @Tags         auth
+// @Tags         account
 // @Accept       json
 // @Produce      json
 // @Param        input body                       requestbody.ResetPassword true "User information"
@@ -208,7 +208,7 @@ func (h *Handler) ResetPassword(c *gin.Context) {
 
 // @Summary      Update password
 // @Description  updates password for user
-// @Tags         auth
+// @Tags         account
 // @Accept       json
 // @Produce      json
 // @Param        input body               requestbody.UpdatePassword true "User information"
@@ -270,7 +270,7 @@ func (h *Handler) UpdatePassword(c *gin.Context) {
 
 // @Summary      Confirm account's email
 // @Description  confirms user's email
-// @Tags         auth
+// @Tags         account
 // @Accept       json
 // @Produce      json
 // @Param        input body             requestbody.ConfirmAccount true "Token"
@@ -316,7 +316,7 @@ func (h *Handler) ConfirmAccount(c *gin.Context) {
 // @Summary      Get information about current user
 // @Description  returns an user's information, that currently logged in
 // @Security     AccessToken
-// @Tags         auth
+// @Tags         account
 // @Produce      json
 // @Success      200 {object}  responsebody.Account
 // @Failure      401 {object}  responsebody.Message
@@ -355,7 +355,7 @@ func (h *Handler) GetCurrentAccount(c *gin.Context) {
 // @Summary      Update personal information
 // @Description  updates user entity in storage
 // @Security     AccessToken
-// @Tags         auth
+// @Tags         account
 // @Accept       json
 // @Produce      json
 // @Param        input body             requestbody.UpdateAccount true "User Information"
@@ -415,7 +415,7 @@ func (h *Handler) UpdateAccount(c *gin.Context) {
 // @Summary      Upload User Avatar
 // @Description  uploads a new avatar image for the user. Only PNG, JPG, and JPEG formats are allowed
 // @Security     AccessToken
-// @Tags         auth
+// @Tags         account
 // @Accept       multipart/form-data
 // @Produce      json
 // @Param        avatar formData  file true "Avatar Image"
@@ -509,7 +509,7 @@ func (h *Handler) UploadAvatar(c *gin.Context) {
 // @Summary      Delete user avatar
 // @Description  deletes user's avatar image
 // @Security     AccessToken
-// @Tags         auth
+// @Tags         account
 // @Produce      json
 // @Success      200 {object}     responsebody.Account
 // @Failure      404 {object}     responsebody.Message
