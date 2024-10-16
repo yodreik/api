@@ -158,11 +158,11 @@ func (h *Handler) CreateSession(c *gin.Context) {
 // @Tags         auth
 // @Accept       json
 // @Produce      json
-// @Param        input body            requestbody.ResetPassword true "User information"
+// @Param        input body                       requestbody.ResetPassword true "User information"
 // @Success      200
-// @Failure      400 {object}          responsebody.Message
-// @Failure      404 {object}          responsebody.Message
-// @Router       /auth/password/reset  [post]
+// @Failure      400 {object}                     responsebody.Message
+// @Failure      404 {object}                     responsebody.Message
+// @Router       /account/reset-password/request  [post]
 func (h *Handler) ResetPassword(c *gin.Context) {
 	log := slog.With(
 		slog.String("op", "handler.ResetPassword"),
@@ -211,11 +211,11 @@ func (h *Handler) ResetPassword(c *gin.Context) {
 // @Tags         auth
 // @Accept       json
 // @Produce      json
-// @Param        input body      requestbody.UpdatePassword true "User information"
+// @Param        input body               requestbody.UpdatePassword true "User information"
 // @Success      200
-// @Failure      400 {object}    responsebody.Message
-// @Failure      404 {object}    responsebody.Message
-// @Router       /auth/password  [patch]
+// @Failure      400 {object}             responsebody.Message
+// @Failure      404 {object}             responsebody.Message
+// @Router       /account/reset-password  [patch]
 func (h *Handler) UpdatePassword(c *gin.Context) {
 	log := slog.With(
 		slog.String("op", "handler.UpdatePassword"),
@@ -275,9 +275,9 @@ func (h *Handler) UpdatePassword(c *gin.Context) {
 // @Produce      json
 // @Param        input body             requestbody.ConfirmAccount true "Token"
 // @Success      200
-// @Failure      400 {object}           responsebody.Message
-// @Failure      404 {object}           responsebody.Message
-// @Router       /auth/account/confirm  [post]
+// @Failure      400 {object}      responsebody.Message
+// @Failure      404 {object}      responsebody.Message
+// @Router       /account/confirm  [post]
 func (h *Handler) ConfirmAccount(c *gin.Context) {
 	log := slog.With(
 		slog.String("op", "handler.ConfirmAccount"),
@@ -318,9 +318,9 @@ func (h *Handler) ConfirmAccount(c *gin.Context) {
 // @Security     AccessToken
 // @Tags         auth
 // @Produce      json
-// @Success      200 {object}   responsebody.Account
-// @Failure      401 {object}   responsebody.Message
-// @Router       /auth/account  [get]
+// @Success      200 {object}  responsebody.Account
+// @Failure      401 {object}  responsebody.Message
+// @Router       /account      [get]
 func (h *Handler) GetCurrentAccount(c *gin.Context) {
 	log := slog.With(
 		slog.String("op", "handler.GetCurrentAccount"),
@@ -360,9 +360,9 @@ func (h *Handler) GetCurrentAccount(c *gin.Context) {
 // @Produce      json
 // @Param        input body             requestbody.UpdateAccount true "User Information"
 // @Success      200
-// @Failure      400 {object}   responsebody.Message
-// @Failure      401 {object}   responsebody.Message
-// @Router       /auth/account  [patch]
+// @Failure      400 {object}  responsebody.Message
+// @Failure      401 {object}  responsebody.Message
+// @Router       /account      [patch]
 func (h *Handler) UpdateAccount(c *gin.Context) {
 	log := slog.With(
 		slog.String("op", "handler.UpdateAccount"),
@@ -418,11 +418,11 @@ func (h *Handler) UpdateAccount(c *gin.Context) {
 // @Tags         auth
 // @Accept       multipart/form-data
 // @Produce      json
-// @Param        avatar formData       file true "Avatar Image"
-// @Success      200 {object}          responsebody.Account
-// @Failure      400 {object}          responsebody.Message
-// @Failure      404 {object}          responsebody.Message
-// @Router       /auth/account/avatar  [patch]
+// @Param        avatar formData  file true "Avatar Image"
+// @Success      200 {object}     responsebody.Account
+// @Failure      400 {object}     responsebody.Message
+// @Failure      404 {object}     responsebody.Message
+// @Router       /account/avatar  [patch]
 func (h *Handler) UploadAvatar(c *gin.Context) {
 	log := slog.With(
 		slog.String("op", "handler.UploadAvatar"),
@@ -511,9 +511,9 @@ func (h *Handler) UploadAvatar(c *gin.Context) {
 // @Security     AccessToken
 // @Tags         auth
 // @Produce      json
-// @Success      200 {object}          responsebody.Account
-// @Failure      404 {object}          responsebody.Message
-// @Router       /auth/account/avatar  [delete]
+// @Success      200 {object}     responsebody.Account
+// @Failure      404 {object}     responsebody.Message
+// @Router       /account/avatar  [delete]
 func (h *Handler) DeleteAvatar(c *gin.Context) {
 	log := slog.With(
 		slog.String("op", "handler.DeleteAvatar"),
