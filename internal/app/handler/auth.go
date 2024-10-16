@@ -505,3 +505,51 @@ func (h *Handler) UploadAvatar(c *gin.Context) {
 		CreatedAt:   user.CreatedAt.Format(time.RFC3339),
 	})
 }
+
+// @Summary      Delete user avatar
+// @Description  deletes user's avatar image
+// @Security     AccessToken
+// @Tags         auth
+// @Produce      json
+// @Success      200 {object}          responsebody.Account
+// @Failure      404 {object}          responsebody.Message
+// @Router       /auth/account/avatar  [patch]
+func (h *Handler) DeleteAvatar(c *gin.Context) {
+	log := slog.With(
+		slog.String("op", "handler.DeleteAvatar"),
+		slog.String("request_id", requestid.Get(c)),
+	)
+
+	userID := c.GetString("UserID")
+	user, err := h.repository.User.GetByID(c, userID)
+	if errors.Is(err, repoerr.ErrUserNotFound) {
+		log.Debug("user does not exists")
+		response.WithMessage(c, http.StatusNotFound, "user not found")
+		return
+	}
+	if err != nil {
+		log.Error("can't find user", sl.Err(err))
+		response.InternalServerError(c)
+		return
+	}
+
+	user.AvatarURL = ""
+
+	err = h.repository.User.UpdateUser(c, user.ID, user.Email, user.Username, user.DisplayName, user.AvatarURL, user.PasswordHash, user.IsPrivate)
+	if err != nil {
+		log.Error("could not update user", sl.Err(err))
+		response.InternalServerError(c)
+		return
+	}
+
+	c.JSON(http.StatusOK, responsebody.Account{
+		ID:          user.ID,
+		Email:       user.Email,
+		Username:    user.Username,
+		DisplayName: user.DisplayName,
+		AvatarURL:   user.AvatarURL,
+		IsPrivate:   user.IsPrivate,
+		IsConfirmed: user.IsConfirmed,
+		CreatedAt:   user.CreatedAt.Format(time.RFC3339),
+	})
+}

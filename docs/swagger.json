@@ -194,37 +194,19 @@
                         "AccessToken": []
                     }
                 ],
-                "description": "uploads a new avatar image for the user. Only PNG, JPG, and JPEG formats are allowed",
-                "consumes": [
-                    "multipart/form-data"
-                ],
+                "description": "deletes user's avatar image",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "auth"
                 ],
-                "summary": "Upload User Avatar",
-                "parameters": [
-                    {
-                        "type": "file",
-                        "description": "Avatar Image",
-                        "name": "avatar",
-                        "in": "formData",
-                        "required": true
-                    }
-                ],
+                "summary": "Delete user avatar",
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/responsebody.Account"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/responsebody.Message"
                         }
                     },
                     "404": {

@@ -69,6 +69,7 @@ func (r *Router) InitRoutes() *gin.Engine {
 
 		api.Static("/avatar", ".database/avatars")
 		api.PATCH("/auth/account/avatar", r.handler.UserIdentity, r.handler.UploadAvatar)
+		api.DELETE("/auth/account/avatar", r.handler.UserIdentity, r.handler.DeleteAvatar)
 
 		api.POST("/auth/account", r.handler.CreateAccount)
 		api.GET("/auth/account", r.handler.UserIdentity, r.handler.GetCurrentAccount)
