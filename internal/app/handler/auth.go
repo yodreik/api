@@ -468,7 +468,15 @@ func (h *Handler) UploadAvatar(c *gin.Context) {
 
 	dst := fmt.Sprintf("./.database/avatars/%s", filename)
 
-	// TODO: Check if file with this name already exists
+	// Generate new filename, until it isn't taken
+	_, err = os.Stat(dst)
+	for err != nil {
+		filename = fmt.Sprintf("%s%s", uuid.NewString(), extension)
+		dst = fmt.Sprintf("./.database/avatars/%s", filename)
+
+		_, err = os.Stat(dst)
+	}
+
 	err = c.SaveUploadedFile(file, dst)
 	if err != nil {
 		log.Error("could not save file", sl.Err(err))
