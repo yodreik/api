@@ -6,12 +6,11 @@ import (
 	"api/internal/pkg/app"
 )
 
-// @title       yodreik API
-// @version     0.1
-// @description API server for yodreik application
-// @host        dreik.d.qarwe.online
-// @BasePath    /api
-// @schemes     https
+// @title        yodreik API
+// @description  API server for yodreik application
+// @host         dreik.d.qarwe.online
+// @BasePath     /api
+// @schemes      https
 //
 // @securityDefinitions.apikey AccessToken
 // @in                         header
