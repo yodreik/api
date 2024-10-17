@@ -427,7 +427,7 @@ func TestResetPassword(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		test.Endpoint(t, tc, mock, http.MethodPost, "/api/auth/password/reset", "/api/auth/password/reset", handler.ResetPassword)
+		test.Endpoint(t, tc, mock, http.MethodPost, "/api/account/reset-password/request", "/api/account/reset-password/request", handler.ResetPassword)
 	}
 }
 
@@ -657,7 +657,7 @@ func TestUpdatePassword(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		test.Endpoint(t, tc, mock, http.MethodPatch, "/api/auth/password", "/api/auth/password", handler.UpdatePassword)
+		test.Endpoint(t, tc, mock, http.MethodPatch, "/api/account/reset-password", "/api/account/reset-password", handler.UpdatePassword)
 	}
 }
 
@@ -768,7 +768,7 @@ func TestConfirmAccount(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		test.Endpoint(t, tc, mock, http.MethodPost, "/api/auth/account/confirm", "/api/auth/account/confirm", handler.ConfirmAccount)
+		test.Endpoint(t, tc, mock, http.MethodPost, "/api/account/confirm", "/api/account/confirm", handler.ConfirmAccount)
 	}
 }
 
@@ -949,53 +949,6 @@ func TestUpdateAccount(t *testing.T) {
 			},
 		},
 		{
-			Name: "ok: avatar_url",
-
-			Repo: func(mock sqlmock.Sqlmock) {
-				rows := sqlmock.NewRows([]string{"id", "email", "username", "display_name", "avatar_url", "password_hash", "is_private", "is_confirmed", "confirmation_token", "created_at"}).
-					AddRow(user.ID, user.Email, user.Username, user.DisplayName, user.AvatarURL, user.PasswordHash, user.IsPrivate, user.IsConfirmed, user.ConfirmationToken, user.CreatedAt)
-
-				mock.ExpectQuery("SELECT * FROM users WHERE id = $1").WithArgs(user.ID).WillReturnRows(rows)
-
-				mock.ExpectExec("UPDATE users SET email = $1, username = $2, display_name = $3, avatar_url = $4, password_hash = $5, is_private = $6 WHERE id = $7").
-					WithArgs(user.Email, user.Username, user.DisplayName, "https://cdn.avatar.com/picture.image", user.PasswordHash, false, user.ID).
-					WillReturnResult(driver.RowsAffected(1))
-			},
-
-			Request: test.Request{
-				Body: `{"avatar_url":"https://cdn.avatar.com/picture.image"}`,
-				Headers: map[string]string{
-					"Authorization": fmt.Sprintf("Bearer %s", accessToken),
-				},
-			},
-
-			Expect: test.Expect{
-				Status: http.StatusOK,
-			},
-		},
-		{
-			Name: "invalid avatar_url",
-
-			Repo: func(mock sqlmock.Sqlmock) {
-				rows := sqlmock.NewRows([]string{"id", "email", "username", "display_name", "avatar_url", "password_hash", "is_private", "is_confirmed", "confirmation_token", "created_at"}).
-					AddRow(user.ID, user.Email, user.Username, user.DisplayName, user.AvatarURL, user.PasswordHash, user.IsPrivate, user.IsConfirmed, user.ConfirmationToken, user.CreatedAt)
-
-				mock.ExpectQuery("SELECT * FROM users WHERE id = $1").WithArgs(user.ID).WillReturnRows(rows)
-			},
-
-			Request: test.Request{
-				Body: `{"avatar_url":"invalid link"}`,
-				Headers: map[string]string{
-					"Authorization": fmt.Sprintf("Bearer %s", accessToken),
-				},
-			},
-
-			Expect: test.Expect{
-				Status: http.StatusBadRequest,
-				Body:   `{"message":"avatar_url should be a valid link"}`,
-			},
-		},
-		{
 			Name: "ok: password",
 
 			Repo: func(mock sqlmock.Sqlmock) {
@@ -1127,6 +1080,6 @@ func TestUpdateAccount(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		test.Endpoint(t, tc, mock, http.MethodPatch, "/api/auth/account", "/api/auth/account", handler.UserIdentity, handler.UpdateAccount)
+		test.Endpoint(t, tc, mock, http.MethodPatch, "/api/account", "/api/account", handler.UserIdentity, handler.UpdateAccount)
 	}
 }

@@ -66,17 +66,19 @@ func (r *Router) InitRoutes() *gin.Engine {
 		api.GET("/healthcheck", r.handler.Healthcheck)
 
 		api.POST("/auth/session", r.handler.CreateSession)
+		api.POST("/auth/account", r.handler.CreateAccount)
 
 		api.Static("/avatar", ".database/avatars")
-		api.PATCH("/auth/account/avatar", r.handler.UserIdentity, r.handler.UploadAvatar)
+		api.PATCH("/account/avatar", r.handler.UserIdentity, r.handler.UploadAvatar)
+		api.DELETE("/account/avatar", r.handler.UserIdentity, r.handler.DeleteAvatar)
 
-		api.POST("/auth/account", r.handler.CreateAccount)
-		api.GET("/auth/account", r.handler.UserIdentity, r.handler.GetCurrentAccount)
-		api.PATCH("/auth/account", r.handler.UserIdentity, r.handler.UpdateAccount)
-		api.POST("/auth/account/confirm", r.handler.ConfirmAccount)
+		api.GET("/account", r.handler.UserIdentity, r.handler.GetCurrentAccount)
+		api.PATCH("/account", r.handler.UserIdentity, r.handler.UpdateAccount)
 
-		api.POST("/auth/password/reset", r.handler.ResetPassword)
-		api.PATCH("/auth/password", r.handler.UpdatePassword)
+		api.POST("/account/confirm", r.handler.ConfirmAccount)
+
+		api.POST("/account/reset-password/request", r.handler.ResetPassword)
+		api.PATCH("/account/reset-password", r.handler.UpdatePassword)
 
 		api.POST("/workout", r.handler.UserIdentity, r.handler.CreateWorkout)
 

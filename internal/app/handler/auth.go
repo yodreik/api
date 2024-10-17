@@ -14,7 +14,6 @@ import (
 	"log/slog"
 	"net/http"
 	"net/mail"
-	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -156,14 +155,14 @@ func (h *Handler) CreateSession(c *gin.Context) {
 
 // @Summary      Request password reset
 // @Description  sends an email with recovery link
-// @Tags         auth
+// @Tags         account
 // @Accept       json
 // @Produce      json
-// @Param        input body            requestbody.ResetPassword true "User information"
+// @Param        input body                       requestbody.ResetPassword true "User information"
 // @Success      200
-// @Failure      400 {object}          responsebody.Message
-// @Failure      404 {object}          responsebody.Message
-// @Router       /auth/password/reset  [post]
+// @Failure      400 {object}                     responsebody.Message
+// @Failure      404 {object}                     responsebody.Message
+// @Router       /account/reset-password/request  [post]
 func (h *Handler) ResetPassword(c *gin.Context) {
 	log := slog.With(
 		slog.String("op", "handler.ResetPassword"),
@@ -209,14 +208,14 @@ func (h *Handler) ResetPassword(c *gin.Context) {
 
 // @Summary      Update password
 // @Description  updates password for user
-// @Tags         auth
+// @Tags         account
 // @Accept       json
 // @Produce      json
-// @Param        input body      requestbody.UpdatePassword true "User information"
+// @Param        input body               requestbody.UpdatePassword true "User information"
 // @Success      200
-// @Failure      400 {object}    responsebody.Message
-// @Failure      404 {object}    responsebody.Message
-// @Router       /auth/password  [patch]
+// @Failure      400 {object}             responsebody.Message
+// @Failure      404 {object}             responsebody.Message
+// @Router       /account/reset-password  [patch]
 func (h *Handler) UpdatePassword(c *gin.Context) {
 	log := slog.With(
 		slog.String("op", "handler.UpdatePassword"),
@@ -271,14 +270,14 @@ func (h *Handler) UpdatePassword(c *gin.Context) {
 
 // @Summary      Confirm account's email
 // @Description  confirms user's email
-// @Tags         auth
+// @Tags         account
 // @Accept       json
 // @Produce      json
-// @Param        input body             requestbody.ConfirmAccount true "Token"
+// @Param        input body        requestbody.ConfirmAccount true "Token"
 // @Success      200
-// @Failure      400 {object}           responsebody.Message
-// @Failure      404 {object}           responsebody.Message
-// @Router       /auth/account/confirm  [post]
+// @Failure      400 {object}      responsebody.Message
+// @Failure      404 {object}      responsebody.Message
+// @Router       /account/confirm  [post]
 func (h *Handler) ConfirmAccount(c *gin.Context) {
 	log := slog.With(
 		slog.String("op", "handler.ConfirmAccount"),
@@ -317,11 +316,11 @@ func (h *Handler) ConfirmAccount(c *gin.Context) {
 // @Summary      Get information about current user
 // @Description  returns an user's information, that currently logged in
 // @Security     AccessToken
-// @Tags         auth
+// @Tags         account
 // @Produce      json
-// @Success      200 {object}   responsebody.Account
-// @Failure      401 {object}   responsebody.Message
-// @Router       /auth/account  [get]
+// @Success      200 {object}  responsebody.Account
+// @Failure      401 {object}  responsebody.Message
+// @Router       /account      [get]
 func (h *Handler) GetCurrentAccount(c *gin.Context) {
 	log := slog.With(
 		slog.String("op", "handler.GetCurrentAccount"),
@@ -356,14 +355,14 @@ func (h *Handler) GetCurrentAccount(c *gin.Context) {
 // @Summary      Update personal information
 // @Description  updates user entity in storage
 // @Security     AccessToken
-// @Tags         auth
+// @Tags         account
 // @Accept       json
 // @Produce      json
-// @Param        input body             requestbody.UpdateAccount true "User Information"
+// @Param        input body    requestbody.UpdateAccount true "User Information"
 // @Success      200
-// @Failure      400 {object}   responsebody.Message
-// @Failure      401 {object}   responsebody.Message
-// @Router       /auth/account  [patch]
+// @Failure      400 {object}  responsebody.Message
+// @Failure      401 {object}  responsebody.Message
+// @Router       /account      [patch]
 func (h *Handler) UpdateAccount(c *gin.Context) {
 	log := slog.With(
 		slog.String("op", "handler.UpdateAccount"),
@@ -396,16 +395,6 @@ func (h *Handler) UpdateAccount(c *gin.Context) {
 	if body.DisplayName != nil {
 		user.DisplayName = *body.DisplayName
 	}
-	if body.AvatarURL != nil {
-		_, err = url.ParseRequestURI(*body.AvatarURL)
-		if err != nil {
-			log.Debug("invalid avatar url link", slog.String("avatar_url", *body.AvatarURL))
-			response.WithMessage(c, http.StatusBadRequest, "avatar_url should be a valid link")
-			return
-		}
-
-		user.AvatarURL = *body.AvatarURL
-	}
 	if body.Password != nil {
 		user.PasswordHash = sha256.String(*body.Password)
 	}
@@ -426,14 +415,14 @@ func (h *Handler) UpdateAccount(c *gin.Context) {
 // @Summary      Upload User Avatar
 // @Description  uploads a new avatar image for the user. Only PNG, JPG, and JPEG formats are allowed
 // @Security     AccessToken
-// @Tags         auth
+// @Tags         account
 // @Accept       multipart/form-data
 // @Produce      json
-// @Param        avatar formData       file true "Avatar Image"
-// @Success      200 {object}          responsebody.Account
-// @Failure      400 {object}          responsebody.Message
-// @Failure      404 {object}          responsebody.Message
-// @Router       /auth/account/avatar  [patch]
+// @Param        avatar formData  file true "Avatar Image"
+// @Success      200 {object}     responsebody.Account
+// @Failure      400 {object}     responsebody.Message
+// @Failure      404 {object}     responsebody.Message
+// @Router       /account/avatar  [patch]
 func (h *Handler) UploadAvatar(c *gin.Context) {
 	log := slog.With(
 		slog.String("op", "handler.UploadAvatar"),
@@ -479,7 +468,15 @@ func (h *Handler) UploadAvatar(c *gin.Context) {
 
 	dst := fmt.Sprintf("./.database/avatars/%s", filename)
 
-	// TODO: Check if file with this name already exists
+	// Generate new filename, until it isn't taken
+	_, err = os.Stat(dst)
+	for err != nil {
+		filename = fmt.Sprintf("%s%s", uuid.NewString(), extension)
+		dst = fmt.Sprintf("./.database/avatars/%s", filename)
+
+		_, err = os.Stat(dst)
+	}
+
 	err = c.SaveUploadedFile(file, dst)
 	if err != nil {
 		log.Error("could not save file", sl.Err(err))
@@ -497,6 +494,54 @@ func (h *Handler) UploadAvatar(c *gin.Context) {
 	}
 
 	user.AvatarURL = fmt.Sprintf("%s/api/avatar/%s", h.config.BasePath, filename)
+
+	err = h.repository.User.UpdateUser(c, user.ID, user.Email, user.Username, user.DisplayName, user.AvatarURL, user.PasswordHash, user.IsPrivate)
+	if err != nil {
+		log.Error("could not update user", sl.Err(err))
+		response.InternalServerError(c)
+		return
+	}
+
+	c.JSON(http.StatusOK, responsebody.Account{
+		ID:          user.ID,
+		Email:       user.Email,
+		Username:    user.Username,
+		DisplayName: user.DisplayName,
+		AvatarURL:   user.AvatarURL,
+		IsPrivate:   user.IsPrivate,
+		IsConfirmed: user.IsConfirmed,
+		CreatedAt:   user.CreatedAt.Format(time.RFC3339),
+	})
+}
+
+// @Summary      Delete user avatar
+// @Description  deletes user's avatar image
+// @Security     AccessToken
+// @Tags         account
+// @Produce      json
+// @Success      200 {object}     responsebody.Account
+// @Failure      404 {object}     responsebody.Message
+// @Router       /account/avatar  [delete]
+func (h *Handler) DeleteAvatar(c *gin.Context) {
+	log := slog.With(
+		slog.String("op", "handler.DeleteAvatar"),
+		slog.String("request_id", requestid.Get(c)),
+	)
+
+	userID := c.GetString("UserID")
+	user, err := h.repository.User.GetByID(c, userID)
+	if errors.Is(err, repoerr.ErrUserNotFound) {
+		log.Debug("user does not exists")
+		response.WithMessage(c, http.StatusNotFound, "user not found")
+		return
+	}
+	if err != nil {
+		log.Error("can't find user", sl.Err(err))
+		response.InternalServerError(c)
+		return
+	}
+
+	user.AvatarURL = ""
 
 	err = h.repository.User.UpdateUser(c, user.ID, user.Email, user.Username, user.DisplayName, user.AvatarURL, user.PasswordHash, user.IsPrivate)
 	if err != nil {
