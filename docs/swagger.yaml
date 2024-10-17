@@ -170,6 +170,188 @@ info:
   title: yodreik API
   version: "0.1"
 paths:
+  /account:
+    get:
+      description: returns an user's information, that currently logged in
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responsebody.Account'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/responsebody.Message'
+      security:
+      - AccessToken: []
+      summary: Get information about current user
+      tags:
+      - account
+    patch:
+      consumes:
+      - application/json
+      description: updates user entity in storage
+      parameters:
+      - description: User Information
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/requestbody.UpdateAccount'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responsebody.Message'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/responsebody.Message'
+      security:
+      - AccessToken: []
+      summary: Update personal information
+      tags:
+      - account
+  /account/avatar:
+    delete:
+      description: deletes user's avatar image
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responsebody.Account'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responsebody.Message'
+      security:
+      - AccessToken: []
+      summary: Delete user avatar
+      tags:
+      - account
+    patch:
+      consumes:
+      - multipart/form-data
+      description: uploads a new avatar image for the user. Only PNG, JPG, and JPEG
+        formats are allowed
+      parameters:
+      - description: Avatar Image
+        in: formData
+        name: avatar
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responsebody.Account'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responsebody.Message'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responsebody.Message'
+      security:
+      - AccessToken: []
+      summary: Upload User Avatar
+      tags:
+      - account
+  /account/confirm:
+    post:
+      consumes:
+      - application/json
+      description: confirms user's email
+      parameters:
+      - description: Token
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/requestbody.ConfirmAccount'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responsebody.Message'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responsebody.Message'
+      summary: Confirm account's email
+      tags:
+      - account
+  /account/reset-password:
+    patch:
+      consumes:
+      - application/json
+      description: updates password for user
+      parameters:
+      - description: User information
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/requestbody.UpdatePassword'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responsebody.Message'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responsebody.Message'
+      summary: Update password
+      tags:
+      - account
+  /account/reset-password/request:
+    post:
+      consumes:
+      - application/json
+      description: sends an email with recovery link
+      parameters:
+      - description: User information
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/requestbody.ResetPassword'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responsebody.Message'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responsebody.Message'
+      summary: Request password reset
+      tags:
+      - account
   /activity:
     get:
       consumes:
@@ -205,53 +387,6 @@ paths:
       tags:
       - activity
   /auth/account:
-    get:
-      description: returns an user's information, that currently logged in
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/responsebody.Account'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/responsebody.Message'
-      security:
-      - AccessToken: []
-      summary: Get information about current user
-      tags:
-      - auth
-    patch:
-      consumes:
-      - application/json
-      description: updates user entity in storage
-      parameters:
-      - description: User Information
-        in: body
-        name: input
-        required: true
-        schema:
-          $ref: '#/definitions/requestbody.UpdateAccount'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/responsebody.Message'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/responsebody.Message'
-      security:
-      - AccessToken: []
-      summary: Update personal information
-      tags:
-      - auth
     post:
       consumes:
       - application/json
@@ -279,140 +414,6 @@ paths:
           schema:
             $ref: '#/definitions/responsebody.Message'
       summary: Create new account
-      tags:
-      - auth
-  /auth/account/avatar:
-    delete:
-      description: deletes user's avatar image
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/responsebody.Account'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/responsebody.Message'
-      security:
-      - AccessToken: []
-      summary: Delete user avatar
-      tags:
-      - auth
-    patch:
-      consumes:
-      - multipart/form-data
-      description: uploads a new avatar image for the user. Only PNG, JPG, and JPEG
-        formats are allowed
-      parameters:
-      - description: Avatar Image
-        in: formData
-        name: avatar
-        required: true
-        type: file
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/responsebody.Account'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/responsebody.Message'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/responsebody.Message'
-      security:
-      - AccessToken: []
-      summary: Upload User Avatar
-      tags:
-      - auth
-  /auth/account/confirm:
-    post:
-      consumes:
-      - application/json
-      description: confirms user's email
-      parameters:
-      - description: Token
-        in: body
-        name: input
-        required: true
-        schema:
-          $ref: '#/definitions/requestbody.ConfirmAccount'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/responsebody.Message'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/responsebody.Message'
-      summary: Confirm account's email
-      tags:
-      - auth
-  /auth/password:
-    patch:
-      consumes:
-      - application/json
-      description: updates password for user
-      parameters:
-      - description: User information
-        in: body
-        name: input
-        required: true
-        schema:
-          $ref: '#/definitions/requestbody.UpdatePassword'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/responsebody.Message'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/responsebody.Message'
-      summary: Update password
-      tags:
-      - auth
-  /auth/password/reset:
-    post:
-      consumes:
-      - application/json
-      description: sends an email with recovery link
-      parameters:
-      - description: User information
-        in: body
-        name: input
-        required: true
-        schema:
-          $ref: '#/definitions/requestbody.ResetPassword'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/responsebody.Message'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/responsebody.Message'
-      summary: Request password reset
       tags:
       - auth
   /auth/session:

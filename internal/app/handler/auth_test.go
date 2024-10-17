@@ -427,7 +427,7 @@ func TestResetPassword(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		test.Endpoint(t, tc, mock, http.MethodPost, "/api/auth/password/reset", "/api/auth/password/reset", handler.ResetPassword)
+		test.Endpoint(t, tc, mock, http.MethodPost, "/api/account/reset-password/request", "/api/account/reset-password/request", handler.ResetPassword)
 	}
 }
 
@@ -657,7 +657,7 @@ func TestUpdatePassword(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		test.Endpoint(t, tc, mock, http.MethodPatch, "/api/auth/password", "/api/auth/password", handler.UpdatePassword)
+		test.Endpoint(t, tc, mock, http.MethodPatch, "/api/account/reset-password", "/api/account/reset-password", handler.UpdatePassword)
 	}
 }
 
@@ -768,7 +768,7 @@ func TestConfirmAccount(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		test.Endpoint(t, tc, mock, http.MethodPost, "/api/auth/account/confirm", "/api/auth/account/confirm", handler.ConfirmAccount)
+		test.Endpoint(t, tc, mock, http.MethodPost, "/api/account/confirm", "/api/account/confirm", handler.ConfirmAccount)
 	}
 }
 
@@ -1080,6 +1080,6 @@ func TestUpdateAccount(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		test.Endpoint(t, tc, mock, http.MethodPatch, "/api/auth/account", "/api/auth/account", handler.UserIdentity, handler.UpdateAccount)
+		test.Endpoint(t, tc, mock, http.MethodPatch, "/api/account", "/api/account", handler.UserIdentity, handler.UpdateAccount)
 	}
 }
