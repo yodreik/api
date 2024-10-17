@@ -273,7 +273,7 @@ func (h *Handler) UpdatePassword(c *gin.Context) {
 // @Tags         account
 // @Accept       json
 // @Produce      json
-// @Param        input body             requestbody.ConfirmAccount true "Token"
+// @Param        input body        requestbody.ConfirmAccount true "Token"
 // @Success      200
 // @Failure      400 {object}      responsebody.Message
 // @Failure      404 {object}      responsebody.Message
@@ -358,7 +358,7 @@ func (h *Handler) GetCurrentAccount(c *gin.Context) {
 // @Tags         account
 // @Accept       json
 // @Produce      json
-// @Param        input body             requestbody.UpdateAccount true "User Information"
+// @Param        input body    requestbody.UpdateAccount true "User Information"
 // @Success      200
 // @Failure      400 {object}  responsebody.Message
 // @Failure      401 {object}  responsebody.Message
