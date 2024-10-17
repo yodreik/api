@@ -109,10 +109,7 @@ const docTemplate = `{
                 "summary": "Delete user avatar",
                 "responses": {
                     "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/responsebody.Account"
-                        }
+                        "description": "OK"
                     },
                     "404": {
                         "description": "Not Found",
@@ -150,10 +147,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/responsebody.Account"
-                        }
+                        "description": "OK"
                     },
                     "400": {
                         "description": "Bad Request",
@@ -834,7 +828,7 @@ const docTemplate = `{
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
-	Version:          "0.1",
+	Version:          "",
 	Host:             "dreik.d.qarwe.online",
 	BasePath:         "/api",
 	Schemes:          []string{"https"},

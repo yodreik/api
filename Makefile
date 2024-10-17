@@ -20,6 +20,9 @@ coverage:
 swag:
 	swag init -g ./cmd/api/main.go
 
+test:
+	go test ./...
+
 clean:
 	rm coverage.out
 	rm coverage.html

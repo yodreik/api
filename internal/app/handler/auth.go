@@ -419,7 +419,7 @@ func (h *Handler) UpdateAccount(c *gin.Context) {
 // @Accept       multipart/form-data
 // @Produce      json
 // @Param        avatar formData  file true "Avatar Image"
-// @Success      200 {object}     responsebody.Account
+// @Success      200
 // @Failure      400 {object}     responsebody.Message
 // @Failure      404 {object}     responsebody.Message
 // @Router       /account/avatar  [patch]
@@ -502,16 +502,7 @@ func (h *Handler) UploadAvatar(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, responsebody.Account{
-		ID:          user.ID,
-		Email:       user.Email,
-		Username:    user.Username,
-		DisplayName: user.DisplayName,
-		AvatarURL:   user.AvatarURL,
-		IsPrivate:   user.IsPrivate,
-		IsConfirmed: user.IsConfirmed,
-		CreatedAt:   user.CreatedAt.Format(time.RFC3339),
-	})
+	c.Status(http.StatusOK)
 }
 
 // @Summary      Delete user avatar
@@ -519,7 +510,7 @@ func (h *Handler) UploadAvatar(c *gin.Context) {
 // @Security     AccessToken
 // @Tags         account
 // @Produce      json
-// @Success      200 {object}     responsebody.Account
+// @Success      200
 // @Failure      404 {object}     responsebody.Message
 // @Router       /account/avatar  [delete]
 func (h *Handler) DeleteAvatar(c *gin.Context) {
@@ -550,14 +541,5 @@ func (h *Handler) DeleteAvatar(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, responsebody.Account{
-		ID:          user.ID,
-		Email:       user.Email,
-		Username:    user.Username,
-		DisplayName: user.DisplayName,
-		AvatarURL:   user.AvatarURL,
-		IsPrivate:   user.IsPrivate,
-		IsConfirmed: user.IsConfirmed,
-		CreatedAt:   user.CreatedAt.Format(time.RFC3339),
-	})
+	c.Status(http.StatusOK)
 }

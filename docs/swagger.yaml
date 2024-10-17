@@ -168,7 +168,6 @@ info:
   contact: {}
   description: API server for yodreik application
   title: yodreik API
-  version: "0.1"
 paths:
   /account:
     get:
@@ -226,8 +225,6 @@ paths:
       responses:
         "200":
           description: OK
-          schema:
-            $ref: '#/definitions/responsebody.Account'
         "404":
           description: Not Found
           schema:
@@ -253,8 +250,6 @@ paths:
       responses:
         "200":
           description: OK
-          schema:
-            $ref: '#/definitions/responsebody.Account'
         "400":
           description: Bad Request
           schema:
