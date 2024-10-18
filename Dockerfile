@@ -14,5 +14,6 @@ FROM alpine:latest
 WORKDIR /app
 
 COPY --from=builder /app/bin ./bin
+COPY --from=builder /app/templates/* ./templates/
 
 CMD ["./bin/api"]
