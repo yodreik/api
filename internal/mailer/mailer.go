@@ -2,9 +2,21 @@ package mailer
 
 import (
 	"api/internal/config"
+	"bytes"
 	"fmt"
+	"html/template"
 	"net/smtp"
 )
+
+type ConfirmationEmailData struct {
+	BasePath string
+	Token    string
+}
+
+type RecoveryEmailData struct {
+	BasePath string
+	Token    string
+}
 
 type Mailer interface {
 	SendRecoveryEmail(recepient string, token string) error
@@ -23,29 +35,43 @@ func New(c *config.Config) *Sender {
 }
 
 func (s *Sender) SendRecoveryEmail(recepient string, token string) error {
-	body := fmt.Sprintf(`
-		<html>
-		<body>
-			<p>Click <a href="%s/auth/password/reset?token=%s">here</a> to reset your password!</p>
-            <p><b>Ignore this email if you didn't request a password reset</b></p>
-		</body>
-		</html>
-	`, s.config.BasePath, token)
+	tmpl, err := template.ParseFiles("templates/recovery_email.html")
+	if err != nil {
+		return fmt.Errorf("Error parsing template: %v", err)
+	}
 
-	return s.Send(recepient, "dreik: Password reset", body)
+	data := RecoveryEmailData{
+		BasePath: s.config.BasePath,
+		Token:    token,
+	}
+
+	var buf bytes.Buffer
+	err = tmpl.Execute(&buf, data)
+	if err != nil {
+		return fmt.Errorf("Error executing template: %v", err)
+	}
+
+	return s.Send(recepient, "yodreik: Password reset", buf.String())
 }
 
 func (s *Sender) SendConfirmationEmail(recepient string, token string) error {
-	body := fmt.Sprintf(`
-		<html>
-		<body>
-			<p>Click <a href="%s/auth/confirm?token=%s">here</a> to verify your account!</p>
-			<p>This link will be available only for 48h!</p>
-		</body>
-		</html>
-	`, s.config.BasePath, token)
+	tmpl, err := template.ParseFiles("templates/confirmation_email.html")
+	if err != nil {
+		return fmt.Errorf("Error parsing template: %v", err)
+	}
 
-	return s.Send(recepient, "dreik: Account confirmation", body)
+	data := ConfirmationEmailData{
+		BasePath: s.config.BasePath,
+		Token:    token,
+	}
+
+	var buf bytes.Buffer
+	err = tmpl.Execute(&buf, data)
+	if err != nil {
+		return fmt.Errorf("Error executing template: %v", err)
+	}
+
+	return s.Send(recepient, "yodreik: Account confirmation", buf.String())
 }
 
 func (s *Sender) Send(recepient string, subject string, body string) error {

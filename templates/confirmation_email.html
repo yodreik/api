@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Confirmation Email</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap" rel="stylesheet" />
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #fafafa;
+
+            font-family: "Montserrat", sans-serif;
+        }
+
+        table {
+            border-spacing: 0;
+            width: 100%;
+            text-align: center;
+            background-color: #fafafa;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #09090b;
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+
+        p {
+            color: #09090b;
+            font-size: 16px;
+            margin-bottom: 30px;
+        }
+    </style>
+</head>
+
+<body>
+    <table role="presentation">
+        <tr>
+            <td>
+                <h1>Confirmation Email</h1>
+                <p>Click below to verify your <b>yodreik</b> account.</p>
+                <a href="{{ .BasePath }}/auth/confirm?token={{ .Token }}" style="
+                            background-color: #58d8c9;
+                            color: #09090b;
+                            font-size: 18px;
+                            font-weight: bold;
+                            text-decoration: none;
+                            border-radius: 15px;
+                            padding: 15px 30px;
+                            display: inline-block;
+                            line-height: 10px;
+                        ">
+                    Confirm
+                </a>
+            </td>
+        </tr>
+    </table>
+</body>
+
+</html>
