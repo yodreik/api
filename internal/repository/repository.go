@@ -13,7 +13,7 @@ import (
 type User interface {
 	Create(ctx context.Context, email string, username string, passwordHash string) (*entity.User, error)
 	SetUserConfirmed(ctx context.Context, email string, token string) error
-	UpdateUser(ctx context.Context, userID string, email string, username string, displayName string, avatarURL string, passwordHash string, isPrivate bool) error
+	UpdateUser(ctx context.Context, userID string, email string, username string, displayName string, avatarURL string, passwordHash string, isPrivate bool, isConfirmed bool, confirmationToken string) error
 	GetByID(ctx context.Context, id string) (*entity.User, error)
 	GetByCredentialsWithEmail(ctx context.Context, email string, passwordHash string) (*entity.User, error)
 	GetByCredentialsWithUsername(ctx context.Context, email string, passwordHash string) (*entity.User, error)
