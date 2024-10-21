@@ -659,9 +659,6 @@ const docTemplate = `{
         },
         "requestbody.UpdateAccount": {
             "type": "object",
-            "required": [
-                "email"
-            ],
             "properties": {
                 "display_name": {
                     "type": "string",
