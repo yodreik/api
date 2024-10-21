@@ -12,7 +12,7 @@ type CreateSession struct {
 }
 
 type UpdateAccount struct {
-	Email       *string `json:"email" binding:"omitempty,required,max=254"`
+	Email       *string `json:"email" binding:"omitempty,max=254"`
 	Username    *string `json:"username" binding:"omitempty,min=5,max=32"`
 	DisplayName *string `json:"display_name" binding:"omitempty,min=1,max=50"`
 	Password    *string `json:"password" binding:"omitempty,min=8,max=64"`

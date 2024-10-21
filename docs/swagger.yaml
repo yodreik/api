@@ -76,8 +76,6 @@ definitions:
         maxLength: 32
         minLength: 5
         type: string
-    required:
-    - email
     type: object
   requestbody.UpdatePassword:
     properties:
