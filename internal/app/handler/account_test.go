@@ -637,8 +637,8 @@ func TestUpdateAccount(t *testing.T) {
 
 				mock.ExpectQuery("SELECT * FROM users WHERE id = $1").WithArgs(user.ID).WillReturnRows(rows)
 
-				mock.ExpectExec("UPDATE users SET email = $1, username = $2, display_name = $3, avatar_url = $4, password_hash = $5, is_private = $6 WHERE id = $7").
-					WithArgs(user.Email, "johndoe2", user.DisplayName, user.AvatarURL, user.PasswordHash, false, user.ID).
+				mock.ExpectExec("UPDATE users SET email = $1, username = $2, display_name = $3, avatar_url = $4, password_hash = $5, is_private = $6, is_confirmed = $7, confirmation_token = $8 WHERE id = $9").
+					WithArgs(user.Email, "johndoe2", user.DisplayName, user.AvatarURL, user.PasswordHash, false, user.IsConfirmed, user.ConfirmationToken, user.ID).
 					WillReturnResult(driver.RowsAffected(1))
 			},
 
@@ -662,8 +662,8 @@ func TestUpdateAccount(t *testing.T) {
 
 				mock.ExpectQuery("SELECT * FROM users WHERE id = $1").WithArgs(user.ID).WillReturnRows(rows)
 
-				mock.ExpectExec("UPDATE users SET email = $1, username = $2, display_name = $3, avatar_url = $4, password_hash = $5, is_private = $6 WHERE id = $7").
-					WithArgs(user.Email, user.Username, "John Doe Ver2", user.AvatarURL, user.PasswordHash, false, user.ID).
+				mock.ExpectExec("UPDATE users SET email = $1, username = $2, display_name = $3, avatar_url = $4, password_hash = $5, is_private = $6, is_confirmed = $7, confirmation_token = $8 WHERE id = $9").
+					WithArgs(user.Email, user.Username, "John Doe Ver2", user.AvatarURL, user.PasswordHash, false, user.IsConfirmed, user.ConfirmationToken, user.ID).
 					WillReturnResult(driver.RowsAffected(1))
 			},
 
@@ -687,8 +687,8 @@ func TestUpdateAccount(t *testing.T) {
 
 				mock.ExpectQuery("SELECT * FROM users WHERE id = $1").WithArgs(user.ID).WillReturnRows(rows)
 
-				mock.ExpectExec("UPDATE users SET email = $1, username = $2, display_name = $3, avatar_url = $4, password_hash = $5, is_private = $6 WHERE id = $7").
-					WithArgs(user.Email, user.Username, user.DisplayName, user.AvatarURL, sha256.String("newpassword"), false, user.ID).
+				mock.ExpectExec("UPDATE users SET email = $1, username = $2, display_name = $3, avatar_url = $4, password_hash = $5, is_private = $6, is_confirmed = $7, confirmation_token = $8 WHERE id = $9").
+					WithArgs(user.Email, user.Username, user.DisplayName, user.AvatarURL, sha256.String("newpassword"), false, user.IsConfirmed, user.ConfirmationToken, user.ID).
 					WillReturnResult(driver.RowsAffected(1))
 			},
 
@@ -712,8 +712,8 @@ func TestUpdateAccount(t *testing.T) {
 
 				mock.ExpectQuery("SELECT * FROM users WHERE id = $1").WithArgs(user.ID).WillReturnRows(rows)
 
-				mock.ExpectExec("UPDATE users SET email = $1, username = $2, display_name = $3, avatar_url = $4, password_hash = $5, is_private = $6 WHERE id = $7").
-					WithArgs(user.Email, user.Username, user.DisplayName, user.AvatarURL, user.PasswordHash, true, user.ID).
+				mock.ExpectExec("UPDATE users SET email = $1, username = $2, display_name = $3, avatar_url = $4, password_hash = $5, is_private = $6, is_confirmed = $7, confirmation_token = $8 WHERE id = $9").
+					WithArgs(user.Email, user.Username, user.DisplayName, user.AvatarURL, user.PasswordHash, true, user.IsConfirmed, user.ConfirmationToken, user.ID).
 					WillReturnResult(driver.RowsAffected(1))
 			},
 

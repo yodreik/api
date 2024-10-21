@@ -282,7 +282,7 @@ func (h *Handler) UpdateAccount(c *gin.Context) {
 		user.IsPrivate = *body.IsPrivate
 	}
 
-	err = h.repository.User.UpdateUser(c, userID, user.Email, user.Username, user.DisplayName, user.AvatarURL, user.PasswordHash, user.IsPrivate)
+	err = h.repository.User.UpdateUser(c, userID, user.Email, user.Username, user.DisplayName, user.AvatarURL, user.PasswordHash, user.IsPrivate, user.IsConfirmed, user.ConfirmationToken)
 	if err != nil {
 		log.Error("can't update user", sl.Err(err))
 		response.InternalServerError(c)
@@ -375,7 +375,7 @@ func (h *Handler) UploadAvatar(c *gin.Context) {
 
 	user.AvatarURL = fmt.Sprintf("%s/api/avatar/%s", h.config.BasePath, filename)
 
-	err = h.repository.User.UpdateUser(c, user.ID, user.Email, user.Username, user.DisplayName, user.AvatarURL, user.PasswordHash, user.IsPrivate)
+	err = h.repository.User.UpdateUser(c, user.ID, user.Email, user.Username, user.DisplayName, user.AvatarURL, user.PasswordHash, user.IsPrivate, user.IsConfirmed, user.ConfirmationToken)
 	if err != nil {
 		log.Error("could not update user", sl.Err(err))
 		response.InternalServerError(c)
@@ -414,7 +414,7 @@ func (h *Handler) DeleteAvatar(c *gin.Context) {
 
 	user.AvatarURL = ""
 
-	err = h.repository.User.UpdateUser(c, user.ID, user.Email, user.Username, user.DisplayName, user.AvatarURL, user.PasswordHash, user.IsPrivate)
+	err = h.repository.User.UpdateUser(c, user.ID, user.Email, user.Username, user.DisplayName, user.AvatarURL, user.PasswordHash, user.IsPrivate, user.IsConfirmed, user.ConfirmationToken)
 	if err != nil {
 		log.Error("could not update user", sl.Err(err))
 		response.InternalServerError(c)
