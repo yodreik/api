@@ -63,6 +63,9 @@ definitions:
         maxLength: 50
         minLength: 1
         type: string
+      email:
+        maxLength: 254
+        type: string
       is_private:
         type: boolean
       password:
@@ -73,6 +76,8 @@ definitions:
         maxLength: 32
         minLength: 5
         type: string
+    required:
+    - email
     type: object
   requestbody.UpdatePassword:
     properties:
