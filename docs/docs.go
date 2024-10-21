@@ -659,11 +659,18 @@ const docTemplate = `{
         },
         "requestbody.UpdateAccount": {
             "type": "object",
+            "required": [
+                "email"
+            ],
             "properties": {
                 "display_name": {
                     "type": "string",
                     "maxLength": 50,
                     "minLength": 1
+                },
+                "email": {
+                    "type": "string",
+                    "maxLength": 254
                 },
                 "is_private": {
                     "type": "boolean"

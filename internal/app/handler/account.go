@@ -257,6 +257,18 @@ func (h *Handler) UpdateAccount(c *gin.Context) {
 		return
 	}
 
+	if body.Email != nil {
+		user.Email = *body.Email
+		user.IsConfirmed = false
+		user.ConfirmationToken = uuid.NewString()
+
+		go func() {
+			err = h.mailer.SendConfirmationEmail(user.Email, user.ConfirmationToken)
+			if err != nil {
+				log.Error("can't send an email", sl.Err(err))
+			}
+		}()
+	}
 	if body.Username != nil {
 		user.Username = *body.Username
 	}
