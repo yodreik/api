@@ -662,8 +662,7 @@ const docTemplate = `{
             "properties": {
                 "display_name": {
                     "type": "string",
-                    "maxLength": 50,
-                    "minLength": 1
+                    "maxLength": 50
                 },
                 "email": {
                     "type": "string",

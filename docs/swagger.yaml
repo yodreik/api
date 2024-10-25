@@ -61,7 +61,6 @@ definitions:
     properties:
       display_name:
         maxLength: 50
-        minLength: 1
         type: string
       email:
         maxLength: 254
