@@ -350,7 +350,7 @@ func (h *Handler) UploadAvatar(c *gin.Context) {
 
 	// Generate new filename, until it isn't taken
 	_, err = os.Stat(dst)
-	for err != nil {
+	for err == nil {
 		filename = fmt.Sprintf("%s%s", uuid.NewString(), extension)
 		dst = fmt.Sprintf("./.database/avatars/%s", filename)
 
