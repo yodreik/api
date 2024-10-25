@@ -14,7 +14,7 @@ type CreateSession struct {
 type UpdateAccount struct {
 	Email       *string `json:"email" binding:"omitempty,max=254"`
 	Username    *string `json:"username" binding:"omitempty,min=5,max=32"`
-	DisplayName *string `json:"display_name" binding:"omitempty,min=1,max=50"`
+	DisplayName *string `json:"display_name" binding:"omitempty,max=50"`
 	Password    *string `json:"password" binding:"omitempty,min=8,max=64"`
 	IsPrivate   *bool   `json:"is_private" binding:"omitempty"`
 }
