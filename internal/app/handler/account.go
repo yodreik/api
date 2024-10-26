@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"net/mail"
 	"os"
 	"path/filepath"
 	"strings"
@@ -258,6 +259,13 @@ func (h *Handler) UpdateAccount(c *gin.Context) {
 	}
 
 	if body.Email != nil {
+		_, err := mail.ParseAddress(*body.Email)
+		if err != nil {
+			log.Debug("email is invalid", slog.String("email", *body.Email))
+			response.WithMessage(c, http.StatusBadRequest, "invalid email format")
+			return
+		}
+
 		u, _ := h.repository.User.GetByEmail(c, *body.Email)
 		if u != nil {
 			log.Debug("can't update account, email already taken")
