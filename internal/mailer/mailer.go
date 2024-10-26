@@ -18,9 +18,14 @@ type RecoveryEmailData struct {
 	Token    string
 }
 
+type EmailChanedEmailData struct {
+	UpdatedEmail string
+}
+
 type Mailer interface {
 	SendRecoveryEmail(recepient string, token string) error
 	SendConfirmationEmail(recepient string, token string) error
+	SendSecurityEmail(recepient string, updatedEmail string) error
 	Send(recepient string, subject string, body string) error
 }
 
@@ -72,6 +77,25 @@ func (s *Sender) SendConfirmationEmail(recepient string, token string) error {
 	}
 
 	return s.Send(recepient, "yodreik: Account confirmation", buf.String())
+}
+
+func (s *Sender) SendSecurityEmail(recepient string, updatedEmail string) error {
+	tmpl, err := template.ParseFiles("templates/security_email.html")
+	if err != nil {
+		return fmt.Errorf("Error parsing template: %v", err)
+	}
+
+	data := EmailChanedEmailData{
+		UpdatedEmail: updatedEmail,
+	}
+
+	var buf bytes.Buffer
+	err = tmpl.Execute(&buf, data)
+	if err != nil {
+		return fmt.Errorf("Error executing template: %v", err)
+	}
+
+	return s.Send(recepient, "yodreik: Security alert", buf.String())
 }
 
 func (s *Sender) Send(recepient string, subject string, body string) error {
