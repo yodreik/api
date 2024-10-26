@@ -258,6 +258,13 @@ func (h *Handler) UpdateAccount(c *gin.Context) {
 	}
 
 	if body.Email != nil {
+		u, _ := h.repository.User.GetByEmail(c, *body.Email)
+		if u != nil {
+			log.Debug("can't update account, email already taken")
+			response.WithMessage(c, http.StatusBadRequest, "email already taken")
+			return
+		}
+
 		user.Email = *body.Email
 		user.IsConfirmed = false
 		user.ConfirmationToken = uuid.NewString()
@@ -270,6 +277,13 @@ func (h *Handler) UpdateAccount(c *gin.Context) {
 		}()
 	}
 	if body.Username != nil {
+		u, _ := h.repository.User.GetByUsername(c, *body.Username)
+		if u != nil {
+			log.Debug("can't update account, username already taken")
+			response.WithMessage(c, http.StatusBadRequest, "username already taken")
+			return
+		}
+
 		user.Username = *body.Username
 	}
 	if body.DisplayName != nil {

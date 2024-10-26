@@ -637,6 +637,8 @@ func TestUpdateAccount(t *testing.T) {
 
 				mock.ExpectQuery("SELECT * FROM users WHERE id = $1").WithArgs(user.ID).WillReturnRows(rows)
 
+				mock.ExpectQuery("SELECT * FROM users WHERE username = $1").WithArgs("johndoe2").WillReturnRows(rows)
+
 				mock.ExpectExec("UPDATE users SET email = $1, username = $2, display_name = $3, avatar_url = $4, password_hash = $5, is_private = $6, is_confirmed = $7, confirmation_token = $8 WHERE id = $9").
 					WithArgs(user.Email, "johndoe2", user.DisplayName, user.AvatarURL, user.PasswordHash, false, user.IsConfirmed, user.ConfirmationToken, user.ID).
 					WillReturnResult(driver.RowsAffected(1))
