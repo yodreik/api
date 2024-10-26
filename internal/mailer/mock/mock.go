@@ -20,6 +20,11 @@ func (mm *MockMailer) SendConfirmationEmail(recepient string, token string) erro
 	return nil
 }
 
+func (mm *MockMailer) SendSecurityEmail(recepient string, token string) error {
+	mm.SentEmails = append(mm.SentEmails, recepient)
+	return nil
+}
+
 func (mm *MockMailer) Send(recepient string, subject string, body string) error {
 	mm.SentEmails = append(mm.SentEmails, recepient)
 	return nil
