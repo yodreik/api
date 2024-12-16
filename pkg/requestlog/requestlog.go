@@ -18,7 +18,7 @@ func Completed(c *gin.Context) {
 	c.Next()
 
 	// Ignore `/docs` and `/coverage` paths and CORS requests (For now, I don't need any OPTIONS requests to be logged)
-	if strings.HasPrefix(c.Request.URL.Path, "/docs") || strings.HasPrefix(c.Request.URL.Path, "/coverage") || c.Request.Method == http.MethodOptions {
+	if strings.HasPrefix(c.Request.URL.Path, "/api/docs") || strings.HasPrefix(c.Request.URL.Path, "/api/coverage") || c.Request.Method == http.MethodOptions {
 		return
 	}
 

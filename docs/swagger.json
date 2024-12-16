@@ -1,14 +1,11 @@
 {
-    "schemes": [
-        "https"
-    ],
     "swagger": "2.0",
     "info": {
         "description": "API server for yodreik application",
         "title": "yodreik API",
         "contact": {}
     },
-    "host": "dreik.d.qarwe.online",
+    "host": "localhost:6969",
     "basePath": "/api",
     "paths": {
         "/account": {
@@ -562,6 +559,46 @@
                     },
                     "400": {
                         "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/responsebody.Message"
+                        }
+                    }
+                }
+            }
+        },
+        "/workout/{id}": {
+            "delete": {
+                "security": [
+                    {
+                        "AccessToken": []
+                    }
+                ],
+                "description": "deletes a workout record",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "activity"
+                ],
+                "summary": "Delete a workout record",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Workout ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "$ref": "#/definitions/responsebody.Message"
                         }

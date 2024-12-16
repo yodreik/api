@@ -31,6 +31,7 @@ type User interface {
 
 type Workout interface {
 	Create(ctx context.Context, userID string, date time.Time, duration int, kind string) (*entity.Workout, error)
+	Delete(ctx context.Context, workoutID string) error
 	GetByID(ctx context.Context, id string) (*entity.Workout, error)
 	GetAllUserWorkouts(ctx context.Context, userID string) ([]entity.Workout, error)
 	GetUserWorkouts(ctx context.Context, userID string, bedginDate time.Time, endDate time.Time) ([]entity.Workout, error)

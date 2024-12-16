@@ -165,7 +165,7 @@ definitions:
       kind:
         type: string
     type: object
-host: dreik.d.qarwe.online
+host: localhost:6969
 info:
   contact: {}
   description: API server for yodreik application
@@ -528,8 +528,31 @@ paths:
       summary: Create a record about past workout
       tags:
       - activity
-schemes:
-- https
+  /workout/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: deletes a workout record
+      parameters:
+      - description: Workout ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responsebody.Message'
+      security:
+      - AccessToken: []
+      summary: Delete a workout record
+      tags:
+      - activity
 securityDefinitions:
   AccessToken:
     in: header

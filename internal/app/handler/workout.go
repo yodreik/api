@@ -6,6 +6,7 @@ import (
 	"api/internal/app/handler/response/responsebody"
 	"api/internal/lib/logger/sl"
 	"api/pkg/requestid"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"time"
@@ -62,6 +63,47 @@ func (h *Handler) CreateWorkout(c *gin.Context) {
 		Duration: workout.Duration,
 		Kind:     workout.Kind,
 	})
+}
+
+// @Summary      Delete a workout record
+// @Description  deletes a workout record
+// @Security     AccessToken
+// @Tags         activity
+// @Accept       json
+// @Produce      json
+// @Param        id             path string true "Workout ID"
+// @Success      200
+// @Failure      404 {object}   responsebody.Message
+// @Router       /workout/{id}  [delete]
+func (h *Handler) DeleteWorkout(c *gin.Context) {
+	log := slog.With(
+		slog.String("op", "handler.DeleteWorkout"),
+		slog.String("request_id", requestid.Get(c)),
+	)
+
+	workoutID := c.Param("id")
+	fmt.Println(workoutID)
+	workout, err := h.repository.Workout.GetByID(c, workoutID)
+	if err != nil {
+		log.Error("workout not found", sl.Err(err))
+		response.WithMessage(c, http.StatusNotFound, "workout not found")
+		return
+	}
+
+	userID := c.GetString("UserID")
+	if workout.UserID != userID {
+		log.Error("user id doesn't match with workout's creator id", sl.Err(err))
+		response.WithMessage(c, http.StatusForbidden, "forbidden to delete workout")
+	}
+
+	err = h.repository.Workout.Delete(c, workoutID)
+	if err != nil {
+		log.Error("can't delete workout", sl.Err(err))
+		response.InternalServerError(c)
+		return
+	}
+
+	c.Status(http.StatusOK)
 }
 
 // @Summary      Get user's activity history

@@ -35,6 +35,19 @@ func (p *Postgres) Create(ctx context.Context, userID string, date time.Time, du
 	return &workout, err
 }
 
+func (p *Postgres) Delete(ctx context.Context, workoutID string) error {
+	query := "DELETE FROM workouts WHERE id = $1"
+
+	var err error
+	// TODO: Return repoerr.ErrWorkoutNotFound if nothing to delete
+	_, err = p.db.ExecContext(ctx, query, workoutID)
+	if err != nil {
+		return nil
+	}
+
+	return err
+}
+
 func (p *Postgres) GetByID(ctx context.Context, id string) (*entity.Workout, error) {
 	query := "SELECT * FROM workouts WHERE id = $1"
 

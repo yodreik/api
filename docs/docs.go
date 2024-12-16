@@ -572,6 +572,46 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/workout/{id}": {
+            "delete": {
+                "security": [
+                    {
+                        "AccessToken": []
+                    }
+                ],
+                "description": "deletes a workout record",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "activity"
+                ],
+                "summary": "Delete a workout record",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Workout ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/responsebody.Message"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -832,9 +872,9 @@ const docTemplate = `{
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "",
-	Host:             "dreik.d.qarwe.online",
+	Host:             "localhost:6969",
 	BasePath:         "/api",
-	Schemes:          []string{"https"},
+	Schemes:          []string{},
 	Title:            "yodreik API",
 	Description:      "API server for yodreik application",
 	InfoInstanceName: "swagger",
