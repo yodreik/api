@@ -81,6 +81,7 @@ func (r *Router) InitRoutes() *gin.Engine {
 		api.PATCH("/account/reset-password", r.handler.UpdatePassword)
 
 		api.POST("/workout", r.handler.UserIdentity, r.handler.CreateWorkout)
+		api.DELETE("/workout/:id", r.handler.UserIdentity, r.handler.DeleteWorkout)
 
 		api.GET("/activity", r.handler.UserIdentity, r.handler.GetActivityHistory)
 		api.GET("/statistics", r.handler.UserIdentity, r.handler.GetStatistics)
