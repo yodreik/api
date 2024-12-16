@@ -872,9 +872,9 @@ const docTemplate = `{
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "",
-	Host:             "localhost:6969",
+	Host:             "dreik.d.qarwe.online",
 	BasePath:         "/api",
-	Schemes:          []string{},
+	Schemes:          []string{"https"},
 	Title:            "yodreik API",
 	Description:      "API server for yodreik application",
 	InfoInstanceName: "swagger",
